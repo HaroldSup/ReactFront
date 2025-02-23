@@ -23,18 +23,18 @@
     "react-router-dom": "^6.28.0",
     "react-scripts": "5.0.1",
     "reactflow": "^11.11.4",
+    "serve": "^14.2.4",
     "sweetalert": "^2.1.2",
     "sweetalert2": "^11.14.5",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
   "scripts": {
-  "start": "serve -s build -l 3000",
-  "build": "cross-env DISABLE_ESLINT_PLUGIN=true NODE_OPTIONS=--max-old-space-size=1024 react-scripts build",
-  "test": "react-scripts test",
-  "eject": "react-scripts eject"
-}
-,
+    "start": "serve -s build -l 3000",
+    "build": "cross-env DISABLE_ESLINT_PLUGIN=true NODE_OPTIONS=--max-old-space-size=1024 react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
