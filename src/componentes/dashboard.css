@@ -1,0 +1,87 @@
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+.sidebar {
+    background: linear-gradient(180deg, #00274d, #0056b3);
+    color: #ecf0f1;
+    width: 220px;
+    transition: width 0.3s;
+    padding-top: 20px;
+}
+
+.sidebar.expanded {
+    width: 280px;
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-container img {
+    width: 60px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.expand-button {
+    background: none;
+    border: none;
+    color: #ecf0f1;
+    cursor: pointer;
+    margin-bottom: 20px;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+}
+
+.menu-item {
+    padding: 15px 20px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    color: #ecf0f1;
+}
+
+.menu-item i {
+    margin-right: 10px;
+}
+
+.menu-item:hover,
+.menu-item.active {
+    background-color: #34495e;
+    font-weight: bold;
+}
+
+.menu-group {
+    margin-top: 15px;
+}
+
+.content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #ecf0f1;
+    overflow-y: auto;
+}
+
+.welcome-section {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.welcome-section h2 {
+    font-size: 24px;
+    color: #2c3e50;
+}
+
+.instructions {
+    font-size: 18px;
+    color: #7f8c8d;
+    margin-top: 10px;
+}

@@ -1,0 +1,60 @@
+.lista-acefalias-container {
+  margin: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  margin: auto;
+}
+
+.lista-titulo {
+  font-size: 24px;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.add-button {
+  background-color: #28a745;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 15px;
+  transition: background-color 0.3s ease;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.add-button:hover {
+  background-color: #218838;
+}
+
+.acefalias-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.acefalias-table th, .acefalias-table td {
+  padding: 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.acefalias-table th {
+  background-color: #f1f1f1;
+  font-weight: bold;
+}
+
+.acefalias-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.acefalias-table tr:hover {
+  background-color: #e9e9e9;
+}
