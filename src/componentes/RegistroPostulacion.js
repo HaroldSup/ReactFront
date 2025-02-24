@@ -9,23 +9,7 @@ function toTitleCase(str) {
   );
 }
 
-// LISTA DE ASIGNATURAS
-const asignaturasList = [
-  'Inteligencia Artificial II',
-  'Inteligencia Artificial I',
-  'Métodos Numéricos',
-  'Ingeniería de Software II',
-  'Investigación Operativa II',
-  'Investigación Operativa I',
-  'Internet de las Cosas',
-  'Redes de Computadoras',
-  'Sistemas Operativos y Servidores',
-  'Trabajo de Grado',
-  'trabajo de grado II',
-  'inteligencia artificial',
-  'Ecuaciones diferenciales',
-];
-
+// Lista de documentos
 const documentosList = [
   { key: 'cartaDocenteAntiguoLicenciatura', label: 'Carta de Postulación Docente Antiguo Licenciatura' },
   { key: 'cartaDocenteAntiguoTecnologico', label: 'Carta de Postulación Docente Antiguo Tecnológico' },
@@ -64,6 +48,46 @@ const allowedTypes = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
+// Opciones de carreras
+const carrerasList = [
+  "Ingeniería de Sistemas",
+  "Ingeniería de Sistemas Electrónicos",
+  "Ingeniería Agroindustrial",
+  "Ingeniería Comercial"
+];
+
+// Materias destacadas para cada carrera
+const materiasPorCarrera = {
+  "Ingeniería de Sistemas": [
+    "Estructuras de Datos",
+    "Algoritmos Avanzados",
+    "Bases de Datos",
+    "Desarrollo Web",
+    "Seguridad Informática"
+  ],
+  "Ingeniería de Sistemas Electrónicos": [
+    "Circuitos Digitales",
+    "Electrónica Analógica",
+    "Procesamiento de Señales",
+    "Microcontroladores",
+    "Sistemas Embebidos"
+  ],
+  "Ingeniería Agroindustrial": [
+    "Tecnología de Alimentos",
+    "Manejo de Cultivos",
+    "Procesos Agroindustriales",
+    "Innovación Agrícola",
+    "Gestión de Recursos Naturales"
+  ],
+  "Ingeniería Comercial": [
+    "Marketing Estratégico",
+    "Finanzas Corporativas",
+    "Economía Internacional",
+    "Gestión Empresarial",
+    "Comercio Internacional"
+  ],
+};
+
 function RegistroPostulacion() {
   const [formData, setFormData] = useState({
     nombre: '',
@@ -81,7 +105,6 @@ function RegistroPostulacion() {
 
   const [nuevaAsignatura, setNuevaAsignatura] = useState({
     asignatura: '',
-    departamento: '',
     nivel: 'Grado',
   });
 
@@ -92,10 +115,17 @@ function RegistroPostulacion() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Al cambiar la carrera, solo se actualiza el valor, sin reiniciar las asignaturas registradas
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    if (name === 'carrera') {
+      setNuevaAsignatura({
+        asignatura: '',
+        nivel: 'Grado',
+      });
+    }
   };
 
   const handleFileChange = (e) => {
@@ -134,20 +164,18 @@ function RegistroPostulacion() {
   };
 
   const addAsignatura = () => {
-    if (!nuevaAsignatura.asignatura.trim() || !nuevaAsignatura.departamento.trim()) {
+    if (!nuevaAsignatura.asignatura.trim()) {
       return Swal.fire({
         icon: 'error',
-        title: 'Campos incompletos',
-        text: 'Por favor, complete todos los campos de la asignatura.',
+        title: 'Campo incompleto',
+        text: 'Por favor, seleccione una asignatura.',
       });
     }
-    if (
-      !soloLetras.test(nuevaAsignatura.departamento.trim())
-    ) {
+    if (formData.asignaturasSeleccionadas.length >= 3) {
       return Swal.fire({
         icon: 'error',
-        title: 'Formato inválido',
-        text: 'El departamento debe contener solo letras.',
+        title: 'Máximo alcanzado',
+        text: 'Solo se pueden registrar máximo 3 materias.',
       });
     }
     setFormData((prev) => ({
@@ -161,7 +189,6 @@ function RegistroPostulacion() {
     });
     setNuevaAsignatura({
       asignatura: '',
-      departamento: '',
       nivel: 'Grado',
     });
   };
@@ -190,8 +217,8 @@ function RegistroPostulacion() {
     if (!formData.profesion.trim() || !soloLetras.test(formData.profesion.trim())) {
       return Swal.fire({ icon: 'error', title: 'Profesión inválida', text: 'La profesión es obligatoria y debe contener solo letras.' });
     }
-    if (!formData.carrera.trim() || !soloLetras.test(formData.carrera.trim())) {
-      return Swal.fire({ icon: 'error', title: 'Carrera inválida', text: 'La carrera es obligatoria y debe contener solo letras.' });
+    if (!formData.carrera.trim()) {
+      return Swal.fire({ icon: 'error', title: 'Carrera inválida', text: 'La carrera es obligatoria.' });
     }
     if (!formData.tipoDocente) {
       return Swal.fire({ icon: 'error', title: 'Tipo de Docente', text: 'El tipo de docente es obligatorio.' });
@@ -242,16 +269,12 @@ function RegistroPostulacion() {
     }
   };
 
-  // Cálculo del porcentaje de progreso:
-  // Se consideran los siguientes grupos de campos:
-  // - Información Personal (9 campos)
-  // - Se agregó al menos una asignatura (1 campo)
-  // - Se cargó algún documento (1 campo)
+  // Cálculo del porcentaje de progreso
   const personalFields = ['nombre', 'correo', 'celular', 'ci', 'universidad', 'profesion', 'anioTitulacion', 'carrera', 'tipoDocente'];
   const filledPersonal = personalFields.filter((key) => formData[key] !== '').length;
   const asignaturaFilled = formData.asignaturasSeleccionadas.length > 0 ? 1 : 0;
   const documentosFilled = Object.keys(formData.documentos).length > 0 ? 1 : 0;
-  const totalFields = personalFields.length + 2; // +2 por asignaturas y documentos
+  const totalFields = personalFields.length + 2;
   const progressPercentage = Math.round(((filledPersonal + asignaturaFilled + documentosFilled) / totalFields) * 100);
 
   return (
@@ -392,15 +415,20 @@ function RegistroPostulacion() {
                 <label className="block text-lg font-semibold text-gray-700 mb-2">
                   Carrera:
                 </label>
-                <input
-                  type="text"
+                <select
                   name="carrera"
                   value={formData.carrera}
                   onChange={handleChange}
                   required
-                  placeholder="Ej: Ingeniería, Letras, etc."
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Seleccione una carrera</option>
+                  {carrerasList.map((carrera, idx) => (
+                    <option key={idx} value={carrera}>
+                      {carrera}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-lg font-semibold text-gray-700 mb-2">
@@ -424,7 +452,7 @@ function RegistroPostulacion() {
           {/* Materias Postuladas */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h2 className="text-2xl font-bold text-gray-700 mb-4">Materias Postuladas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* SELECT PARA LA ASIGNATURA */}
               <div>
                 <label className="block text-lg font-semibold text-gray-700 mb-2">
@@ -437,27 +465,19 @@ function RegistroPostulacion() {
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccione una asignatura</option>
-                  {asignaturasList.map((asig, idx) => (
-                    <option key={idx} value={asig}>
-                      {asig}
-                    </option>
-                  ))}
+                  {formData.carrera &&
+                    materiasPorCarrera[formData.carrera]
+                      .filter((asig) =>
+                        !formData.asignaturasSeleccionadas.some(
+                          (item) => item.asignatura === asig
+                        )
+                      )
+                      .map((asig, idx) => (
+                        <option key={idx} value={asig}>
+                          {asig}
+                        </option>
+                      ))}
                 </select>
-              </div>
-
-              {/* DEPARTAMENTO/CARRERA */}
-              <div>
-                <label className="block text-lg font-semibold text-gray-700 mb-2">
-                  Departamento/Carrera:
-                </label>
-                <input
-                  type="text"
-                  name="departamento"
-                  value={nuevaAsignatura.departamento}
-                  onChange={handleNewSubjectChange}
-                  placeholder="Ej: Ingeniería"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
               </div>
 
               {/* NIVEL DE ENSEÑANZA */}
@@ -489,7 +509,7 @@ function RegistroPostulacion() {
                 <ul className="list-disc list-inside">
                   {formData.asignaturasSeleccionadas.map((item, index) => (
                     <li key={index} className="text-gray-800">
-                      {item.asignatura} - {item.departamento} - {item.nivel}
+                      {item.asignatura} - {item.nivel}
                     </li>
                   ))}
                 </ul>

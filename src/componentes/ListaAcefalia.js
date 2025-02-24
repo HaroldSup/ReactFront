@@ -8,6 +8,7 @@ import { FaFileAlt } from 'react-icons/fa';
 
 function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
   const [acefalias, setAcefalias] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const baseURL =
     process.env.NODE_ENV === 'development'
@@ -30,6 +31,11 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     };
     fetchAcefalias();
   }, [baseURL]);
+
+  // Filtrar por carrera
+  const filteredAcefalias = acefalias.filter(acefalia =>
+    acefalia.carrera.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleDeleteAcefalia = async (acefaliaId) => {
     const confirm = await Swal.fire({
@@ -102,7 +108,6 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     const tableRows = [];
 
     acefalias.forEach((acefalia, index) => {
-      // Para los requisitos, se separa el texto por puntos y se unen con " | "
       const requisitos = acefalia.requisitos
         ? acefalia.requisitos.split('.').filter(req => req.trim() !== "").join(" | ")
         : "";
@@ -125,7 +130,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     doc.save("Lista_Acefalias.pdf");
   };
 
-  // Función para formatear asignaturas (en este caso se asume que ya vienen como texto o arreglo)
+  // Función para formatear asignaturas
   const formatAsignaturas = (asignaturas) => {
     if (!asignaturas) return "";
     if (Array.isArray(asignaturas)) {
@@ -134,12 +139,9 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     return asignaturas;
   };
 
-  // Componente para visualizar documentos en un grid (se mantiene la funcionalidad original)
   const DocumentosDetalle = ({ documentos }) => {
     return (
       <div className="grid grid-cols-2 gap-4 p-4">
-        {/** Aquí se puede personalizar la visualización de cada documento, se omite para este ejemplo */}
-        {/* Por ejemplo: */}
         <p className="text-sm text-gray-600">[Visualización de documentos]</p>
       </div>
     );
@@ -176,6 +178,17 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
           </button>
         </div>
       </div>
+      
+      {/* Filtro para buscar por carrera */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Buscar por carrera"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="p-2 border border-gray-300 rounded w-full"
+        />
+      </div>
 
       {/* Vista en tabla para pantallas medianas y superiores */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden hidden sm:table">
@@ -192,7 +205,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
             </tr>
           </thead>
           <tbody className="text-gray-700 text-sm font-light">
-            {acefalias.map((acefalia, index) => (
+            {filteredAcefalias.map((acefalia, index) => (
               <tr key={acefalia._id} className="border-b border-gray-200 hover:bg-gray-100">
                 <td className="py-3 px-6 text-left whitespace-nowrap">{index + 1}</td>
                 <td className="py-3 px-6 text-left font-medium text-gray-800">{acefalia.asignatura}</td>
@@ -227,7 +240,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
 
       {/* Vista en tarjetas para pantallas pequeñas */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden block sm:hidden">
-        {acefalias.map((acefalia, index) => (
+        {filteredAcefalias.map((acefalia, index) => (
           <div key={acefalia._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
             <div>
               <span className="font-bold text-gray-800">

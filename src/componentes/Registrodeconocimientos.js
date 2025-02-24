@@ -1,26 +1,9 @@
-// Registrodeconocimientos.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
 function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCancel }) {
-  // Lista de asignaturas
-  const asignaturasList = [
-    'Inteligencia Artificial II',
-    'Inteligencia Artificial I',
-    'Métodos Numéricos',
-    'Ingeniería de Software II',
-    'Investigación Operativa II',
-    'Investigación Operativa I',
-    'Internet de las Cosas',
-    'Redes de Computadoras',
-    'Sistemas Operativos y Servidores',
-    'Trabajo de Grado',
-    'trabajo de grado II',
-    'inteligencia artificial',
-    'Ecuaciones diferenciales',
-  ];
-
+  // Se elimina la lista de asignaturas por defecto, pues se usarán las materias postuladas
   const [formData, setFormData] = useState({
     tipoEvaluador: '',
     nombre: '',
@@ -30,6 +13,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     examenConocimientos: ''
   });
 
+  // Nuevo estado para almacenar las materias postuladas
+  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
+
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
@@ -38,24 +24,44 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
   useEffect(() => {
     if (conocimiento) {
       setFormData({ ...conocimiento });
+      if (conocimiento.asignaturasSeleccionadas) {
+        setMateriasPostuladas(
+          typeof conocimiento.asignaturasSeleccionadas === 'string'
+            ? JSON.parse(conocimiento.asignaturasSeleccionadas)
+            : conocimiento.asignaturasSeleccionadas
+        );
+      }
     }
   }, [conocimiento]);
 
-  // NUEVO useEffect para buscar postulante por carnet y autocompletar el nombre
+  // Buscar postulante por carnet y autocompletar nombre y materias postuladas
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.carnet.trim() === '') {
         setFormData(prev => ({ ...prev, nombre: '' }));
+        setMateriasPostuladas([]);
         return;
       }
       try {
         const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`);
         if (response.data.data) {
-          setFormData(prev => ({ ...prev, nombre: response.data.data.nombre }));
+          setFormData(prev => ({
+            ...prev,
+            nombre: response.data.data.nombre
+          }));
+          if (response.data.data.asignaturasSeleccionadas) {
+            const materias = typeof response.data.data.asignaturasSeleccionadas === 'string'
+              ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+              : response.data.data.asignaturasSeleccionadas;
+            setMateriasPostuladas(materias);
+          } else {
+            setMateriasPostuladas([]);
+          }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
           setFormData(prev => ({ ...prev, nombre: '' }));
+          setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
       }
@@ -73,18 +79,17 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Calcular la nota final basada únicamente en la calificación del examen (40%)
+  // Calcular la nota final (40% del examen)
   const examenScore = parseFloat(formData.examenConocimientos) || 0;
   const notaFinal = (examenScore * 0.4).toFixed(2);
 
-  // Indicador de progreso: porcentaje de campos completados (6 campos)
+  // Progreso de campos completados
   const totalFields = Object.keys(formData).length;
   const filledFields = Object.values(formData).filter(val => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const dataToSend = { ...formData, notaFinal };
 
     try {
@@ -120,7 +125,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           </div>
         </div>
 
-        {/* Campo para seleccionar tipo de evaluador */}
+        {/* Selección de tipo de evaluador */}
         <div className="mb-6 p-4 border rounded-lg bg-gray-50">
           <label className="block text-lg font-bold text-gray-700 mb-2">
             Seleccionar tipo de Evaluador
@@ -159,8 +164,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  placeholder="Ingrese el nombre completo"
-                  title="Ingrese el nombre completo del postulante"
+                  readOnly
+                  placeholder="El nombre se autocompleta al ingresar el carnet"
+                  title="El nombre se autocompleta al ingresar el carnet"
                   required
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -182,7 +188,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                {/* Se reemplaza el input por un select de asignaturas */}
                 <select
                   name="materia"
                   value={formData.materia}
@@ -192,11 +197,15 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccione la asignatura</option>
-                  {asignaturasList.map((asig, idx) => (
-                    <option key={idx} value={asig}>
-                      {asig}
-                    </option>
-                  ))}
+                  {materiasPostuladas.length > 0 ? (
+                    materiasPostuladas.map((mat, idx) => (
+                      <option key={idx} value={mat.asignatura}>
+                        {mat.asignatura}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No se encontraron materias postuladas</option>
+                  )}
                 </select>
               </div>
               <div>

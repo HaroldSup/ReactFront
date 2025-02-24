@@ -3,7 +3,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }) {
-  // Lista de asignaturas
+  // Lista de asignaturas por defecto (ya no se utilizará para el select de materia)
   const asignaturasList = [
     'Inteligencia Artificial II',
     'Inteligencia Artificial I',
@@ -21,25 +21,24 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   ];
 
   const [formData, setFormData] = useState({
-    // Campo para seleccionar tipo de evaluador
     tipoEvaluador: '',
-    // Registro de datos del postulante (Primera Etapa)
     nombre: '',
     carnet: '',
     materia: '',
     fecha: '',
-    // Segunda Etapa: Exposición del Plan de Trabajo
     planConcordancia: '',
     planCompetencia: '',
     planContenidos: '',
     planEstrategiasEnsenanza: '',
     planEstrategiasEvaluacion: '',
-    // Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos
     procesoMotivacion: '',
     procesoDominio: '',
     procesoTICs: '',
     procesoExplicacion: ''
   });
+
+  // Nuevo estado para almacenar las materias postuladas
+  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
 
   const baseURL =
     process.env.NODE_ENV === 'development'
@@ -51,32 +50,49 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       setFormData({
         ...competencia
       });
+      if (competencia.asignaturasSeleccionadas) {
+        setMateriasPostuladas(
+          typeof competencia.asignaturasSeleccionadas === 'string'
+            ? JSON.parse(competencia.asignaturasSeleccionadas)
+            : competencia.asignaturasSeleccionadas
+        );
+      }
     }
   }, [competencia]);
 
-  // NUEVO useEffect para buscar postulante por carnet y autocompletar el nombre
+  // Buscar postulante por carnet y autocompletar nombre y materias postuladas
   useEffect(() => {
     const fetchPostulante = async () => {
-      // Si el campo carnet está vacío, se limpia el nombre
       if (formData.carnet.trim() === '') {
         setFormData(prev => ({ ...prev, nombre: '' }));
+        setMateriasPostuladas([]);
         return;
       }
       try {
         const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`);
         if (response.data.data) {
-          setFormData(prev => ({ ...prev, nombre: response.data.data.nombre }));
+          setFormData(prev => ({
+            ...prev,
+            nombre: response.data.data.nombre
+          }));
+          if (response.data.data.asignaturasSeleccionadas) {
+            const materias = typeof response.data.data.asignaturasSeleccionadas === 'string'
+              ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+              : response.data.data.asignaturasSeleccionadas;
+            setMateriasPostuladas(materias);
+          } else {
+            setMateriasPostuladas([]);
+          }
         }
       } catch (error) {
-        // Si no se encuentra el postulante, se deja el campo "nombre" vacío
         if (error.response && error.response.status === 404) {
           setFormData(prev => ({ ...prev, nombre: '' }));
+          setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
       }
     };
 
-    // Implementamos un debouncing de 500ms
     const delayDebounceFn = setTimeout(() => {
       fetchPostulante();
     }, 500);
@@ -86,7 +102,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   // Cálculos de la Segunda Etapa
@@ -106,12 +122,10 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (parseInt(formData.procesoExplicacion) || 0);
   const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2);
 
-  // Indicador de progreso: se calcula el porcentaje de campos completados
   const totalFields = Object.keys(formData).length;
   const filledFields = Object.values(formData).filter(val => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
-  // Cambios de color en las sumatorias según la calificación
   const stage2Color =
     stage2Sum <= 60 ? "text-red-500" : stage2Sum > 80 ? "text-green-500" : "text-yellow-600";
   const stage3Color =
@@ -120,13 +134,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validación básica: verificar que las sumatorias no excedan el máximo permitido
     if (stage2Sum > 100 || stage3Sum > 100) {
       Swal.fire('Error', 'La sumatoria de puntajes excede el máximo permitido.', 'error');
       return;
     }
 
-    // Se envían por separado los puntajes de la Segunda y Tercera Etapa
     const dataToSend = { 
       ...formData, 
       notaPlanTrabajo: stage2Promedio, 
@@ -166,7 +178,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           </div>
         </div>
 
-        {/* Campo para seleccionar tipo de evaluador */}
+        {/* Selección de tipo de evaluador */}
         <div className="mb-6 p-4 border rounded-lg bg-gray-50">
           <label className="block text-lg font-bold text-gray-700 mb-2">
             Seleccionar tipo de Evaluador
@@ -190,7 +202,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Registro de datos del postulante (Primera Etapa) */}
+          {/* Registro de datos del postulante */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">
               Registro de datos del postulante
@@ -202,9 +214,9 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   type="text"
                   name="nombre"
                   value={formData.nombre}
-                  onChange={handleChange}
-                  placeholder="Ingrese el nombre completo"
-                  title="Ingrese el nombre completo del postulante"
+                  readOnly
+                  placeholder="El nombre se autocompleta al ingresar el carnet"
+                  title="El nombre se autocompleta al ingresar el carnet"
                   required
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -226,7 +238,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                {/* Reemplazamos el input por un SELECT con las opciones de asignaturas */}
                 <select
                   name="materia"
                   value={formData.materia}
@@ -236,11 +247,15 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccione la asignatura</option>
-                  {asignaturasList.map((asig, idx) => (
-                    <option key={idx} value={asig}>
-                      {asig}
-                    </option>
-                  ))}
+                  {materiasPostuladas.length > 0 ? (
+                    materiasPostuladas.map((mat, idx) => (
+                      <option key={idx} value={mat.asignatura}>
+                        {mat.asignatura}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No se encontraron materias postuladas</option>
+                  )}
                 </select>
               </div>
               <div>
@@ -257,7 +272,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             </div>
           </div>
 
-          {/* Segunda Etapa */}
+          {/* Segunda Etapa: Exposición del Plan de Trabajo */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">
               Segunda Etapa: Exposición del Plan de Trabajo (30%)
@@ -362,7 +377,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             </div>
           </div>
 
-          {/* Tercera Etapa */}
+          {/* Tercera Etapa: Evaluación de Procesos Pedagógicos */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">
               Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%)
@@ -449,7 +464,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             </div>
           </div>
 
-          {/* Resultados: se muestran por separado las notas de cada etapa */}
+          {/* Resultados */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">Resultados</h3>
             <div className="text-xl font-semibold">
@@ -477,7 +492,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         </form>
       </div>
 
-      {/* Botón flotante para dispositivos móviles */}
+      {/* Botón flotante para móviles */}
       <button
         type="button"
         onClick={() => document.querySelector('form').requestSubmit()}
