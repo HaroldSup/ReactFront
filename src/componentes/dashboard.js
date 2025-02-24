@@ -12,8 +12,8 @@ import {
   AcademicCapIcon,
   GlobeAltIcon,
   LightBulbIcon,
-  PencilSquareIcon, // Ícono para el módulo de Firma Digital
-  CogIcon // Ícono para el módulo Workflow
+  PencilSquareIcon,
+  CogIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import logo from '../images/logo.png';
@@ -28,19 +28,29 @@ import AcefaliaForm from './AcefaliaForm';
 import ConcursoDeMeritos from './ConcursoDeMeritos';
 import RegistroDeMeritos from './Registrodemeritos';
 import ExamendeCompetencias from './Examendecompetencias';
-import Examendeconocimientos from './Examendeconocimientos';        // NUEVO: Lista Examen de Conocimientos
-import Registrodeconocimientos from './Registrodeconocimientos';      // NUEVO: Registro Examen de Conocimientos
-import FirmaDigital from './firmadigital'; // Componente ya creado
-import Workflow from './workflow'; // Módulo de automatización secuencial
-
-// Importamos el componente Postulacionesporcarrera
+import Examendeconocimientos from './Examendeconocimientos';
+import Registrodeconocimientos from './Registrodeconocimientos';
+import FirmaDigital from './firmadigital';
+import Workflow from './workflow';
 import Postulacionesporcarrera from './Postulacionesporcarrera';
 
 function Dashboard() {
-  // Recuperamos el usuario autenticado desde localStorage
+  // ============ CORRECCIÓN EN ESTAS LÍNEAS ============
   const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  let userData = null;
+
+  if (storedUser && storedUser !== 'undefined') {
+    try {
+      userData = JSON.parse(storedUser);
+    } catch (error) {
+      console.error('Error al parsear usuario desde localStorage:', error);
+      userData = null;
+    }
+  }
+
+  const user = userData;
   const permisos = user?.permisos || {};
+  // =====================================================
 
   // Función que devuelve true si el usuario es admin o tiene el permiso indicado
   const hasPermission = (permKey) => {
@@ -57,10 +67,6 @@ function Dashboard() {
   // Estado para almacenar los nodos (por label) que ya se han visitado
   const [visitedModules, setVisitedModules] = useState([]);
 
-  /**
-   * Mapeo de cada sección (activeSection) a un arreglo de labels de nodos del diagrama.
-   * Se utiliza para marcar (sin duplicados) los nodos correspondientes.
-   */
   const workflowMapping = {
     'dashboard': ['Inicio'],
     'ListaAcefalia': ['Unidad de Evaluación y Acreditación', 'Gestión de la documentación'],
@@ -71,19 +77,17 @@ function Dashboard() {
     'porCarrera': ['Postulante', 'Subir Documentación'],
     'ConcursoDeMeritos': ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
     'Registrodemeritos': ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
-    'Examendeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],  // NUEVO
-    'Registrodeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],  // NUEVO
+    'Examendeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
+    'Registrodeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
     'ExamendeCompetencias': ['Comité de evaluación', 'Gestión de la documentación examen de competencias', 'Registrar puntos de evaluación'],
     'propuestaDocente': ['Director de la unidad académica', 'Subir documentación', 'Descargar documentación con Firma Digital', 'Fin']
   };
 
-  // Cada vez que se cambia la sección, se agregan (sin duplicados) los nodos del mapping
   const toggleMenu = (section) => {
     setPreviousSection(activeSection);
     setActiveSection(section);
     if (workflowMapping[section]) {
       setVisitedModules((prev) => {
-        // Solo se agregan aquellos nodos que aún no han sido registrados
         const nuevos = workflowMapping[section].filter(label => !prev.includes(label));
         return [...prev, ...nuevos];
       });
@@ -94,7 +98,6 @@ function Dashboard() {
     setIsExpanded(!isExpanded);
   };
 
-  // Cuando se han visitado 3 o más nodos, se envía la secuencia al backend
   useEffect(() => {
     if (visitedModules.length >= 3) {
       axios.post('/api/workflow/registrar', { modules: visitedModules })
@@ -313,7 +316,7 @@ function Dashboard() {
                   <h2 className="text-3xl font-bold text-blue-900">Misión</h2>
                 </div>
                 <p className="text-gray-700 leading-relaxed">
-                  Formar y especializar profesionales de excelencia, con principios, valores ético-morales y cívicos, caracterizados por su responsabilidad social, espíritu emprendedor, liderazgo y disciplina; promoviendo la internacionalización, interacción social y desarrollo de la ciencia, tecnología e innovación, para contribuir al desarrollo del Estado.
+                  Formar y especializar profesionales de excelencia...
                 </p>
               </div>
               <div className="bg-white bg-opacity-90 shadow-xl rounded-lg p-8 flex flex-col">
@@ -322,7 +325,7 @@ function Dashboard() {
                   <h2 className="text-3xl font-bold text-blue-900">Visión</h2>
                 </div>
                 <p className="text-gray-700 leading-relaxed">
-                  Ser la Universidad líder en la formación de profesionales en Ingeniería y de especialización, caracterizada por el estudio, aplicación e innovación tecnológica, con responsabilidad social y reconocida a nivel nacional e internacional.
+                  Ser la Universidad líder en la formación de profesionales...
                 </p>
               </div>
               <div className="flex items-center justify-center">
@@ -377,10 +380,7 @@ function Dashboard() {
           />
         )}
         {activeSection === 'postulaciones' && <Postulaciones />}
-        {activeSection === 'porCarrera' && (
-          // Aquí se renderiza el componente Postulacionesporcarrera que creaste
-          <Postulacionesporcarrera />
-        )}
+        {activeSection === 'porCarrera' && <Postulacionesporcarrera />}
         {activeSection === 'ConcursoDeMeritos' && (
           <ConcursoDeMeritos
             onRegister={() => {
