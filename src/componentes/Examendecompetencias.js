@@ -16,11 +16,26 @@ function Examendecompetencias() {
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Obtener los registros desde el backend
+  // Obtener los registros desde el backend y filtrarlos según el usuario
   const fetchRegistros = async () => {
     try {
       const response = await axios.get(`${baseURL}/api/examen-competencias`);
-      setRegistros(response.data);
+      console.log('Registros obtenidos:', response.data);
+
+      // Recuperar datos del usuario desde localStorage (clave "user")
+      const user = JSON.parse(localStorage.getItem('user'));
+      console.log('Usuario logueado:', user);
+
+      if (user && !user.administrador) {
+        // Solo mostrar registros que tengan evaluadorId y que coincidan con el _id del usuario
+        const registrosFiltrados = response.data.filter(
+          (registro) =>
+            registro.evaluadorId && registro.evaluadorId === user._id
+        );
+        setRegistros(registrosFiltrados);
+      } else {
+        setRegistros(response.data);
+      }
     } catch (error) {
       console.error('Error al obtener los registros:', error);
       Swal.fire({
@@ -66,12 +81,6 @@ function Examendecompetencias() {
     }
   };
 
-  // Manejo de registro o edición de un registro
-  const onCompetenciaRegistered = () => {
-    setMostrarFormulario(false);
-    fetchRegistros();
-  };
-
   // Descargar registros en formato Excel
   const handleDownloadExcel = () => {
     if (registros.length === 0) {
@@ -98,7 +107,6 @@ function Examendecompetencias() {
     );
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Registros');
-
     XLSX.writeFile(workbook, 'Registros_Competencias.xlsx');
   };
 
@@ -151,6 +159,22 @@ function Examendecompetencias() {
       startY: 30,
     });
     doc.save('Registros_Competencias.pdf');
+  };
+
+  // Actualiza la lista luego de registrar o editar
+  // Si se recibe un nuevo registro y el usuario NO es admin, se muestra solo ese registro.
+  const onCompetenciaRegistered = (nuevoRegistro) => {
+    setMostrarFormulario(false);
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && !user.administrador) {
+      if (nuevoRegistro) {
+        setRegistros([nuevoRegistro]);
+      } else {
+        fetchRegistros();
+      }
+    } else {
+      fetchRegistros();
+    }
   };
 
   return (
@@ -230,8 +254,12 @@ function Examendecompetencias() {
                   <td className="py-3 px-6 text-left">
                     {new Date(registro.fecha).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-6 text-left">{registro.notaPlanTrabajo}</td>
-                  <td className="py-3 px-6 text-left">{registro.notaProcesosPedagogicos}</td>
+                  <td className="py-3 px-6 text-left">
+                    {registro.notaPlanTrabajo}
+                  </td>
+                  <td className="py-3 px-6 text-left">
+                    {registro.notaProcesosPedagogicos}
+                  </td>
                   <td className="py-3 px-6 text-center">
                     <div className="flex justify-center space-x-2">
                       <button

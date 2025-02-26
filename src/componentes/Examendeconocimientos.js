@@ -16,11 +16,26 @@ function Examendeconocimientos() {
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Obtener los registros desde el backend
+  // Obtener los registros desde el backend y filtrarlos según el usuario
   const fetchRegistros = async () => {
     try {
       const response = await axios.get(`${baseURL}/api/examen-conocimientos`);
-      setRegistros(response.data);
+      console.log('Registros obtenidos:', response.data);
+
+      // Recuperar datos del usuario desde localStorage (clave "user")
+      const user = JSON.parse(localStorage.getItem('user'));
+      console.log('Usuario logueado:', user);
+
+      if (user && !user.administrador) {
+        // Filtrar registros que tengan evaluadorId y que coincidan con user._id
+        const registrosFiltrados = response.data.filter(
+          (registro) =>
+            registro.evaluadorId && registro.evaluadorId === user._id
+        );
+        setRegistros(registrosFiltrados);
+      } else {
+        setRegistros(response.data);
+      }
     } catch (error) {
       console.error('Error al obtener los registros:', error);
       Swal.fire({
@@ -66,10 +81,20 @@ function Examendeconocimientos() {
     }
   };
 
-  // Manejo de registro o edición de un conocimiento
-  const onConocimientoRegistered = () => {
+  // Actualiza la lista luego de registrar o editar
+  // Si se recibe un nuevo registro y el usuario NO es admin, se muestra solo ese registro.
+  const onConocimientoRegistered = (nuevoRegistro) => {
     setMostrarFormulario(false);
-    fetchRegistros();
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user && !user.administrador) {
+      if (nuevoRegistro) {
+        setRegistros([nuevoRegistro]);
+      } else {
+        fetchRegistros();
+      }
+    } else {
+      fetchRegistros();
+    }
   };
 
   // Descargar registros en formato Excel
@@ -97,7 +122,6 @@ function Examendeconocimientos() {
     );
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Registros');
-
     XLSX.writeFile(workbook, 'Registros_Conocimientos.xlsx');
   };
 

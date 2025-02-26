@@ -9,8 +9,10 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     fechaEvaluacion: '',
     carrera: '',
     puntosEvaluacion: '',
-    // NUEVO: Campo para el nombre del evaluador
+    // Campo para el nombre del evaluador
     nombreEvaluador: '',
+    // Se agregará el evaluadorId al registrar
+    evaluadorId: '',
   });
 
   const baseURL =
@@ -20,12 +22,12 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
   useEffect(() => {
     if (merito) {
-      // Si se está editando, cargar todos los campos (incluyendo nombreEvaluador si ya existiera)
+      // Si se está editando, cargar todos los campos (incluyendo nombreEvaluador y evaluadorId si existen)
       setFormData({ ...merito });
     }
   }, [merito]);
 
-  // NUEVO useEffect: Buscar postulante por CI y autocompletar el nombre
+  // Buscar postulante por CI y autocompletar el nombre
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.ci.trim() === '') {
@@ -73,14 +75,31 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     }
 
     try {
-      if (merito) {
-        await axios.put(`${baseURL}/api/concurso-meritos/${merito._id}`, formData);
-        Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
-      } else {
-        await axios.post(`${baseURL}/api/concurso-meritos`, formData);
-        Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
+      // Crear un objeto a enviar. Si es nuevo registro, asignamos evaluadorId desde localStorage.
+      let registroData = { ...formData };
+      if (!merito) {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+          registroData.evaluadorId = user._id;
+          // Si no se ingresa el nombre del evaluador manualmente, se asigna desde el usuario
+          if (!registroData.nombreEvaluador) {
+            registroData.nombreEvaluador = user.nombre || '';
+          }
+        }
       }
-      onMeritoRegistered();
+
+      if (merito) {
+        await axios.put(`${baseURL}/api/concurso-meritos/${merito._id}`, registroData);
+        Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
+        // Para edición, volvemos a cargar toda la lista
+        onMeritoRegistered();
+      } else {
+        // Capturamos la respuesta del POST
+        const response = await axios.post(`${baseURL}/api/concurso-meritos`, registroData);
+        Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
+        // Pasamos el registro recién creado al callback
+        onMeritoRegistered(response.data);
+      }
     } catch (error) {
       console.error('Error al guardar el registro:', error);
       Swal.fire(
@@ -92,7 +111,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   };
 
   // Calcular el progreso de campos completados
-  const totalFields = 6; // Aumentó de 5 a 6
+  const totalFields = 6; // Número total de campos
   const filledFields = Object.values(formData).filter((val) => val !== '').length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
@@ -217,7 +236,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                 />
               </div>
 
-              {/* NUEVO: Campo Nombre de Evaluador */}
+              {/* Campo Nombre de Evaluador */}
               <div className="md:col-span-2">
                 <label className="block text-lg font-bold text-gray-700 mb-2">
                   Nombre de Evaluador

@@ -3,7 +3,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCancel }) {
-  // Se elimina la lista de asignaturas por defecto, pues se usarán las materias postuladas
   const [formData, setFormData] = useState({
     tipoEvaluador: '',
     nombre: '',
@@ -15,7 +14,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     nombreEvaluador: ''
   });
 
-  // Nuevo estado para almacenar las materias postuladas
+  // Estado para almacenar las materias postuladas
   const [materiasPostuladas, setMateriasPostuladas] = useState([]);
 
   const baseURL =
@@ -98,11 +97,21 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
       if (conocimiento && conocimiento._id) {
         await axios.put(`${baseURL}/api/examen-conocimientos/${conocimiento._id}`, dataToSend);
         Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
+        onConocimientoRegistered();
       } else {
-        await axios.post(`${baseURL}/api/examen-conocimientos`, dataToSend);
+        // Asignar evaluadorId desde localStorage para nuevo registro
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+          dataToSend.evaluadorId = user._id;
+          if (!dataToSend.nombreEvaluador) {
+            dataToSend.nombreEvaluador = user.nombre || '';
+          }
+        }
+        const response = await axios.post(`${baseURL}/api/examen-conocimientos`, dataToSend);
         Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
+        // Pasar el registro recién creado al callback
+        onConocimientoRegistered(response.data);
       }
-      onConocimientoRegistered();
     } catch (error) {
       console.error('Error al guardar el registro:', error);
       Swal.fire(
@@ -221,23 +230,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-lg font-bold text-gray-700 mb-2">
-                Examen de Conocimiento Teórico-Científico (40%)
-              </label>
-              <input
-                type="number"
-                name="examenConocimientos"
-                value={formData.examenConocimientos}
-                onChange={handleChange}
-                placeholder="Ingrese la calificación (0-100)"
-                title="Ingrese la calificación obtenida en el examen"
-                required
-                min="0"
-                max="100"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
             </div>
           </div>
 

@@ -18,9 +18,10 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     procesoDominio: '',
     procesoTICs: '',
     procesoExplicacion: '',
-
     // NUEVO: Campo para el nombre del evaluador
     nombreEvaluador: '',
+    // NUEVO: Se agregará evaluadorId al registrar
+    evaluadorId: '',
   });
 
   // Nuevo estado para almacenar las materias postuladas
@@ -107,7 +108,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (parseInt(formData.procesoExplicacion) || 0);
   const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2);
 
-  // Se aumenta el totalFields en 1 para incluir nombreEvaluador
+  // Se aumenta el totalFields en 1 para incluir nombreEvaluador y evaluadorId
   const totalFields = Object.keys(formData).length;
   const filledFields = Object.values(formData).filter((val) => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
@@ -135,11 +136,21 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       if (competencia) {
         await axios.put(`${baseURL}/api/examen-competencias/${competencia._id}`, dataToSend);
         Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
+        onCompetenciaRegistered();
       } else {
-        await axios.post(`${baseURL}/api/examen-competencias`, dataToSend);
+        // Si es nuevo registro, asignamos evaluadorId desde localStorage
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user) {
+          dataToSend.evaluadorId = user._id;
+          if (!dataToSend.nombreEvaluador) {
+            dataToSend.nombreEvaluador = user.nombre || '';
+          }
+        }
+        const response = await axios.post(`${baseURL}/api/examen-competencias`, dataToSend);
         Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
+        // Pasamos el registro recién creado al callback
+        onCompetenciaRegistered(response.data);
       }
-      onCompetenciaRegistered();
     } catch (error) {
       console.error('Error al guardar el registro:', error);
       Swal.fire(
