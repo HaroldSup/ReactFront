@@ -8,7 +8,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     ci: '',
     fechaEvaluacion: '',
     carrera: '',
-    puntosEvaluacion: ''
+    puntosEvaluacion: '',
+    // NUEVO: Campo para el nombre del evaluador
+    nombreEvaluador: '',
   });
 
   const baseURL =
@@ -18,6 +20,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
   useEffect(() => {
     if (merito) {
+      // Si se está editando, cargar todos los campos (incluyendo nombreEvaluador si ya existiera)
       setFormData({ ...merito });
     }
   }, [merito]);
@@ -34,7 +37,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
         if (response.data.data) {
           setFormData((prev) => ({
             ...prev,
-            nombrePostulante: response.data.data.nombre
+            nombrePostulante: response.data.data.nombre,
           }));
         }
       } catch (error) {
@@ -89,8 +92,8 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   };
 
   // Calcular el progreso de campos completados
-  const totalFields = 5;
-  const filledFields = Object.values(formData).filter(val => val !== '').length;
+  const totalFields = 6; // Aumentó de 5 a 6
+  const filledFields = Object.values(formData).filter((val) => val !== '').length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
@@ -210,6 +213,21 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                   value={formData.puntosEvaluacion}
                   onChange={handleChange}
                   required
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* NUEVO: Campo Nombre de Evaluador */}
+              <div className="md:col-span-2">
+                <label className="block text-lg font-bold text-gray-700 mb-2">
+                  Nombre de Evaluador
+                </label>
+                <input
+                  type="text"
+                  name="nombreEvaluador"
+                  value={formData.nombreEvaluador}
+                  onChange={handleChange}
+                  placeholder="Ingrese el nombre del evaluador"
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

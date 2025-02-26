@@ -3,23 +3,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }) {
-  // Lista de asignaturas por defecto (ya no se utilizará para el select de materia)
-  const asignaturasList = [
-    'Inteligencia Artificial II',
-    'Inteligencia Artificial I',
-    'Métodos Numéricos',
-    'Ingeniería de Software II',
-    'Investigación Operativa II',
-    'Investigación Operativa I',
-    'Internet de las Cosas',
-    'Redes de Computadoras',
-    'Sistemas Operativos y Servidores',
-    'Trabajo de Grado',
-    'trabajo de grado II',
-    'inteligencia artificial',
-    'Ecuaciones diferenciales',
-  ];
-
   const [formData, setFormData] = useState({
     tipoEvaluador: '',
     nombre: '',
@@ -34,7 +17,10 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     procesoMotivacion: '',
     procesoDominio: '',
     procesoTICs: '',
-    procesoExplicacion: ''
+    procesoExplicacion: '',
+
+    // NUEVO: Campo para el nombre del evaluador
+    nombreEvaluador: '',
   });
 
   // Nuevo estado para almacenar las materias postuladas
@@ -47,9 +33,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
 
   useEffect(() => {
     if (competencia) {
-      setFormData({
-        ...competencia
-      });
+      setFormData({ ...competencia });
       if (competencia.asignaturasSeleccionadas) {
         setMateriasPostuladas(
           typeof competencia.asignaturasSeleccionadas === 'string'
@@ -64,21 +48,22 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.carnet.trim() === '') {
-        setFormData(prev => ({ ...prev, nombre: '' }));
+        setFormData((prev) => ({ ...prev, nombre: '' }));
         setMateriasPostuladas([]);
         return;
       }
       try {
         const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`);
         if (response.data.data) {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
-            nombre: response.data.data.nombre
+            nombre: response.data.data.nombre,
           }));
           if (response.data.data.asignaturasSeleccionadas) {
-            const materias = typeof response.data.data.asignaturasSeleccionadas === 'string'
-              ? JSON.parse(response.data.data.asignaturasSeleccionadas)
-              : response.data.data.asignaturasSeleccionadas;
+            const materias =
+              typeof response.data.data.asignaturasSeleccionadas === 'string'
+                ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+                : response.data.data.asignaturasSeleccionadas;
             setMateriasPostuladas(materias);
           } else {
             setMateriasPostuladas([]);
@@ -86,7 +71,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
-          setFormData(prev => ({ ...prev, nombre: '' }));
+          setFormData((prev) => ({ ...prev, nombre: '' }));
           setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
@@ -102,7 +87,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Cálculos de la Segunda Etapa
@@ -122,14 +107,15 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (parseInt(formData.procesoExplicacion) || 0);
   const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2);
 
+  // Se aumenta el totalFields en 1 para incluir nombreEvaluador
   const totalFields = Object.keys(formData).length;
-  const filledFields = Object.values(formData).filter(val => val !== '' && val !== null).length;
+  const filledFields = Object.values(formData).filter((val) => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   const stage2Color =
-    stage2Sum <= 60 ? "text-red-500" : stage2Sum > 80 ? "text-green-500" : "text-yellow-600";
+    stage2Sum <= 60 ? 'text-red-500' : stage2Sum > 80 ? 'text-green-500' : 'text-yellow-600';
   const stage3Color =
-    stage3Sum <= 60 ? "text-red-500" : stage3Sum > 80 ? "text-green-500" : "text-yellow-600";
+    stage3Sum <= 60 ? 'text-red-500' : stage3Sum > 80 ? 'text-green-500' : 'text-yellow-600';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -139,10 +125,10 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       return;
     }
 
-    const dataToSend = { 
-      ...formData, 
-      notaPlanTrabajo: stage2Promedio, 
-      notaProcesosPedagogicos: stage3Promedio 
+    const dataToSend = {
+      ...formData,
+      notaPlanTrabajo: stage2Promedio,
+      notaProcesosPedagogicos: stage3Promedio,
     };
 
     try {
@@ -197,7 +183,9 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             <option value="Presidente Tribunal">Presidente Tribunal</option>
           </select>
           {formData.tipoEvaluador === '' && (
-            <p className="text-xs text-red-500 mt-1">Debe seleccionar un tipo de evaluador.</p>
+            <p className="text-xs text-red-500 mt-1">
+              Debe seleccionar un tipo de evaluador.
+            </p>
           )}
         </div>
 
@@ -272,7 +260,22 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             </div>
           </div>
 
-          {/* Segunda Etapa: Exposición del Plan de Trabajo */}
+          {/* NUEVO: Nombre de Evaluador */}
+          <div className="p-6 bg-blue-50 rounded-lg border">
+            <h3 className="text-2xl font-bold text-gray-700 mb-4">
+              Nombre de Evaluador
+            </h3>
+            <input
+              type="text"
+              name="nombreEvaluador"
+              value={formData.nombreEvaluador}
+              onChange={handleChange}
+              placeholder="Ingrese el nombre del evaluador"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Segunda Etapa: Exposición del Plan de Trabajo (30%) */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">
               Segunda Etapa: Exposición del Plan de Trabajo (30%)
@@ -373,11 +376,13 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               <p className={`text-lg font-semibold ${stage2Color}`}>
                 Sumatoria: {stage2Sum} / 100
               </p>
-              <p className="text-lg font-semibold">Promedio (30%): {stage2Promedio}</p>
+              <p className="text-lg font-semibold">
+                Promedio (30%): {stage2Promedio}
+              </p>
             </div>
           </div>
 
-          {/* Tercera Etapa: Evaluación de Procesos Pedagógicos */}
+          {/* Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%) */}
           <div className="p-6 bg-blue-50 rounded-lg border">
             <h3 className="text-2xl font-bold text-gray-700 mb-4">
               Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%)
@@ -460,7 +465,9 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               <p className={`text-lg font-semibold ${stage3Color}`}>
                 Sumatoria: {stage3Sum} / 100
               </p>
-              <p className="text-lg font-semibold">Promedio (30%): {stage3Promedio}</p>
+              <p className="text-lg font-semibold">
+                Promedio (30%): {stage3Promedio}
+              </p>
             </div>
           </div>
 

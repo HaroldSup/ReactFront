@@ -86,6 +86,7 @@ function Examendecompetencias() {
     const worksheet = XLSX.utils.json_to_sheet(
       registros.map((registro, index) => ({
         Nro: index + 1,
+        'Nombre Evaluador': registro.nombreEvaluador || '',
         'Tipo Evaluador': registro.tipoEvaluador,
         Nombre: registro.nombre,
         Carnet: registro.carnet,
@@ -118,6 +119,7 @@ function Examendecompetencias() {
 
     const tableColumn = [
       'Nro',
+      'Nombre Evaluador',
       'Tipo Evaluador',
       'Nombre',
       'Carnet',
@@ -131,6 +133,7 @@ function Examendecompetencias() {
     registros.forEach((registro, index) => {
       const rowData = [
         index + 1,
+        registro.nombreEvaluador || '',
         registro.tipoEvaluador,
         registro.nombre,
         registro.carnet,
@@ -197,6 +200,7 @@ function Examendecompetencias() {
             <thead>
               <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
                 <th className="py-3 px-6 text-left">Nro</th>
+                <th className="py-3 px-6 text-left">Evaluador</th>
                 <th className="py-3 px-6 text-left">Tipo Evaluador</th>
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">Carnet</th>
@@ -213,7 +217,12 @@ function Examendecompetencias() {
                   key={registro._id}
                   className="border-b border-gray-200 hover:bg-gray-100"
                 >
-                  <td className="py-3 px-6 text-left whitespace-nowrap">{index + 1}</td>
+                  <td className="py-3 px-6 text-left whitespace-nowrap">
+                    {index + 1}
+                  </td>
+                  <td className="py-3 px-6 text-left">
+                    {registro.nombreEvaluador || ''}
+                  </td>
                   <td className="py-3 px-6 text-left">{registro.tipoEvaluador}</td>
                   <td className="py-3 px-6 text-left">{registro.nombre}</td>
                   <td className="py-3 px-6 text-left">{registro.carnet}</td>
@@ -261,6 +270,9 @@ function Examendecompetencias() {
                 </div>
                 <div className="mt-2">
                   <p className="text-gray-600">
+                    <strong>Evaluador:</strong> {registro.nombreEvaluador || ''}
+                  </p>
+                  <p className="text-gray-600">
                     <strong>Tipo Evaluador:</strong> {registro.tipoEvaluador}
                   </p>
                   <p className="text-gray-600">
@@ -270,13 +282,16 @@ function Examendecompetencias() {
                     <strong>Materia:</strong> {registro.materia}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
+                    <strong>Fecha:</strong>{' '}
+                    {new Date(registro.fecha).toLocaleDateString()}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Nota Plan Trabajo (30%):</strong> {registro.notaPlanTrabajo}
+                    <strong>Nota Plan Trabajo (30%):</strong>{' '}
+                    {registro.notaPlanTrabajo}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Nota Procesos Pedagógicos (30%):</strong> {registro.notaProcesosPedagogicos}
+                    <strong>Nota Procesos Pedagógicos (30%):</strong>{' '}
+                    {registro.notaProcesosPedagogicos}
                   </p>
                 </div>
                 <div className="mt-4 flex justify-center space-x-4">

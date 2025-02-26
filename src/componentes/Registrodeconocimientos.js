@@ -10,7 +10,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     carnet: '',
     materia: '',
     fecha: '',
-    examenConocimientos: ''
+    examenConocimientos: '',
+    // NUEVO: Campo para el nombre del evaluador
+    nombreEvaluador: ''
   });
 
   // Nuevo estado para almacenar las materias postuladas
@@ -237,6 +239,19 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
+
+          {/* NUEVO: Campo Nombre de Evaluador */}
+          <div className="p-6 bg-blue-50 rounded-lg border">
+            <h3 className="text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
+            <input
+              type="text"
+              name="nombreEvaluador"
+              value={formData.nombreEvaluador}
+              onChange={handleChange}
+              placeholder="Ingrese el nombre del evaluador"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {/* Nota Final */}

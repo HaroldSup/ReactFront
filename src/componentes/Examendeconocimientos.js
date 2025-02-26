@@ -72,7 +72,7 @@ function Examendeconocimientos() {
     fetchRegistros();
   };
 
-  // Descargar registros en formato Excel (se incluyen los campos requeridos)
+  // Descargar registros en formato Excel
   const handleDownloadExcel = () => {
     if (registros.length === 0) {
       Swal.fire({
@@ -86,6 +86,7 @@ function Examendeconocimientos() {
     const worksheet = XLSX.utils.json_to_sheet(
       registros.map((registro, index) => ({
         Nro: index + 1,
+        'Nombre Evaluador': registro.nombreEvaluador || '',
         'Tipo Evaluador': registro.tipoEvaluador,
         Nombre: registro.nombre,
         Carnet: registro.carnet,
@@ -100,7 +101,7 @@ function Examendeconocimientos() {
     XLSX.writeFile(workbook, 'Registros_Conocimientos.xlsx');
   };
 
-  // Descargar registros en formato PDF (se incluyen los campos requeridos)
+  // Descargar registros en formato PDF
   const handleDownloadPDF = () => {
     if (registros.length === 0) {
       Swal.fire({
@@ -117,6 +118,7 @@ function Examendeconocimientos() {
 
     const tableColumn = [
       'Nro',
+      'Nombre Evaluador',
       'Tipo Evaluador',
       'Nombre',
       'Carnet',
@@ -129,6 +131,7 @@ function Examendeconocimientos() {
     registros.forEach((registro, index) => {
       const rowData = [
         index + 1,
+        registro.nombreEvaluador || '',
         registro.tipoEvaluador,
         registro.nombre,
         registro.carnet,
@@ -194,6 +197,7 @@ function Examendeconocimientos() {
             <thead>
               <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
                 <th className="py-3 px-6 text-left">Nro</th>
+                <th className="py-3 px-6 text-left">Evaluador</th>
                 <th className="py-3 px-6 text-left">Tipo Evaluador</th>
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">Carnet</th>
@@ -211,6 +215,9 @@ function Examendeconocimientos() {
                 >
                   <td className="py-3 px-6 text-left whitespace-nowrap">
                     {index + 1}
+                  </td>
+                  <td className="py-3 px-6 text-left">
+                    {registro.nombreEvaluador || ''}
                   </td>
                   <td className="py-3 px-6 text-left">{registro.tipoEvaluador}</td>
                   <td className="py-3 px-6 text-left">{registro.nombre}</td>
@@ -257,6 +264,9 @@ function Examendeconocimientos() {
                   </span>
                 </div>
                 <div className="mt-2">
+                  <p className="text-gray-600">
+                    <strong>Evaluador:</strong> {registro.nombreEvaluador || ''}
+                  </p>
                   <p className="text-gray-600">
                     <strong>Tipo Evaluador:</strong> {registro.tipoEvaluador}
                   </p>

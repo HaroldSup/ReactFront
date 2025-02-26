@@ -10,7 +10,7 @@ function ConcursoDeMeritos() {
   const [registros, setRegistros] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [meritoEdit, setMeritoEdit] = useState(null);
-  
+
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
@@ -81,7 +81,8 @@ function ConcursoDeMeritos() {
     const worksheet = XLSX.utils.json_to_sheet(
       registros.map((registro, index) => ({
         Nro: index + 1,
-        Nombre: registro.nombrePostulante,
+        'Nombre de Evaluador': registro.nombreEvaluador || '',
+        'Nombre Postulante': registro.nombrePostulante,
         CI: registro.ci,
         Fecha: new Date(registro.fechaEvaluacion).toLocaleDateString(),
         Carrera: registro.carrera,
@@ -106,14 +107,23 @@ function ConcursoDeMeritos() {
     }
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Concurso de Méritos", 14, 20);
+    doc.text('Concurso de Méritos', 14, 20);
 
-    const tableColumn = ["Nro", "Nombre", "CI", "Fecha", "Carrera", "Puntos"];
+    const tableColumn = [
+      'Nro',
+      'Evaluador',
+      'Nombre Postulante',
+      'CI',
+      'Fecha',
+      'Carrera',
+      'Puntos',
+    ];
     const tableRows = [];
 
     registros.forEach((registro, index) => {
       const rowData = [
         index + 1,
+        registro.nombreEvaluador || '',
         registro.nombrePostulante,
         registro.ci,
         new Date(registro.fechaEvaluacion).toLocaleDateString(),
@@ -128,7 +138,7 @@ function ConcursoDeMeritos() {
       body: tableRows,
       startY: 30,
     });
-    doc.save("ConcursoDeMeritos.pdf");
+    doc.save('ConcursoDeMeritos.pdf');
   };
 
   // Manejo de registro o edición de un mérito
@@ -184,6 +194,7 @@ function ConcursoDeMeritos() {
             <thead>
               <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
                 <th className="py-3 px-6 text-left">Nro</th>
+                <th className="py-3 px-6 text-left">Evaluador</th>
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">CI</th>
                 <th className="py-3 px-6 text-left">Fecha</th>
@@ -200,6 +211,9 @@ function ConcursoDeMeritos() {
                 >
                   <td className="py-3 px-6 text-left whitespace-nowrap">
                     {index + 1}
+                  </td>
+                  <td className="py-3 px-6 text-left">
+                    {registro.nombreEvaluador || ''}
                   </td>
                   <td className="py-3 px-6 text-left">
                     {registro.nombrePostulante}
@@ -248,10 +262,13 @@ function ConcursoDeMeritos() {
                 </div>
                 <div className="mt-2">
                   <p className="text-gray-600">
+                    <strong>Evaluador:</strong> {registro.nombreEvaluador || ''}
+                  </p>
+                  <p className="text-gray-600">
                     <strong>CI:</strong> {registro.ci}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Fecha:</strong>{" "}
+                    <strong>Fecha:</strong>{' '}
                     {new Date(registro.fechaEvaluacion).toLocaleDateString()}
                   </p>
                   <p className="text-gray-600">
