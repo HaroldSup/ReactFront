@@ -39,21 +39,22 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.carnet.trim() === '') {
-        setFormData(prev => ({ ...prev, nombre: '' }));
+        setFormData((prev) => ({ ...prev, nombre: '' }));
         setMateriasPostuladas([]);
         return;
       }
       try {
         const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`);
         if (response.data.data) {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             nombre: response.data.data.nombre
           }));
           if (response.data.data.asignaturasSeleccionadas) {
-            const materias = typeof response.data.data.asignaturasSeleccionadas === 'string'
-              ? JSON.parse(response.data.data.asignaturasSeleccionadas)
-              : response.data.data.asignaturasSeleccionadas;
+            const materias =
+              typeof response.data.data.asignaturasSeleccionadas === 'string'
+                ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+                : response.data.data.asignaturasSeleccionadas;
             setMateriasPostuladas(materias);
           } else {
             setMateriasPostuladas([]);
@@ -61,7 +62,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
-          setFormData(prev => ({ ...prev, nombre: '' }));
+          setFormData((prev) => ({ ...prev, nombre: '' }));
           setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
@@ -77,7 +78,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Calcular la nota final (40% del examen)
@@ -86,7 +87,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
 
   // Progreso de campos completados
   const totalFields = Object.keys(formData).length;
-  const filledFields = Object.values(formData).filter(val => val !== '' && val !== null).length;
+  const filledFields = Object.values(formData).filter((val) => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   const handleSubmit = async (e) => {
@@ -123,161 +124,169 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-6 relative">
-      <div className="w-full max-w-4xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl">
-        {/* Indicador de Progreso */}
-        <div className="mb-6">
-          <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 py-4">
+      {/* Contenedor responsivo con ancho máximo en pantallas grandes */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
+        <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
+          {/* Encabezado principal */}
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            {conocimiento ? 'Editar Conocimiento' : 'Registrar Conocimiento'}
+          </h2>
 
-        {/* Selección de tipo de evaluador */}
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-          <label className="block text-lg font-bold text-gray-700 mb-2">
-            Seleccionar tipo de Evaluador
-          </label>
-          <select
-            name="tipoEvaluador"
-            value={formData.tipoEvaluador}
-            onChange={handleChange}
-            required
-            title="Seleccione el tipo de evaluador"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccione</option>
-            <option value="Evaluador 1">Evaluador 1</option>
-            <option value="Evaluador 2">Evaluador 2</option>
-            <option value="Presidente Tribunal">Presidente Tribunal</option>
-          </select>
-          {formData.tipoEvaluador === '' && (
-            <p className="text-xs text-red-500 mt-1">
-              Debe seleccionar un tipo de evaluador.
-            </p>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Primera Etapa: Evaluación de Conocimiento Teórico-Científico */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Primera Etapa: Evaluación de Conocimiento Teórico-Científico
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleChange}
-                  readOnly
-                  placeholder="El nombre se autocompleta al ingresar el carnet"
-                  title="El nombre se autocompleta al ingresar el carnet"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
-                <input
-                  type="text"
-                  name="carnet"
-                  value={formData.carnet}
-                  onChange={handleChange}
-                  placeholder="Ej: 12345678"
-                  title="Ingrese el número de carnet del postulante"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                <select
-                  name="materia"
-                  value={formData.materia}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la asignatura a la que postula"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione la asignatura</option>
-                  {materiasPostuladas.length > 0 ? (
-                    materiasPostuladas.map((mat, idx) => (
-                      <option key={idx} value={mat.asignatura}>
-                        {mat.asignatura}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">No se encontraron materias postuladas</option>
-                  )}
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
-                <input
-                  type="date"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          {/* Indicador de Progreso */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
             </div>
           </div>
 
-          {/* NUEVO: Campo Nombre de Evaluador */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
-            <input
-              type="text"
-              name="nombreEvaluador"
-              value={formData.nombreEvaluador}
+          {/* Selección de tipo de evaluador */}
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <label className="block text-lg font-bold text-gray-700 mb-2">
+              Seleccionar tipo de Evaluador
+            </label>
+            <select
+              name="tipoEvaluador"
+              value={formData.tipoEvaluador}
               onChange={handleChange}
-              placeholder="Ingrese el nombre del evaluador"
+              required
+              title="Seleccione el tipo de evaluador"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="">Seleccione</option>
+              <option value="Evaluador 1">Evaluador 1</option>
+              <option value="Evaluador 2">Evaluador 2</option>
+              <option value="Presidente Tribunal">Presidente Tribunal</option>
+            </select>
+            {formData.tipoEvaluador === '' && (
+              <p className="text-xs text-red-500 mt-1">
+                Debe seleccionar un tipo de evaluador.
+              </p>
+            )}
           </div>
 
-          {/* Nota Final */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Nota Final</h3>
-            <div className="text-xl font-semibold">
-              <p>Examen (40%): {(examenScore * 0.4).toFixed(2)}</p>
-              <p className="mt-2">Nota Final: {notaFinal}</p>
+          <form onSubmit={handleSubmit} id="conocimientoForm" className="space-y-6">
+            {/* Primera Etapa: Evaluación de Conocimiento Teórico-Científico */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Primera Etapa: Evaluación de Conocimiento Teórico-Científico
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    readOnly
+                    placeholder="El nombre se autocompleta al ingresar el carnet"
+                    title="El nombre se autocompleta al ingresar el carnet"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
+                  <input
+                    type="text"
+                    name="carnet"
+                    value={formData.carnet}
+                    onChange={handleChange}
+                    placeholder="Ej: 12345678"
+                    title="Ingrese el número de carnet del postulante"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
+                  <select
+                    name="materia"
+                    value={formData.materia}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la asignatura a la que postula"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione la asignatura</option>
+                    {materiasPostuladas.length > 0 ? (
+                      materiasPostuladas.map((mat, idx) => (
+                        <option key={idx} value={mat.asignatura}>
+                          {mat.asignatura}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">No se encontraron materias postuladas</option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
+                  <input
+                    type="date"
+                    name="fecha"
+                    value={formData.fecha}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-200"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-900 transition duration-200"
-            >
-              {conocimiento ? 'Guardar Cambios' : 'Registrar'}
-            </button>
-          </div>
-        </form>
+            {/* NUEVO: Campo Nombre de Evaluador */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
+              <input
+                type="text"
+                name="nombreEvaluador"
+                value={formData.nombreEvaluador}
+                onChange={handleChange}
+                placeholder="Ingrese el nombre del evaluador"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Nota Final */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Nota Final</h3>
+              <div className="text-lg sm:text-xl font-semibold">
+                <p>Examen (40%): {(examenScore * 0.4).toFixed(2)}</p>
+                <p className="mt-2">Nota Final: {notaFinal}</p>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-6 py-3 bg-blue-800 text-white font-bold rounded-lg shadow-md hover:bg-blue-900 transition duration-200"
+              >
+                {conocimiento ? 'Guardar Cambios' : 'Registrar'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* Botón flotante para dispositivos móviles */}
       <button
         type="button"
-        onClick={() => document.querySelector('form').requestSubmit()}
+        onClick={() => document.getElementById('conocimientoForm').requestSubmit()}
         className="fixed bottom-4 right-4 bg-blue-800 text-white p-4 rounded-full shadow-lg hover:bg-blue-900 transition md:hidden"
         title="Enviar Formulario"
       >

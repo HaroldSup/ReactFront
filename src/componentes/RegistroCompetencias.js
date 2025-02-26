@@ -162,358 +162,363 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-6 relative">
-      <div className="w-full max-w-4xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl">
-        {/* Indicador de Progreso */}
-        <div className="mb-6">
-          <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 py-4">
+      {/* Contenedor responsivo centrado y con ancho máximo en pantallas grandes */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
+        <div className="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-6">
+            {competencia ? 'Editar Competencia' : 'Registrar Competencia'}
+          </h2>
 
-        {/* Selección de tipo de evaluador */}
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-          <label className="block text-lg font-bold text-gray-700 mb-2">
-            Seleccionar tipo de Evaluador
-          </label>
-          <select
-            name="tipoEvaluador"
-            value={formData.tipoEvaluador}
-            onChange={handleChange}
-            required
-            title="Seleccione el tipo de evaluador"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccione</option>
-            <option value="Evaluador 1">Evaluador 1</option>
-            <option value="Evaluador 2">Evaluador 2</option>
-            <option value="Presidente Tribunal">Presidente Tribunal</option>
-          </select>
-          {formData.tipoEvaluador === '' && (
-            <p className="text-xs text-red-500 mt-1">
-              Debe seleccionar un tipo de evaluador.
-            </p>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Registro de datos del postulante */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Registro de datos del postulante
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  readOnly
-                  placeholder="El nombre se autocompleta al ingresar el carnet"
-                  title="El nombre se autocompleta al ingresar el carnet"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
-                <input
-                  type="text"
-                  name="carnet"
-                  value={formData.carnet}
-                  onChange={handleChange}
-                  placeholder="Ej: 12345678"
-                  title="Ingrese el número de carnet del postulante"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                <select
-                  name="materia"
-                  value={formData.materia}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la asignatura a la que postula"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione la asignatura</option>
-                  {materiasPostuladas.length > 0 ? (
-                    materiasPostuladas.map((mat, idx) => (
-                      <option key={idx} value={mat.asignatura}>
-                        {mat.asignatura}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">No se encontraron materias postuladas</option>
-                  )}
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
-                <input
-                  type="date"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          {/* Indicador de Progreso */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
             </div>
           </div>
 
-          {/* NUEVO: Nombre de Evaluador */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Nombre de Evaluador
-            </h3>
-            <input
-              type="text"
-              name="nombreEvaluador"
-              value={formData.nombreEvaluador}
+          {/* Selección de tipo de evaluador */}
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <label className="block text-lg font-bold text-gray-700 mb-2">
+              Seleccionar tipo de Evaluador
+            </label>
+            <select
+              name="tipoEvaluador"
+              value={formData.tipoEvaluador}
               onChange={handleChange}
-              placeholder="Ingrese el nombre del evaluador"
+              required
+              title="Seleccione el tipo de evaluador"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Segunda Etapa: Exposición del Plan de Trabajo (30%) */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Segunda Etapa: Exposición del Plan de Trabajo (30%)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Concordancia con el perfil profesional
-                </label>
-                <select
-                  name="planConcordancia"
-                  value={formData.planConcordancia}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para este criterio"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="20">20 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Competencia
-                </label>
-                <select
-                  name="planCompetencia"
-                  value={formData.planCompetencia}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para competencia"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="20">20 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Contenidos
-                </label>
-                <select
-                  name="planContenidos"
-                  value={formData.planContenidos}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para contenidos"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="20">20 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Estrategias de enseñanza
-                </label>
-                <select
-                  name="planEstrategiasEnsenanza"
-                  value={formData.planEstrategiasEnsenanza}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para estrategias de enseñanza"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="20">20 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Estrategias de evaluación
-                </label>
-                <select
-                  name="planEstrategiasEvaluacion"
-                  value={formData.planEstrategiasEvaluacion}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para estrategias de evaluación"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="20">20 - Excelente</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className={`text-lg font-semibold ${stage2Color}`}>
-                Sumatoria: {stage2Sum} / 100
-              </p>
-              <p className="text-lg font-semibold">
-                Promedio (30%): {stage2Promedio}
-              </p>
-            </div>
-          </div>
-
-          {/* Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%) */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Motivación a los estudiantes
-                </label>
-                <select
-                  name="procesoMotivacion"
-                  value={formData.procesoMotivacion}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para motivación"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="25">25 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Dominio y Conocimiento de la unidad didáctica
-                </label>
-                <select
-                  name="procesoDominio"
-                  value={formData.procesoDominio}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para dominio y conocimiento"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="25">25 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Uso de las TICs
-                </label>
-                <select
-                  name="procesoTICs"
-                  value={formData.procesoTICs}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para el uso de las TICs"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="25">25 - Excelente</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Explicación de la unidad temática en relación con el perfil profesional
-                </label>
-                <select
-                  name="procesoExplicacion"
-                  value={formData.procesoExplicacion}
-                  onChange={handleChange}
-                  required
-                  title="Seleccione la puntuación para la explicación de la unidad"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione</option>
-                  <option value="10">10 - Regular</option>
-                  <option value="15">15 - Bueno</option>
-                  <option value="25">25 - Excelente</option>
-                </select>
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className={`text-lg font-semibold ${stage3Color}`}>
-                Sumatoria: {stage3Sum} / 100
-              </p>
-              <p className="text-lg font-semibold">
-                Promedio (30%): {stage3Promedio}
-              </p>
-            </div>
-          </div>
-
-          {/* Resultados */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Resultados</h3>
-            <div className="text-xl font-semibold">
-              <p>Plan de Trabajo (30%): {stage2Promedio}</p>
-              <p>Procesos Pedagógicos (30%): {stage3Promedio}</p>
-            </div>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-200"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-900 transition duration-200"
-            >
-              {competencia ? 'Guardar Cambios' : 'Registrar'}
-            </button>
+              <option value="">Seleccione</option>
+              <option value="Evaluador 1">Evaluador 1</option>
+              <option value="Evaluador 2">Evaluador 2</option>
+              <option value="Presidente Tribunal">Presidente Tribunal</option>
+            </select>
+            {formData.tipoEvaluador === '' && (
+              <p className="text-xs text-red-500 mt-1">
+                Debe seleccionar un tipo de evaluador.
+              </p>
+            )}
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} id="competenciaForm" className="space-y-6">
+            {/* Registro de datos del postulante */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">
+                Registro de datos del postulante
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    readOnly
+                    placeholder="El nombre se autocompleta al ingresar el carnet"
+                    title="El nombre se autocompleta al ingresar el carnet"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
+                  <input
+                    type="text"
+                    name="carnet"
+                    value={formData.carnet}
+                    onChange={handleChange}
+                    placeholder="Ej: 12345678"
+                    title="Ingrese el número de carnet del postulante"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
+                  <select
+                    name="materia"
+                    value={formData.materia}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la asignatura a la que postula"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione la asignatura</option>
+                    {materiasPostuladas.length > 0 ? (
+                      materiasPostuladas.map((mat, idx) => (
+                        <option key={idx} value={mat.asignatura}>
+                          {mat.asignatura}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">No se encontraron materias postuladas</option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
+                  <input
+                    type="date"
+                    name="fecha"
+                    value={formData.fecha}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* NUEVO: Nombre de Evaluador */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
+              <input
+                type="text"
+                name="nombreEvaluador"
+                value={formData.nombreEvaluador}
+                onChange={handleChange}
+                placeholder="Ingrese el nombre del evaluador"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Segunda Etapa: Exposición del Plan de Trabajo (30%) */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">
+                Segunda Etapa: Exposición del Plan de Trabajo (30%)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Concordancia con el perfil profesional
+                  </label>
+                  <select
+                    name="planConcordancia"
+                    value={formData.planConcordancia}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para este criterio"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Competencia
+                  </label>
+                  <select
+                    name="planCompetencia"
+                    value={formData.planCompetencia}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para competencia"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Contenidos
+                  </label>
+                  <select
+                    name="planContenidos"
+                    value={formData.planContenidos}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para contenidos"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Estrategias de enseñanza
+                  </label>
+                  <select
+                    name="planEstrategiasEnsenanza"
+                    value={formData.planEstrategiasEnsenanza}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para estrategias de enseñanza"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Estrategias de evaluación
+                  </label>
+                  <select
+                    name="planEstrategiasEvaluacion"
+                    value={formData.planEstrategiasEvaluacion}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para estrategias de evaluación"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className={`text-lg font-semibold ${stage2Color}`}>
+                  Sumatoria: {stage2Sum} / 100
+                </p>
+                <p className="text-lg font-semibold">
+                  Promedio (30%): {stage2Promedio}
+                </p>
+              </div>
+            </div>
+
+            {/* Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%) */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">
+                Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Motivación a los estudiantes
+                  </label>
+                  <select
+                    name="procesoMotivacion"
+                    value={formData.procesoMotivacion}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para motivación"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Dominio y Conocimiento de la unidad didáctica
+                  </label>
+                  <select
+                    name="procesoDominio"
+                    value={formData.procesoDominio}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para dominio y conocimiento"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Uso de las TICs
+                  </label>
+                  <select
+                    name="procesoTICs"
+                    value={formData.procesoTICs}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para el uso de las TICs"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Explicación de la unidad temática en relación con el perfil profesional
+                  </label>
+                  <select
+                    name="procesoExplicacion"
+                    value={formData.procesoExplicacion}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione la puntuación para la explicación de la unidad"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className={`text-lg font-semibold ${stage3Color}`}>
+                  Sumatoria: {stage3Sum} / 100
+                </p>
+                <p className="text-lg font-semibold">
+                  Promedio (30%): {stage3Promedio}
+                </p>
+              </div>
+            </div>
+
+            {/* Resultados */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Resultados</h3>
+              <div className="text-xl font-semibold">
+                <p>Plan de Trabajo (30%): {stage2Promedio}</p>
+                <p>Procesos Pedagógicos (30%): {stage3Promedio}</p>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-2 px-4 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-900 transition duration-200"
+              >
+                {competencia ? 'Guardar Cambios' : 'Registrar'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* Botón flotante para móviles */}
       <button
         type="button"
-        onClick={() => document.querySelector('form').requestSubmit()}
+        onClick={() => document.getElementById('competenciaForm').requestSubmit()}
         className="fixed bottom-4 right-4 bg-blue-800 text-white p-4 rounded-full shadow-lg hover:bg-blue-900 transition md:hidden"
         title="Enviar Formulario"
       >

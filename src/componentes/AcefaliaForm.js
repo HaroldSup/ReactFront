@@ -13,7 +13,7 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
     asignatura: '',
     requisitos: '',
     semestre: '',
-    nivelAcademico: '',
+    nivelAcademico: 'Grado', // Se asigna "Grado" por defecto
     carrera: '',
     gestion: 'I-2024',
     horasTeoria: 0,
@@ -167,219 +167,220 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 sm:p-6">
-      <div className="w-full max-w-3xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl">
-        <h2 className="text-3xl sm:text-4xl font-bold text-center text-blue-800 mb-4">
-          {acefalia ? 'Editar Acefalia' : 'Registrar Acefalia'}
-        </h2>
-        {/* Indicador de Progreso */}
-        <div className="mb-6">
-          <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
+    <div className="min-h-screen bg-gray-100 py-4">
+      {/* Contenedor responsivo centrado con ancho máximo */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
+        <div className="w-full bg-white p-6 sm:p-10 rounded-xl shadow-2xl">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-blue-800 mb-4">
+            {acefalia ? 'Editar Acefalia' : 'Registrar Acefalia'}
+          </h2>
+          {/* Indicador de Progreso */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
           </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Sección 1: Información de la Materia */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Información de la Materia</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Asignatura */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">Asignatura:</label>
+                  <input
+                    type="text"
+                    name="asignatura"
+                    value={formData.asignatura}
+                    onChange={handleChange}
+                    onKeyPress={(e) => {
+                      // Permitir solo letras (incluyendo acentos y ñ) y espacios
+                      const allowed = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]$/;
+                      if (!allowed.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {/* Semestre */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Semestre:</label>
+                  <select
+                    name="semestre"
+                    value={formData.semestre}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">--Seleccionar--</option>
+                    {[...Array(10)].map((_, i) => (
+                      <option key={i + 1} value={`SEMESTRE ${i + 1}`}>
+                        SEMESTRE {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {/* Gestión */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Gestión:</label>
+                  <input
+                    type="text"
+                    name="gestion"
+                    value={formData.gestion}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {/* Nivel Académico */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nivel Académico:</label>
+                  <select
+                    name="nivelAcademico"
+                    value={formData.nivelAcademico}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="Grado">Grado</option>
+                  </select>
+                </div>
+                {/* Carrera */}
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700">Carrera:</label>
+                  <select
+                    name="carrera"
+                    value={formData.carrera}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">--Seleccionar--</option>
+                    <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
+                    <option value="Ingeniería de Sistemas Electrónicos">Ingeniería de Sistemas Electrónicos</option>
+                    <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
+                    <option value="Ingeniería Civil">Ingeniería Civil</option>
+                    <option value="Ingeniería Comercial">Ingeniería Comercial</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Sección 2: Horas */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Horas</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {/* Horas Teoría */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Horas Teoría:</label>
+                  <input
+                    type="number"
+                    name="horasTeoria"
+                    value={formData.horasTeoria}
+                    onChange={handleChange}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {/* Horas Prácticas */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Horas Prácticas:</label>
+                  <input
+                    type="number"
+                    name="horasPracticas"
+                    value={formData.horasPracticas}
+                    onChange={handleChange}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {/* Horas Laboratorio */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Horas Laboratorio:</label>
+                  <input
+                    type="number"
+                    name="horasLaboratorio"
+                    value={formData.horasLaboratorio}
+                    onChange={handleChange}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sección 3: Detalles */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Detalles</h3>
+              <div className="grid grid-cols-1 gap-6">
+                {/* Requisitos */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Requisitos:</label>
+                  <textarea
+                    name="requisitos"
+                    value={formData.requisitos}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                {/* Motivos de la Acefalia */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Motivos de la Acefalia:</label>
+                  <textarea
+                    name="motivosAcefalia"
+                    value={formData.motivosAcefalia}
+                    onChange={handleChange}
+                    required
+                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de Aceptar/Actualizar y Cancelar */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+              <button
+                type="submit"
+                className="flex-1 py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-200"
+              >
+                {acefalia ? 'Actualizar' : 'Aceptar'}
+              </button>
+              <button
+                type="button"
+                className="flex-1 py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200"
+                onClick={() =>
+                  Swal.fire({
+                    icon: 'info',
+                    title: 'Cancelado',
+                    text: 'La operación fue cancelada',
+                  })
+                }
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Sección 1: Información de la Materia */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Información de la Materia</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Asignatura */}
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Asignatura:</label>
-                <input
-                  type="text"
-                  name="asignatura"
-                  value={formData.asignatura}
-                  onChange={handleChange}
-                  onKeyPress={(e) => {
-                    // Permitir solo letras (incluyendo acentos y ñ) y espacios
-                    const allowed = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]$/;
-                    if (!allowed.test(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              {/* Semestre */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Semestre:</label>
-                <select
-                  name="semestre"
-                  value={formData.semestre}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">--Seleccionar--</option>
-                  {[...Array(10)].map((_, i) => (
-                    <option key={i + 1} value={`SEMESTRE ${i + 1}`}>
-                      SEMESTRE {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Gestión */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Gestión:</label>
-                <input
-                  type="text"
-                  name="gestion"
-                  value={formData.gestion}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              {/* Nivel Académico */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nivel Académico:</label>
-                <select
-                  name="nivelAcademico"
-                  value={formData.nivelAcademico}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">--Seleccionar--</option>
-                  <option value="Grado">Grado</option>
-                  <option value="Postgrado">Postgrado</option>
-                </select>
-              </div>
-              {/* Carrera */}
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Carrera:</label>
-                <select
-                  name="carrera"
-                  value={formData.carrera}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">--Seleccionar--</option>
-                  <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
-                  <option value="Ingeniería de Sistemas Electrónicos">Ingeniería de Sistemas Electrónicos</option>
-                  <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
-                  <option value="Ingeniería Civil">Ingeniería Civil</option>
-                  <option value="Ingeniería Comercial">Ingeniería Comercial</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Sección 2: Horas */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Horas</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {/* Horas Teoría */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Horas Teoría:</label>
-                <input
-                  type="number"
-                  name="horasTeoria"
-                  value={formData.horasTeoria}
-                  onChange={handleChange}
-                  onKeyPress={(e) => {
-                    if (!/[0-9]/.test(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              {/* Horas Prácticas */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Horas Prácticas:</label>
-                <input
-                  type="number"
-                  name="horasPracticas"
-                  value={formData.horasPracticas}
-                  onChange={handleChange}
-                  onKeyPress={(e) => {
-                    if (!/[0-9]/.test(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              {/* Horas Laboratorio */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Horas Laboratorio:</label>
-                <input
-                  type="number"
-                  name="horasLaboratorio"
-                  value={formData.horasLaboratorio}
-                  onChange={handleChange}
-                  onKeyPress={(e) => {
-                    if (!/[0-9]/.test(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sección 3: Detalles */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">Detalles</h3>
-            <div className="grid grid-cols-1 gap-6">
-              {/* Requisitos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Requisitos:</label>
-                <textarea
-                  name="requisitos"
-                  value={formData.requisitos}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              {/* Motivos de la Acefalia */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Motivos de la Acefalia:</label>
-                <textarea
-                  name="motivosAcefalia"
-                  value={formData.motivosAcefalia}
-                  onChange={handleChange}
-                  required
-                  className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Botones de Aceptar/Actualizar y Cancelar */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-200"
-            >
-              {acefalia ? 'Actualizar' : 'Aceptar'}
-            </button>
-            <button
-              type="button"
-              className="flex-1 py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition duration-200"
-              onClick={() =>
-                Swal.fire({
-                  icon: 'info',
-                  title: 'Cancelado',
-                  text: 'La operación fue cancelada',
-                })
-              }
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* Botón flotante para dispositivos móviles */}

@@ -48,11 +48,12 @@ const allowedTypes = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
 
-// Opciones de carreras
+// Opciones de carreras (ahora incluye "Ingeniería Civil")
 const carrerasList = [
   "Ingeniería de Sistemas",
   "Ingeniería de Sistemas Electrónicos",
   "Ingeniería Agroindustrial",
+  "Ingeniería Civil",
   "Ingeniería Comercial"
 ];
 

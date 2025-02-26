@@ -116,161 +116,165 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">
-          {merito ? 'Editar Nota' : 'Registrar Nota'}
-        </h2>
-        {/* Indicador de Progreso */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
-            Progreso: {progressPercentage}% completado
-          </p>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
+    <div className="min-h-screen bg-gray-100 py-4">
+      {/* Contenedor general, con ancho máximo en pantallas grandes */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
+        <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+            {merito ? 'Editar Nota' : 'Registrar Nota'}
+          </h2>
+
+          {/* Indicador de Progreso */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600">
+              Progreso: {progressPercentage}% completado
+            </p>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
           </div>
+
+          <form onSubmit={handleSubmit} id="meritoForm" className="space-y-6">
+            {/* Sección: Datos del Postulante */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Datos del Postulante
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Nombre del Postulante
+                  </label>
+                  <input
+                    type="text"
+                    name="nombrePostulante"
+                    value={formData.nombrePostulante}
+                    onChange={handleChange}
+                    placeholder="Ingrese el nombre completo"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    CI
+                  </label>
+                  <input
+                    type="text"
+                    name="ci"
+                    value={formData.ci}
+                    onChange={handleChange}
+                    placeholder="Ingrese CI (máximo 10 dígitos)"
+                    maxLength="10"
+                    pattern="\d{1,10}"
+                    title="Solo se permiten números y máximo 10 dígitos"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Fecha de Evaluación
+                  </label>
+                  <input
+                    type="date"
+                    name="fechaEvaluacion"
+                    value={formData.fechaEvaluacion}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Sección: Datos de Evaluación */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Datos de Evaluación
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Carrera
+                  </label>
+                  <select
+                    name="carrera"
+                    value={formData.carrera}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccione una carrera</option>
+                    <option value="Ingeniería de Sistemas">
+                      Ingeniería de Sistemas
+                    </option>
+                    <option value="Ingeniería de Sistemas Electrónicos">
+                      Ingeniería de Sistemas Electrónicos
+                    </option>
+                    <option value="Ingeniería Agroindustrial">
+                      Ingeniería Agroindustrial
+                    </option>
+                    <option value="Ingeniería Civil">Ingeniería Civil</option>
+                    <option value="Ingeniería Comercial">
+                      Ingeniería Comercial
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Puntos de Evaluación
+                  </label>
+                  <input
+                    type="number"
+                    name="puntosEvaluacion"
+                    min="0"
+                    max="10000"
+                    value={formData.puntosEvaluacion}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Nombre de Evaluador
+                  </label>
+                  <input
+                    type="text"
+                    name="nombreEvaluador"
+                    value={formData.nombreEvaluador}
+                    onChange={handleChange}
+                    placeholder="Ingrese el nombre del evaluador"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de Acción */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full sm:w-auto px-6 py-3 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="w-full sm:w-auto px-6 py-3 bg-blue-800 text-white font-bold rounded-md shadow-md hover:bg-blue-900 transition"
+              >
+                {merito ? 'Guardar Cambios' : 'Registrar'}
+              </button>
+            </div>
+          </form>
         </div>
-        <form onSubmit={handleSubmit} id="meritoForm" className="space-y-6">
-          {/* Sección: Datos del Postulante */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Datos del Postulante
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Nombre del Postulante
-                </label>
-                <input
-                  type="text"
-                  name="nombrePostulante"
-                  value={formData.nombrePostulante}
-                  onChange={handleChange}
-                  placeholder="Ingrese el nombre completo"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  CI
-                </label>
-                <input
-                  type="text"
-                  name="ci"
-                  value={formData.ci}
-                  onChange={handleChange}
-                  placeholder="Ingrese CI (máximo 10 dígitos)"
-                  maxLength="10"
-                  pattern="\d{1,10}"
-                  title="Solo se permiten números y máximo 10 dígitos"
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Fecha de Evaluación
-                </label>
-                <input
-                  type="date"
-                  name="fechaEvaluacion"
-                  value={formData.fechaEvaluacion}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sección: Datos de Evaluación */}
-          <div className="p-6 bg-blue-50 rounded-lg border">
-            <h3 className="text-2xl font-bold text-gray-700 mb-4">
-              Datos de Evaluación
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Carrera
-                </label>
-                <select
-                  name="carrera"
-                  value={formData.carrera}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Seleccione una carrera</option>
-                  <option value="Ingeniería de Sistemas">
-                    Ingeniería de Sistemas
-                  </option>
-                  <option value="Ingeniería de Sistemas Electrónicos">
-                    Ingeniería de Sistemas Electrónicos
-                  </option>
-                  <option value="Ingeniería Agroindustrial">
-                    Ingeniería Agroindustrial
-                  </option>
-                  <option value="Ingeniería Civil">Ingeniería Civil</option>
-                  <option value="Ingeniería Comercial">
-                    Ingeniería Comercial
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Puntos de Evaluación
-                </label>
-                <input
-                  type="number"
-                  name="puntosEvaluacion"
-                  min="0"
-                  max="10000"
-                  value={formData.puntosEvaluacion}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Campo Nombre de Evaluador */}
-              <div className="md:col-span-2">
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Nombre de Evaluador
-                </label>
-                <input
-                  type="text"
-                  name="nombreEvaluador"
-                  value={formData.nombreEvaluador}
-                  onChange={handleChange}
-                  placeholder="Ingrese el nombre del evaluador"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Botones de Acción */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="w-full sm:w-auto px-6 py-3 bg-gray-500 text-white font-semibold rounded-md shadow-md hover:bg-gray-600 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-6 py-3 bg-blue-800 text-white font-bold rounded-md shadow-md hover:bg-blue-900 transition"
-            >
-              {merito ? 'Guardar Cambios' : 'Registrar'}
-            </button>
-          </div>
-        </form>
       </div>
+
       {/* Botón de confirmación flotante para dispositivos móviles */}
       <button
         type="button"
