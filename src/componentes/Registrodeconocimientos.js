@@ -10,7 +10,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     materia: '',
     fecha: '',
     examenConocimientos: '',
-    // NUEVO: Campo para el nombre del evaluador
     nombreEvaluador: ''
   });
 
@@ -125,7 +124,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor responsivo con ancho máximo en pantallas grandes */}
+      {/* Contenedor responsivo */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
           {/* Encabezado principal */}
@@ -144,32 +143,47 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
             </div>
           </div>
 
-          {/* Selección de tipo de evaluador */}
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-            <label className="block text-lg font-bold text-gray-700 mb-2">
-              Seleccionar tipo de Evaluador
-            </label>
-            <select
-              name="tipoEvaluador"
-              value={formData.tipoEvaluador}
-              onChange={handleChange}
-              required
-              title="Seleccione el tipo de evaluador"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Seleccione</option>
-              <option value="Evaluador 1">Evaluador 1</option>
-              <option value="Evaluador 2">Evaluador 2</option>
-              <option value="Presidente Tribunal">Presidente Tribunal</option>
-            </select>
-            {formData.tipoEvaluador === '' && (
-              <p className="text-xs text-red-500 mt-1">
-                Debe seleccionar un tipo de evaluador.
-              </p>
-            )}
-          </div>
-
           <form onSubmit={handleSubmit} id="conocimientoForm" className="space-y-6">
+            {/* Selección de tipo de evaluador */}
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <label className="block text-lg font-bold text-gray-700 mb-2">
+                Seleccionar tipo de Evaluador
+              </label>
+              <select
+                name="tipoEvaluador"
+                value={formData.tipoEvaluador}
+                onChange={handleChange}
+                required
+                title="Seleccione el tipo de evaluador"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Seleccione</option>
+                <option value="Evaluador 1">Evaluador 1</option>
+                <option value="Evaluador 2">Evaluador 2</option>
+                <option value="Presidente Tribunal">Presidente Tribunal</option>
+              </select>
+              {formData.tipoEvaluador === '' && (
+                <p className="text-xs text-red-500 mt-1">
+                  Debe seleccionar un tipo de evaluador.
+                </p>
+              )}
+            </div>
+
+            {/* Campo Nombre de Evaluador reposicionado */}
+            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+              <label className="block text-lg font-bold text-gray-700 mb-2">
+                Nombre de Evaluador
+              </label>
+              <input
+                type="text"
+                name="nombreEvaluador"
+                value={formData.nombreEvaluador}
+                onChange={handleChange}
+                placeholder="Ingrese el nombre del evaluador"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             {/* Primera Etapa: Evaluación de Conocimiento Teórico-Científico */}
             <div className="p-6 bg-blue-50 rounded-lg border">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
@@ -239,19 +253,23 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                   />
                 </div>
               </div>
-            </div>
-
-            {/* NUEVO: Campo Nombre de Evaluador */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
-              <input
-                type="text"
-                name="nombreEvaluador"
-                value={formData.nombreEvaluador}
-                onChange={handleChange}
-                placeholder="Ingrese el nombre del evaluador"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {/* Campo de Examen Conocimientos (40%) agregado */}
+              <div className="mt-4">
+                <label className="block text-lg font-bold text-gray-700 mb-2">
+                  Examen Conocimientos (40%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="examenConocimientos"
+                  value={formData.examenConocimientos}
+                  onChange={handleChange}
+                  placeholder="Ingrese la nota del examen"
+                  title="Ingrese la nota del examen"
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             {/* Nota Final */}

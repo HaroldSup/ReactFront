@@ -38,7 +38,6 @@ function Dashboard() {
   // ============ CORRECCIÓN EN ESTAS LÍNEAS ============
   const storedUser = localStorage.getItem('user');
   let userData = null;
-
   if (storedUser && storedUser !== 'undefined') {
     try {
       userData = JSON.parse(storedUser);
@@ -47,10 +46,27 @@ function Dashboard() {
       userData = null;
     }
   }
-
   const user = userData;
   const permisos = user?.permisos || {};
   // =====================================================
+
+  // Mapeo para títulos de cada sección
+  const sectionTitles = {
+    dashboard: 'Dashboard',
+    ListaAcefalia: 'Lista de Acefalías',
+    AcefaliaForm: 'Registrar Acefalía',
+    ListaUsuarios: 'Usuarios',
+    UserForm: 'Formulario de Usuario',
+    postulaciones: 'Postulaciones',
+    porCarrera: 'Postulaciones por Carrera',
+    ConcursoDeMeritos: 'Concurso de Méritos',
+    Registrodemeritos: 'Registro de Méritos',
+    Examendeconocimientos: 'Examen de Conocimientos',
+    Registrodeconocimientos: 'Registro de Conocimientos',
+    ExamendeCompetencias: 'Examen de Competencias',
+    propuestaDocente: 'Firma Digital',
+    workflow: 'Automatización Secuencial'
+  };
 
   // Función que devuelve true si el usuario es admin o tiene el permiso indicado
   const hasPermission = (permKey) => {
@@ -63,24 +79,23 @@ function Dashboard() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedAcefalia, setSelectedAcefalia] = useState(null);
-
   // Estado para almacenar los nodos (por label) que ya se han visitado
   const [visitedModules, setVisitedModules] = useState([]);
 
   const workflowMapping = {
-    'dashboard': ['Inicio'],
-    'ListaAcefalia': ['Unidad de Evaluación y Acreditación', 'Gestión de la documentación'],
-    'AcefaliaForm': ['Unidad de Evaluación y Acreditación', 'Gestión de la documentación'],
-    'ListaUsuarios': ['Asignar roles y permisos'],
-    'UserForm': ['Asignar roles y permisos'],
-    'postulaciones': ['Postulante', 'Subir Documentación'],
-    'porCarrera': ['Postulante', 'Subir Documentación'],
-    'ConcursoDeMeritos': ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
-    'Registrodemeritos': ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
-    'Examendeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
-    'Registrodeconocimientos': ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
-    'ExamendeCompetencias': ['Comité de evaluación', 'Gestión de la documentación examen de competencias', 'Registrar puntos de evaluación'],
-    'propuestaDocente': ['Director de la unidad académica', 'Subir documentación', 'Descargar documentación con Firma Digital', 'Fin']
+    dashboard: ['Inicio'],
+    ListaAcefalia: ['Unidad de Evaluación y Acreditación', 'Gestión de la documentación'],
+    AcefaliaForm: ['Unidad de Evaluación y Acreditación', 'Gestión de la documentación'],
+    ListaUsuarios: ['Asignar roles y permisos'],
+    UserForm: ['Asignar roles y permisos'],
+    postulaciones: ['Postulante', 'Subir Documentación'],
+    porCarrera: ['Postulante', 'Subir Documentación'],
+    ConcursoDeMeritos: ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
+    Registrodemeritos: ['Comité de Evaluación', 'Gestión de la documentación concurso de méritos', 'Registrar puntos de evaluación'],
+    Examendeconocimientos: ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
+    Registrodeconocimientos: ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
+    ExamendeCompetencias: ['Comité de evaluación', 'Gestión de la documentación examen de competencias', 'Registrar puntos de evaluación'],
+    propuestaDocente: ['Director de la unidad académica', 'Subir documentación', 'Descargar documentación con Firma Digital', 'Fin']
   };
 
   const toggleMenu = (section) => {
@@ -88,7 +103,7 @@ function Dashboard() {
     setActiveSection(section);
     if (workflowMapping[section]) {
       setVisitedModules((prev) => {
-        const nuevos = workflowMapping[section].filter(label => !prev.includes(label));
+        const nuevos = workflowMapping[section].filter((label) => !prev.includes(label));
         return [...prev, ...nuevos];
       });
     }
@@ -100,11 +115,12 @@ function Dashboard() {
 
   useEffect(() => {
     if (visitedModules.length >= 3) {
-      axios.post('/api/workflow/registrar', { modules: visitedModules })
-        .then(response => {
+      axios
+        .post('/api/workflow/registrar', { modules: visitedModules })
+        .then((response) => {
           console.log('Secuencia registrada', response.data);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('Error al registrar la secuencia', error);
         });
     }
@@ -112,6 +128,7 @@ function Dashboard() {
 
   return (
     <div className="flex flex-row h-screen text-gray-800 font-sans">
+      {/* Menú lateral */}
       <aside
         className={`bg-gradient-to-b from-blue-900 to-blue-700 text-white ${
           isExpanded ? 'w-48 md:w-64' : 'w-20'
@@ -141,10 +158,9 @@ function Dashboard() {
             onClick={() => toggleMenu('dashboard')}
           />
 
-          {/* Grupo: Asignaturas en Acefalía */}
-          {(hasPermission("Lista de Acefalías") || hasPermission("Registrar Acefalia")) && (
+          {(hasPermission('Lista de Acefalías') || hasPermission('Registrar Acefalia')) && (
             <MenuGroup label="Asignaturas en Acefalía" isExpanded={isExpanded}>
-              {hasPermission("Lista de Acefalías") && (
+              {hasPermission('Lista de Acefalías') && (
                 <MenuItem
                   icon={<ClipboardIcon className="w-6 h-6" />}
                   label="ListaAcefalia"
@@ -154,7 +170,7 @@ function Dashboard() {
                   onClick={() => toggleMenu('ListaAcefalia')}
                 />
               )}
-              {hasPermission("Registrar Acefalia") && (
+              {hasPermission('Registrar Acefalia') && (
                 <MenuItem
                   icon={<FolderIcon className="w-6 h-6" />}
                   label="AcefaliaForm"
@@ -170,8 +186,7 @@ function Dashboard() {
             </MenuGroup>
           )}
 
-          {/* Grupo: Gestión de Usuarios */}
-          {hasPermission("Usuarios") && (
+          {hasPermission('Usuarios') && (
             <MenuGroup label="Gestión de Usuarios" isExpanded={isExpanded}>
               <MenuItem
                 icon={<UserGroupIcon className="w-6 h-6" />}
@@ -184,10 +199,9 @@ function Dashboard() {
             </MenuGroup>
           )}
 
-          {/* Grupo: Postulaciones */}
-          {(hasPermission("Postulaciones") || hasPermission("Postulaciones por Carrera")) && (
+          {(hasPermission('Postulaciones') || hasPermission('Postulaciones por Carrera')) && (
             <MenuGroup label="Postulaciones" isExpanded={isExpanded}>
-              {hasPermission("Postulaciones") && (
+              {hasPermission('Postulaciones') && (
                 <MenuItem
                   icon={<DocumentTextIcon className="w-6 h-6" />}
                   label="postulaciones"
@@ -197,7 +211,7 @@ function Dashboard() {
                   onClick={() => toggleMenu('postulaciones')}
                 />
               )}
-              {hasPermission("Postulaciones por Carrera") && (
+              {hasPermission('Postulaciones por Carrera') && (
                 <MenuItem
                   icon={<AcademicCapIcon className="w-6 h-6" />}
                   label="porCarrera"
@@ -210,10 +224,11 @@ function Dashboard() {
             </MenuGroup>
           )}
 
-          {/* Grupo: Evaluaciones de Postulantes */}
-          {(hasPermission("Concurso de Méritos") || hasPermission("Examen de Conocimientos") || hasPermission("Examen de Competencias")) && (
+          {(hasPermission('Concurso de Méritos') ||
+            hasPermission('Examen de Conocimientos') ||
+            hasPermission('Examen de Competencias')) && (
             <MenuGroup label="Evaluaciones de Postulantes" isExpanded={isExpanded}>
-              {hasPermission("Concurso de Méritos") && (
+              {hasPermission('Concurso de Méritos') && (
                 <MenuItem
                   icon={<ClipboardIcon className="w-6 h-6" />}
                   label="ConcursoDeMeritos"
@@ -223,7 +238,7 @@ function Dashboard() {
                   onClick={() => toggleMenu('ConcursoDeMeritos')}
                 />
               )}
-              {hasPermission("Examen de Conocimientos") && (
+              {hasPermission('Examen de Conocimientos') && (
                 <MenuItem
                   icon={<AcademicCapIcon className="w-6 h-6" />}
                   label="Examendeconocimientos"
@@ -233,7 +248,7 @@ function Dashboard() {
                   onClick={() => toggleMenu('Examendeconocimientos')}
                 />
               )}
-              {hasPermission("Examen de Competencias") && (
+              {hasPermission('Examen de Competencias') && (
                 <MenuItem
                   icon={<AcademicCapIcon className="w-6 h-6" />}
                   label="ExamendeCompetencias"
@@ -246,8 +261,7 @@ function Dashboard() {
             </MenuGroup>
           )}
 
-          {/* Grupo: Firma Digital */}
-          {hasPermission("Firma Digital") && (
+          {hasPermission('Firma Digital') && (
             <MenuGroup label="Firma Digital" isExpanded={isExpanded}>
               <MenuItem
                 icon={<PencilSquareIcon className="w-6 h-6" />}
@@ -260,7 +274,6 @@ function Dashboard() {
             </MenuGroup>
           )}
 
-          {/* Grupo: Workflow */}
           <MenuGroup label="Workflow" isExpanded={isExpanded}>
             <MenuItem
               icon={<CogIcon className="w-6 h-6" />}
@@ -275,20 +288,33 @@ function Dashboard() {
       </aside>
 
       <main className="flex-1 bg-gradient-to-b from-gray-100 to-gray-200 p-8 overflow-y-auto">
-        {activeSection !== 'dashboard' && (
-          <button
-            onClick={() => setActiveSection(previousSection || 'dashboard')}
-            className="mb-4 p-2 bg-gradient-to-b from-blue-900 to-blue-700 text-white rounded-full shadow-md hover:from-blue-800 hover:to-blue-600 transition flex items-center justify-center w-10 h-10"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-          </button>
-        )}
+        {/* Header profesional con título, botón de retroceso y datos del usuario */}
+        <header className="mb-6 px-4 py-2 bg-white bg-opacity-90 shadow rounded-lg flex items-center justify-between transition-all">
+          <div className="flex items-center">
+            {activeSection !== 'dashboard' && (
+              <button
+                onClick={() => setActiveSection(previousSection || 'dashboard')}
+                className="mr-4 p-2 bg-gradient-to-b from-blue-900 to-blue-700 text-white rounded-full shadow-md hover:from-blue-800 hover:to-blue-600 transition"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+              </button>
+            )}
+            <h1 className="text-2xl font-bold text-blue-900">
+              {sectionTitles[activeSection] || 'Dashboard'}
+            </h1>
+          </div>
+          <div className="flex items-center">
+            <span className="text-gray-700 font-medium">
+              {user?.nombre || 'Usuario'}
+            </span>
+          </div>
+        </header>
 
         {/* Contenido de cada sección */}
         {activeSection === 'dashboard' && (
           <div className="space-y-16">
             <div
-              className="relative h-[70vh] flex flex-col justify-center items-center bg-cover bg-center overflow-hidden rounded-2xl shadow-lg"
+              className="relative h-[70vh] flex flex-col justify-center items-center bg-cover bg-center overflow-hidden rounded-2xl shadow-lg transition-transform transform hover:scale-105"
               style={{ backgroundImage: `url(${background})` }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70"></div>
@@ -307,7 +333,7 @@ function Dashboard() {
                 <img
                   src={missionImage}
                   alt="Misión"
-                  className="w-60 h-60 object-cover rounded-full shadow-2xl"
+                  className="w-60 h-60 object-cover rounded-full shadow-2xl transition-transform transform hover:scale-105"
                 />
               </div>
               <div className="bg-white bg-opacity-90 shadow-xl rounded-lg p-8 flex flex-col">
@@ -332,8 +358,15 @@ function Dashboard() {
                 <img
                   src={visionImage}
                   alt="Visión"
-                  className="w-60 h-60 object-cover rounded-full shadow-2xl"
+                  className="w-60 h-60 object-cover rounded-full shadow-2xl transition-transform transform hover:scale-105"
                 />
+              </div>
+            </div>
+            {/* Tarjeta de Gráficos Informativos (Placeholder) */}
+            <div className="bg-white bg-opacity-90 shadow-xl rounded-lg p-8">
+              <h2 className="text-2xl font-bold text-blue-900 mb-4">Estadísticas y Gráficos</h2>
+              <div className="w-full h-64 flex items-center justify-center border-dashed border-2 border-gray-300 rounded-lg">
+                <p className="text-gray-500">[Gráfico informativo]</p>
               </div>
             </div>
           </div>
