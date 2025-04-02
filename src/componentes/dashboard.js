@@ -51,10 +51,10 @@ function Dashboard() {
   const permisos = user?.permisos || {};
   // =====================================================
 
-  // Función para cerrar sesión
+  // Función para cerrar sesión utilizando redirección relativa
   const handleLogout = () => {
     localStorage.removeItem('user');
-    window.location.href = 'http://localhost:3000/';
+    window.location.href = '/';
   };
 
   // Mapeo para títulos de cada sección
@@ -310,15 +310,15 @@ function Dashboard() {
               {sectionTitles[activeSection] || 'Dashboard'}
             </h1>
           </div>
-          <div className="flex items-center">
-            <span className="text-gray-700 font-medium">
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-700 font-medium text-sm md:text-base">
               {user?.nombre || 'Usuario'}
             </span>
             <button
               onClick={handleLogout}
-              className="ml-4 p-2 bg-transparent hover:bg-gray-200 hover:bg-opacity-25 rounded-full transition"
+              className="p-2 bg-transparent hover:bg-gray-200 hover:bg-opacity-25 rounded-full transition"
             >
-              <ArrowRightOnRectangleIcon className="w-6 h-6 text-gray-700" />
+              <ArrowRightOnRectangleIcon className="w-4 h-4 md:w-6 md:h-6 text-gray-700" />
             </button>
           </div>
         </header>
