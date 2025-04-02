@@ -13,7 +13,8 @@ import {
   GlobeAltIcon,
   LightBulbIcon,
   PencilSquareIcon,
-  CogIcon
+  CogIcon,
+  ArrowRightOnRectangleIcon  // <- Icono para cerrar sesión
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import logo from '../images/logo.png';
@@ -49,6 +50,12 @@ function Dashboard() {
   const user = userData;
   const permisos = user?.permisos || {};
   // =====================================================
+
+  // Función para cerrar sesión
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    window.location.href = 'http://localhost:3000/';
+  };
 
   // Mapeo para títulos de cada sección
   const sectionTitles = {
@@ -288,7 +295,7 @@ function Dashboard() {
       </aside>
 
       <main className="flex-1 bg-gradient-to-b from-gray-100 to-gray-200 p-8 overflow-y-auto">
-        {/* Header profesional con título, botón de retroceso y datos del usuario */}
+        {/* Header profesional con título, botón de retroceso, datos del usuario y botón de salir */}
         <header className="mb-6 px-4 py-2 bg-white bg-opacity-90 shadow rounded-lg flex items-center justify-between transition-all">
           <div className="flex items-center">
             {activeSection !== 'dashboard' && (
@@ -307,6 +314,12 @@ function Dashboard() {
             <span className="text-gray-700 font-medium">
               {user?.nombre || 'Usuario'}
             </span>
+            <button
+              onClick={handleLogout}
+              className="ml-4 p-2 bg-transparent hover:bg-gray-200 hover:bg-opacity-25 rounded-full transition"
+            >
+              <ArrowRightOnRectangleIcon className="w-6 h-6 text-gray-700" />
+            </button>
           </div>
         </header>
 
