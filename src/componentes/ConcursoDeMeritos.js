@@ -16,25 +16,28 @@ function ConcursoDeMeritos() {
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Obtener los registros desde el backend y filtrarlos según el usuario
+  // Obtener los registros desde el backend, filtrarlos según el usuario y ordenarlos por puntos (descendente)
   const fetchRegistros = async () => {
     try {
       const response = await axios.get(`${baseURL}/api/concurso-meritos`);
       console.log('Registros obtenidos:', response.data);
 
-      // Recuperar datos del usuario desde localStorage (clave "user")
+      // Recuperar datos del usuario desde localStorage
       const user = JSON.parse(localStorage.getItem('user'));
       console.log('Usuario logueado:', user);
 
-      // Si el usuario NO es administrador, filtramos solo registros que tengan evaluadorId y coincidan con user._id
+      let registrosData = response.data;
+      // Si el usuario NO es administrador, filtrar solo registros que tengan evaluadorId y coincidan con user._id
       if (user && !user.administrador) {
-        const registrosFiltrados = response.data.filter(
+        registrosData = registrosData.filter(
           (registro) => registro.evaluadorId && registro.evaluadorId === user._id
         );
-        setRegistros(registrosFiltrados);
-      } else {
-        setRegistros(response.data);
       }
+      // Ordenar la lista de registros de forma descendente según puntosEvaluacion
+      registrosData.sort(
+        (a, b) => Number(b.puntosEvaluacion) - Number(a.puntosEvaluacion)
+      );
+      setRegistros(registrosData);
     } catch (error) {
       console.error('Error al obtener los registros:', error);
       Swal.fire({
@@ -80,7 +83,7 @@ function ConcursoDeMeritos() {
     }
   };
 
-  // Descargar registros en formato Excel
+  // Descargar registros en formato Excel (eliminamos la columna "Carrera")
   const handleDownloadExcel = () => {
     if (registros.length === 0) {
       Swal.fire({
@@ -98,7 +101,6 @@ function ConcursoDeMeritos() {
         'Nombre Postulante': registro.nombrePostulante,
         CI: registro.ci,
         Fecha: new Date(registro.fechaEvaluacion).toLocaleDateString(),
-        Carrera: registro.carrera,
         Puntos: registro.puntosEvaluacion,
       }))
     );
@@ -108,7 +110,7 @@ function ConcursoDeMeritos() {
     XLSX.writeFile(workbook, 'ConcursoDeMeritos.xlsx');
   };
 
-  // Descargar registros en formato PDF
+  // Descargar registros en formato PDF (eliminamos la columna "Carrera")
   const handleDownloadPDF = () => {
     if (registros.length === 0) {
       Swal.fire({
@@ -128,7 +130,6 @@ function ConcursoDeMeritos() {
       'Nombre Postulante',
       'CI',
       'Fecha',
-      'Carrera',
       'Puntos',
     ];
     const tableRows = [];
@@ -140,7 +141,6 @@ function ConcursoDeMeritos() {
         registro.nombrePostulante,
         registro.ci,
         new Date(registro.fechaEvaluacion).toLocaleDateString(),
-        registro.carrera,
         registro.puntosEvaluacion,
       ];
       tableRows.push(rowData);
@@ -155,20 +155,16 @@ function ConcursoDeMeritos() {
   };
 
   // Actualiza la lista luego de registrar o editar
-  // Si se recibe un nuevo registro y el usuario NO es admin, se muestra solo ese registro.
   const onMeritoRegistered = (nuevoRegistro) => {
     setMostrarFormulario(false);
     const user = JSON.parse(localStorage.getItem('user'));
     if (user && !user.administrador) {
-      // Si se recibió un nuevo registro, actualizamos el estado para mostrar solo ese.
       if (nuevoRegistro) {
         setRegistros([nuevoRegistro]);
       } else {
-        // Para edición, volvemos a buscar registros
         fetchRegistros();
       }
     } else {
-      // Si es administrador, volvemos a buscar todos los registros
       fetchRegistros();
     }
   };
@@ -224,7 +220,6 @@ function ConcursoDeMeritos() {
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">CI</th>
                 <th className="py-3 px-6 text-left">Fecha</th>
-                <th className="py-3 px-6 text-left">Carrera</th>
                 <th className="py-3 px-6 text-left">Puntos</th>
                 <th className="py-3 px-6 text-center">Acciones</th>
               </tr>
@@ -248,7 +243,6 @@ function ConcursoDeMeritos() {
                   <td className="py-3 px-6 text-left">
                     {new Date(registro.fechaEvaluacion).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-6 text-left">{registro.carrera}</td>
                   <td className="py-3 px-6 text-left">
                     {registro.puntosEvaluacion}
                   </td>
@@ -296,9 +290,6 @@ function ConcursoDeMeritos() {
                   <p className="text-gray-600">
                     <strong>Fecha:</strong>{' '}
                     {new Date(registro.fechaEvaluacion).toLocaleDateString()}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Carrera:</strong> {registro.carrera}
                   </p>
                   <p className="text-gray-600">
                     <strong>Puntos:</strong> {registro.puntosEvaluacion}

@@ -75,6 +75,7 @@ function Usuarios({ onAddUser, onEditUser }) {
         Nombre: usuario.nombre,
         'Nombre de Usuario': usuario.nombreUsuario,
         Email: usuario.email,
+        Carrera: usuario.carrera,
         Administrador: usuario.administrador ? 'Sí' : 'No',
         Activo: usuario.activo ? 'Sí' : 'No',
       }))
@@ -103,6 +104,7 @@ function Usuarios({ onAddUser, onEditUser }) {
       "Nombre",
       "Nombre de Usuario",
       "Email",
+      "Carrera",
       "Administrador",
       "Activo",
     ];
@@ -114,6 +116,7 @@ function Usuarios({ onAddUser, onEditUser }) {
         usuario.nombre,
         usuario.nombreUsuario,
         usuario.email,
+        usuario.carrera,
         usuario.administrador ? 'Sí' : 'No',
         usuario.activo ? 'Sí' : 'No',
       ];
@@ -163,6 +166,7 @@ function Usuarios({ onAddUser, onEditUser }) {
               <th className="py-3 px-6 text-left">Nombre</th>
               <th className="py-3 px-6 text-left">Nombre de Usuario</th>
               <th className="py-3 px-6 text-left">Email</th>
+              <th className="py-3 px-6 text-left">Carrera</th>
               <th className="py-3 px-6 text-center">Administrador</th>
               <th className="py-3 px-6 text-center">Activo</th>
               <th className="py-3 px-6 text-center">Acciones</th>
@@ -175,6 +179,7 @@ function Usuarios({ onAddUser, onEditUser }) {
                 <td className="py-3 px-6 text-left">{usuario.nombre}</td>
                 <td className="py-3 px-6 text-left">{usuario.nombreUsuario}</td>
                 <td className="py-3 px-6 text-left">{usuario.email}</td>
+                <td className="py-3 px-6 text-left">{usuario.carrera}</td>
                 <td className="py-3 px-6 text-center">
                   <span
                     className={`py-1 px-3 rounded-full text-xs ${
@@ -228,6 +233,9 @@ function Usuarios({ onAddUser, onEditUser }) {
               </p>
               <p className="text-gray-600">
                 <strong>Email:</strong> {usuario.email}
+              </p>
+              <p className="text-gray-600">
+                <strong>Carrera:</strong> {usuario.carrera}
               </p>
               <p className="text-gray-600">
                 <strong>Administrador:</strong>{' '}

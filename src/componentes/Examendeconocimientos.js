@@ -16,7 +16,7 @@ function Examendeconocimientos() {
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Obtener los registros desde el backend y filtrarlos según el usuario
+  // Obtener los registros desde el backend, filtrarlos según el usuario y ordenarlos por Nota Final (descendente)
   const fetchRegistros = async () => {
     try {
       const response = await axios.get(`${baseURL}/api/examen-conocimientos`);
@@ -26,16 +26,16 @@ function Examendeconocimientos() {
       const user = JSON.parse(localStorage.getItem('user'));
       console.log('Usuario logueado:', user);
 
+      let registrosData = response.data;
       if (user && !user.administrador) {
         // Filtrar registros que tengan evaluadorId y que coincidan con user._id
-        const registrosFiltrados = response.data.filter(
-          (registro) =>
-            registro.evaluadorId && registro.evaluadorId === user._id
+        registrosData = registrosData.filter(
+          (registro) => registro.evaluadorId && registro.evaluadorId === user._id
         );
-        setRegistros(registrosFiltrados);
-      } else {
-        setRegistros(response.data);
       }
+      // Ordenar la lista de registros de forma descendente según la Nota Final
+      registrosData.sort((a, b) => Number(b.notaFinal) - Number(a.notaFinal));
+      setRegistros(registrosData);
     } catch (error) {
       console.error('Error al obtener los registros:', error);
       Swal.fire({
@@ -82,7 +82,6 @@ function Examendeconocimientos() {
   };
 
   // Actualiza la lista luego de registrar o editar
-  // Si se recibe un nuevo registro y el usuario NO es admin, se muestra solo ese registro.
   const onConocimientoRegistered = (nuevoRegistro) => {
     setMostrarFormulario(false);
     const user = JSON.parse(localStorage.getItem('user'));
@@ -115,7 +114,6 @@ function Examendeconocimientos() {
         'Tipo Evaluador': registro.tipoEvaluador,
         Nombre: registro.nombre,
         Carnet: registro.carnet,
-        Materia: registro.materia,
         Fecha: new Date(registro.fecha).toLocaleDateString(),
         'Nota Final (40%)': registro.notaFinal,
       }))
@@ -146,7 +144,6 @@ function Examendeconocimientos() {
       'Tipo Evaluador',
       'Nombre',
       'Carnet',
-      'Materia',
       'Fecha',
       'Nota Final (40%)',
     ];
@@ -159,7 +156,6 @@ function Examendeconocimientos() {
         registro.tipoEvaluador,
         registro.nombre,
         registro.carnet,
-        registro.materia,
         new Date(registro.fecha).toLocaleDateString(),
         registro.notaFinal,
       ];
@@ -178,9 +174,7 @@ function Examendeconocimientos() {
     <div className="p-8 bg-gray-100 min-h-screen w-full">
       {/* Encabezado y botones */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-          Examen de Conocimientos
-        </h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Examen de Conocimientos</h2>
         <div className="flex space-x-4 mt-4 sm:mt-0">
           <button
             onClick={handleDownloadExcel}
@@ -225,7 +219,6 @@ function Examendeconocimientos() {
                 <th className="py-3 px-6 text-left">Tipo Evaluador</th>
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">Carnet</th>
-                <th className="py-3 px-6 text-left">Materia</th>
                 <th className="py-3 px-6 text-left">Fecha</th>
                 <th className="py-3 px-6 text-left">Nota Final (40%)</th>
                 <th className="py-3 px-6 text-center">Acciones</th>
@@ -233,23 +226,13 @@ function Examendeconocimientos() {
             </thead>
             <tbody className="text-gray-700 text-sm font-light">
               {registros.map((registro, index) => (
-                <tr
-                  key={registro._id}
-                  className="border-b border-gray-200 hover:bg-gray-100"
-                >
-                  <td className="py-3 px-6 text-left whitespace-nowrap">
-                    {index + 1}
-                  </td>
-                  <td className="py-3 px-6 text-left">
-                    {registro.nombreEvaluador || ''}
-                  </td>
+                <tr key={registro._id} className="border-b border-gray-200 hover:bg-gray-100">
+                  <td className="py-3 px-6 text-left whitespace-nowrap">{index + 1}</td>
+                  <td className="py-3 px-6 text-left">{registro.nombreEvaluador || ''}</td>
                   <td className="py-3 px-6 text-left">{registro.tipoEvaluador}</td>
                   <td className="py-3 px-6 text-left">{registro.nombre}</td>
                   <td className="py-3 px-6 text-left">{registro.carnet}</td>
-                  <td className="py-3 px-6 text-left">{registro.materia}</td>
-                  <td className="py-3 px-6 text-left">
-                    {new Date(registro.fecha).toLocaleDateString()}
-                  </td>
+                  <td className="py-3 px-6 text-left">{new Date(registro.fecha).toLocaleDateString()}</td>
                   <td className="py-3 px-6 text-left">{registro.notaFinal}</td>
                   <td className="py-3 px-6 text-center">
                     <div className="flex justify-center space-x-2">
@@ -278,35 +261,18 @@ function Examendeconocimientos() {
           {/* Vista en tarjetas para pantallas pequeñas */}
           <div className="block sm:hidden w-full">
             {registros.map((registro, index) => (
-              <div
-                key={registro._id}
-                className="border-b border-gray-200 hover:bg-gray-100 p-4"
-              >
+              <div key={registro._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
                 <div>
                   <span className="font-bold text-gray-800">
                     {index + 1}. {registro.nombre}
                   </span>
                 </div>
                 <div className="mt-2">
-                  <p className="text-gray-600">
-                    <strong>Evaluador:</strong> {registro.nombreEvaluador || ''}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Tipo Evaluador:</strong> {registro.tipoEvaluador}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Carnet:</strong> {registro.carnet}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Materia:</strong> {registro.materia}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Fecha:</strong>{' '}
-                    {new Date(registro.fecha).toLocaleDateString()}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Nota Final (40%):</strong> {registro.notaFinal}
-                  </p>
+                  <p className="text-gray-600"><strong>Evaluador:</strong> {registro.nombreEvaluador || ''}</p>
+                  <p className="text-gray-600"><strong>Tipo Evaluador:</strong> {registro.tipoEvaluador}</p>
+                  <p className="text-gray-600"><strong>Carnet:</strong> {registro.carnet}</p>
+                  <p className="text-gray-600"><strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}</p>
+                  <p className="text-gray-600"><strong>Nota Final (40%):</strong> {registro.notaFinal}</p>
                 </div>
                 <div className="mt-4 flex justify-center space-x-4">
                   <button

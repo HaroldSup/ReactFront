@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
@@ -7,11 +7,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     nombrePostulante: '',
     ci: '',
     fechaEvaluacion: '',
-    carrera: '',
+    // Se eliminó el campo "carrera"
     puntosEvaluacion: '',
-    // Campo para el nombre del evaluador
     nombreEvaluador: '',
-    // Se agregará el evaluadorId al registrar
     evaluadorId: '',
   });
 
@@ -22,8 +20,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
   useEffect(() => {
     if (merito) {
-      // Si se está editando, cargar todos los campos (incluyendo nombreEvaluador y evaluadorId si existen)
-      setFormData({ ...merito });
+      // Se remueve la propiedad "carrera" en caso de que venga en el objeto merito
+      const { carrera, ...rest } = merito;
+      setFormData(rest);
     }
   }, [merito]);
 
@@ -81,7 +80,6 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           registroData.evaluadorId = user._id;
-          // Si no se ingresa el nombre del evaluador manualmente, se asigna desde el usuario
           if (!registroData.nombreEvaluador) {
             registroData.nombreEvaluador = user.nombre || '';
           }
@@ -91,13 +89,10 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
       if (merito) {
         await axios.put(`${baseURL}/api/concurso-meritos/${merito._id}`, registroData);
         Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
-        // Para edición, volvemos a cargar toda la lista
         onMeritoRegistered();
       } else {
-        // Capturamos la respuesta del POST
         const response = await axios.post(`${baseURL}/api/concurso-meritos`, registroData);
         Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
-        // Pasamos el registro recién creado al callback
         onMeritoRegistered(response.data);
       }
     } catch (error) {
@@ -110,14 +105,13 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     }
   };
 
-  // Calcular el progreso de campos completados
-  const totalFields = 6; // Número total de campos
+  // Actualizamos el total de campos a 5 (se eliminó "carrera")
+  const totalFields = 5;
   const filledFields = Object.values(formData).filter((val) => val !== '').length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor general, con ancho máximo en pantallas grandes */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
@@ -144,20 +138,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                 Datos del Postulante
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Nombre del Postulante
-                  </label>
-                  <input
-                    type="text"
-                    name="nombrePostulante"
-                    value={formData.nombrePostulante}
-                    onChange={handleChange}
-                    placeholder="Ingrese el nombre completo"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {/* Campo CI: ubicado a la izquierda */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     CI
@@ -173,6 +154,22 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     title="Solo se permiten números y máximo 10 dígitos"
                     required
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Campo Nombre del Postulante: ubicado a la derecha, bloqueado */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Nombre del Postulante
+                  </label>
+                  <input
+                    type="text"
+                    name="nombrePostulante"
+                    value={formData.nombrePostulante}
+                    onChange={handleChange}
+                    placeholder="Nombre autocompletado"
+                    required
+                    disabled
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -199,30 +196,16 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Carrera
+                    Nombre de Evaluador
                   </label>
-                  <select
-                    name="carrera"
-                    value={formData.carrera}
+                  <input
+                    type="text"
+                    name="nombreEvaluador"
+                    value={formData.nombreEvaluador}
                     onChange={handleChange}
-                    required
+                    placeholder="Ingrese el nombre del evaluador"
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Seleccione una carrera</option>
-                    <option value="Ingeniería de Sistemas">
-                      Ingeniería de Sistemas
-                    </option>
-                    <option value="Ingeniería de Sistemas Electrónicos">
-                      Ingeniería de Sistemas Electrónicos
-                    </option>
-                    <option value="Ingeniería Agroindustrial">
-                      Ingeniería Agroindustrial
-                    </option>
-                    <option value="Ingeniería Civil">Ingeniería Civil</option>
-                    <option value="Ingeniería Comercial">
-                      Ingeniería Comercial
-                    </option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
@@ -236,19 +219,6 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     value={formData.puntosEvaluacion}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Nombre de Evaluador
-                  </label>
-                  <input
-                    type="text"
-                    name="nombreEvaluador"
-                    value={formData.nombreEvaluador}
-                    onChange={handleChange}
-                    placeholder="Ingrese el nombre del evaluador"
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

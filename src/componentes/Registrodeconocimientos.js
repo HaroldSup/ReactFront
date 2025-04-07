@@ -6,15 +6,12 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
   const [formData, setFormData] = useState({
     tipoEvaluador: '',
     nombre: '',
-    carnet: '',
-    materia: '',
+    carnet: '', // Internamente se sigue llamando "carnet", pero en la UI lo mostraremos como "CI"
+    // Se eliminó "materia"
     fecha: '',
     examenConocimientos: '',
     nombreEvaluador: ''
   });
-
-  // Estado para almacenar las materias postuladas
-  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
 
   const baseURL =
     process.env.NODE_ENV === 'development'
@@ -23,23 +20,17 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
 
   useEffect(() => {
     if (conocimiento) {
-      setFormData({ ...conocimiento });
-      if (conocimiento.asignaturasSeleccionadas) {
-        setMateriasPostuladas(
-          typeof conocimiento.asignaturasSeleccionadas === 'string'
-            ? JSON.parse(conocimiento.asignaturasSeleccionadas)
-            : conocimiento.asignaturasSeleccionadas
-        );
-      }
+      // Se remueve la propiedad "materia" en caso de existir en el objeto conocimiento
+      const { materia, ...rest } = conocimiento;
+      setFormData(rest);
     }
   }, [conocimiento]);
 
-  // Buscar postulante por carnet y autocompletar nombre y materias postuladas
+  // Buscar postulante por carnet y autocompletar nombre
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.carnet.trim() === '') {
         setFormData((prev) => ({ ...prev, nombre: '' }));
-        setMateriasPostuladas([]);
         return;
       }
       try {
@@ -49,20 +40,10 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
             ...prev,
             nombre: response.data.data.nombre
           }));
-          if (response.data.data.asignaturasSeleccionadas) {
-            const materias =
-              typeof response.data.data.asignaturasSeleccionadas === 'string'
-                ? JSON.parse(response.data.data.asignaturasSeleccionadas)
-                : response.data.data.asignaturasSeleccionadas;
-            setMateriasPostuladas(materias);
-          } else {
-            setMateriasPostuladas([]);
-          }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
           setFormData((prev) => ({ ...prev, nombre: '' }));
-          setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
       }
@@ -109,7 +90,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
         }
         const response = await axios.post(`${baseURL}/api/examen-conocimientos`, dataToSend);
         Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
-        // Pasar el registro recién creado al callback
         onConocimientoRegistered(response.data);
       }
     } catch (error) {
@@ -136,10 +116,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           <div className="mb-6">
             <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
             </div>
           </div>
 
@@ -163,17 +140,13 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                 <option value="Presidente Tribunal">Presidente Tribunal</option>
               </select>
               {formData.tipoEvaluador === '' && (
-                <p className="text-xs text-red-500 mt-1">
-                  Debe seleccionar un tipo de evaluador.
-                </p>
+                <p className="text-xs text-red-500 mt-1">Debe seleccionar un tipo de evaluador.</p>
               )}
             </div>
 
             {/* Campo Nombre de Evaluador reposicionado */}
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <label className="block text-lg font-bold text-gray-700 mb-2">
-                Nombre de Evaluador
-              </label>
+              <label className="block text-lg font-bold text-gray-700 mb-2">Nombre de Evaluador</label>
               <input
                 type="text"
                 name="nombreEvaluador"
@@ -190,70 +163,51 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                 Primera Etapa: Evaluación de Conocimiento Teórico-Científico
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campo CI a la izquierda */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">CI</label>
+                  <input
+                    type="text"
+                    name="carnet"
+                    value={formData.carnet}
+                    onChange={handleChange}
+                    placeholder="Ingrese CI (máximo 10 dígitos)"
+                    maxLength="10"
+                    pattern="\d{1,10}"
+                    title="Solo se permiten números y máximo 10 dígitos"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Campo Nombre del Postulante a la derecha, bloqueado */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre del Postulante</label>
                   <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
                     readOnly
-                    placeholder="El nombre se autocompleta al ingresar el carnet"
-                    title="El nombre se autocompleta al ingresar el carnet"
+                    placeholder="Nombre autocompletado"
+                    title="El nombre se autocompleta al ingresar el CI"
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
-                  <input
-                    type="text"
-                    name="carnet"
-                    value={formData.carnet}
-                    onChange={handleChange}
-                    placeholder="Ej: 12345678"
-                    title="Ingrese el número de carnet del postulante"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                  <select
-                    name="materia"
-                    value={formData.materia}
-                    onChange={handleChange}
-                    required
-                    title="Seleccione la asignatura a la que postula"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Seleccione la asignatura</option>
-                    {materiasPostuladas.length > 0 ? (
-                      materiasPostuladas.map((mat, idx) => (
-                        <option key={idx} value={mat.asignatura}>
-                          {mat.asignatura}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="">No se encontraron materias postuladas</option>
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
-                  <input
-                    type="date"
-                    name="fecha"
-                    value={formData.fecha}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              {/* Campo Fecha */}
+              <div className="mt-4">
+                <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
+                <input
+                  type="date"
+                  name="fecha"
+                  value={formData.fecha}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
-              {/* Campo de Examen Conocimientos (40%) agregado */}
+              {/* Campo de Examen Conocimientos (40%) */}
               <div className="mt-4">
                 <label className="block text-lg font-bold text-gray-700 mb-2">
                   Examen Conocimientos (40%)

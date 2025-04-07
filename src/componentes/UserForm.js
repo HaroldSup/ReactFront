@@ -9,7 +9,7 @@ const initialFormData = {
   password: '',
   activo: true,
   administrador: false,
-  carreras: [],
+  carrera: '', // Nuevo campo de carrera (string)
   permisos: {
     "Lista de Acefalías": true,
     "Registrar Acefalia": true,
@@ -23,17 +23,22 @@ const initialFormData = {
   },
 };
 
+const carrerasList = [
+  "Ingeniería de Sistemas",
+  "Ingeniería de Sistemas Electrónicos",
+  "Ingeniería Agroindustrial",
+  "Ingeniería Civil",
+  "Ingeniería Comercial"
+];
+
 const UserForm = ({ user, onUserRegistered }) => {
   const [formData, setFormData] = useState(initialFormData);
 
-  // Determinar la URL base dependiendo del entorno
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Si se recibe un usuario para editar, se carga en el formulario;
-  // de lo contrario se reinicia al estado inicial (para evitar que quede en modo edición)
   useEffect(() => {
     if (user) {
       setFormData({
@@ -53,28 +58,11 @@ const UserForm = ({ user, onUserRegistered }) => {
     }));
   };
 
-  const handleCarrerasChange = (carrera) => {
-    setFormData((prev) => ({
-      ...prev,
-      carreras: prev.carreras.includes(carrera)
-        ? prev.carreras.filter((c) => c !== carrera)
-        : [...prev.carreras, carrera],
-    }));
-  };
-
-  const handlePermisosChange = (permiso) => {
-    setFormData((prev) => ({
-      ...prev,
-      permisos: { ...prev.permisos, [permiso]: !prev.permisos[permiso] },
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       let response;
       if (user) {
-        // Modo edición: actualizar usuario
         response = await axios.put(`${baseURL}/usuarios/${user._id}`, formData);
         if (response.status === 200 || response.status === 201) {
           Swal.fire({
@@ -94,7 +82,6 @@ const UserForm = ({ user, onUserRegistered }) => {
           });
         }
       } else {
-        // Modo registro: crear nuevo usuario
         response = await axios.post(`${baseURL}/usuarios/register`, formData);
         if (response.status === 200 || response.status === 201) {
           Swal.fire({
@@ -142,7 +129,6 @@ const UserForm = ({ user, onUserRegistered }) => {
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor responsivo centrado con ancho máximo */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="w-full bg-white p-6 md:p-10 rounded-xl shadow-2xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-blue-800 mb-8">
@@ -226,7 +212,26 @@ const UserForm = ({ user, onUserRegistered }) => {
               </div>
             </div>
 
-            {/* Sección 2: Opciones */}
+            {/* Sección 2: Selección de Carrera */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Carrera</h3>
+              <select
+                name="carrera"
+                value={formData.carrera}
+                onChange={handleChange}
+                required
+                className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Seleccione una carrera</option>
+                {carrerasList.map((carrera) => (
+                  <option key={carrera} value={carrera}>
+                    {carrera}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sección 3: Opciones */}
             <div className="p-6 bg-blue-50 rounded-lg border">
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
                 Opciones
@@ -257,31 +262,6 @@ const UserForm = ({ user, onUserRegistered }) => {
               </div>
             </div>
 
-            {/* Sección 3: Carreras */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">
-                Carreras
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  'INGENIERÍA AGROINDUSTRIAL',
-                  'INGENIERÍA CIVIL',
-                  'INGENIERÍA COMERCIAL',
-                  'INGENIERÍA DE SISTEMAS',
-                  'INGENIERÍA EN SISTEMAS ELECTRÓNICOS',
-                ].map((carrera) => (
-                  <label key={carrera} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.carreras.includes(carrera)}
-                      onChange={() => handleCarrerasChange(carrera)}
-                    />
-                    <span>{carrera}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             {/* Sección 4: Permisos */}
             <div className="p-6 bg-blue-50 rounded-lg border">
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
@@ -308,7 +288,12 @@ const UserForm = ({ user, onUserRegistered }) => {
                     <input
                       type="checkbox"
                       checked={formData.permisos[permiso]}
-                      onChange={() => handlePermisosChange(permiso)}
+                      onChange={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          permisos: { ...prev.permisos, [permiso]: !prev.permisos[permiso] },
+                        }));
+                      }}
                     />
                     <span>{permiso}</span>
                   </label>
@@ -350,12 +335,7 @@ const UserForm = ({ user, onUserRegistered }) => {
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </button>
     </div>

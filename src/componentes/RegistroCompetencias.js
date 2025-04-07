@@ -213,30 +213,37 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Registro de datos del postulante
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campo CI */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    value={formData.nombre}
-                    readOnly
-                    placeholder="El nombre se autocompleta al ingresar el carnet"
-                    title="El nombre se autocompleta al ingresar el carnet"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Carnet</label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">CI</label>
                   <input
                     type="text"
                     name="carnet"
                     value={formData.carnet}
                     onChange={handleChange}
-                    placeholder="Ej: 12345678"
-                    title="Ingrese el número de carnet del postulante"
+                    placeholder="Ingrese CI (máximo 10 dígitos)"
+                    maxLength="10"
+                    pattern="\d{1,10}"
+                    title="Solo se permiten números y máximo 10 dígitos"
                     required
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Campo Nombre del Postulante */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Nombre del Postulante
+                  </label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    readOnly
+                    placeholder="Nombre autocompletado"
+                    title="El nombre se autocompleta al ingresar el CI"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
