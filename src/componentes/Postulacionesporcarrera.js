@@ -4,6 +4,14 @@ import * as XLSX from 'xlsx';
 import swal from 'sweetalert';
 import { FaFileAlt } from 'react-icons/fa';
 
+// Función para convertir un string a formato título
+const toTitleCase = (str) => {
+  if (!str) return '';
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+};
+
 // Lista de documentos requeridos y sus etiquetas
 const documentosList = [
   { key: 'cartaDocenteAntiguoLicenciatura', label: 'Carta de Postulación Docente Antiguo Licenciatura' },
@@ -43,8 +51,9 @@ const getFileName = (filePath) => {
   return filePath.split('\\').pop().split('/').pop();
 };
 
-// Función para formatear la información de las asignaturas postuladas  
-const formatAsignaturas = (asignaturas) => {
+// Función para formatear cada asignatura con su carrera y nivel
+// Formato: Nombre (Carrera, Nivel)
+const formatMateriaConCarrera = (asignaturas) => {
   if (!asignaturas) return '';
   if (!Array.isArray(asignaturas)) {
     try {
@@ -56,8 +65,10 @@ const formatAsignaturas = (asignaturas) => {
   return asignaturas
     .map((item) => {
       if (typeof item === 'object' && item !== null) {
-        const { asignatura, departamento, nivel } = item;
-        return `${asignatura || ''} (${departamento || ''}, ${nivel || ''})`;
+        const nombre = item.asignatura ? toTitleCase(item.asignatura) : '';
+        const carrera = item.carrera ? toTitleCase(item.carrera) : '';
+        const nivel = item.nivel ? toTitleCase(item.nivel) : '';
+        return `${nombre} (${carrera}, ${nivel})`;
       }
       return item;
     })
@@ -75,7 +86,7 @@ const formatDocumentosForExcel = (documentos) => {
     .join(' || ');
 };
 
-// Componente que muestra los documentos en tarjetas (2 columnas, con íconos)
+// Componente para mostrar los documentos en tarjetas (2 columnas, con íconos)
 const DocumentosDetalle = ({ documentos, baseURL }) => {
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
@@ -103,11 +114,23 @@ const DocumentosDetalle = ({ documentos, baseURL }) => {
   );
 };
 
+// Función para parsear asignaturas (pueden venir como cadena JSON)
+const parseAsignaturas = (asignaturasRaw) => {
+  if (!asignaturasRaw) return [];
+  if (Array.isArray(asignaturasRaw)) return asignaturasRaw;
+  try {
+    return JSON.parse(asignaturasRaw);
+  } catch (err) {
+    console.error('Error al parsear asignaturasSeleccionadas', err);
+    return [];
+  }
+};
+
 function Postulacionesporcarrera() {
   const [postulaciones, setPostulaciones] = useState([]);
   const [error, setError] = useState(null);
+  const [filterCareer, setFilterCareer] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
-  const [filterCareer, setFilterCareer] = useState(""); // Nuevo estado para el filtro
 
   const baseURL = 'http://localhost:5000'; // Ajusta según tu configuración
 
@@ -125,12 +148,22 @@ function Postulacionesporcarrera() {
     fetchPostulaciones();
   }, [baseURL]);
 
-  // Se filtran las postulaciones según la carrera ingresada
-  const filteredPostulaciones = postulaciones.filter((postulacion) => {
-    if (!filterCareer) return true;
-    return postulacion.carrera && 
-      postulacion.carrera.toLowerCase().includes(filterCareer.toLowerCase());
-  });
+  // Para cada postulante, filtramos las materias que coincidan con el filtro ingresado (por ejemplo "sistemas")
+  // El filtro se aplica sobre la propiedad "carrera" de cada materia
+  const filteredPostulaciones = postulaciones
+    .map((postulacion) => {
+      const materias = parseAsignaturas(postulacion.asignaturasSeleccionadas);
+      const materiasFiltradas =
+        filterCareer.trim() === ""
+          ? materias
+          : materias.filter(
+              (mat) =>
+                mat.carrera &&
+                mat.carrera.toLowerCase().includes(filterCareer.toLowerCase())
+            );
+      return { ...postulacion, materiasFiltradas };
+    })
+    .filter((postulacion) => postulacion.materiasFiltradas && postulacion.materiasFiltradas.length > 0);
 
   const toggleRowExpansion = (index) => {
     setExpandedRows((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -157,7 +190,7 @@ function Postulacionesporcarrera() {
     });
   };
 
-  // Descargar solo las postulaciones filtradas en Excel
+  // Descargar solo las postulaciones filtradas a Excel
   const handleDownloadExcel = () => {
     if (filteredPostulaciones.length === 0) {
       alert('No hay postulaciones para descargar.');
@@ -172,10 +205,11 @@ function Postulacionesporcarrera() {
         'Carnet de Identidad': postulacion.ci,
         'Universidad CEUB': postulacion.universidad,
         'Año de Titulación': postulacion.anioTitulacion,
-        'Carrera': postulacion.carrera, // Incluimos la carrera en el reporte
+        'Carrera': postulacion.carrera,
         Profesión: postulacion.profesion,
         'Tipo de Docente': postulacion.tipoDocente,
-        Asignaturas: formatAsignaturas(postulacion.asignaturasSeleccionadas),
+        // Usamos nuestra función formateadora para las materias filtradas
+        Asignaturas: formatMateriaConCarrera(postulacion.materiasFiltradas),
         Documentos: formatDocumentosForExcel(postulacion.documentos),
       }))
     );
@@ -185,17 +219,25 @@ function Postulacionesporcarrera() {
     XLSX.writeFile(workbook, 'Postulaciones.xlsx');
   };
 
+  // Obtenemos un listado único de carreras a partir de todas las materias postuladas
+  const uniqueCarreras = Array.from(
+    new Set(
+      postulaciones.reduce((acc, postulacion) => {
+        const materias = parseAsignaturas(postulacion.asignaturasSeleccionadas);
+        return acc.concat(materias.map((mat) => mat.carrera));
+      }, [])
+    )
+  );
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      {/* Encabezado con filtro y botón para descargar Excel */}
+      {/* Encabezado con filtro y botón de descarga */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">
-          Postulaciones Registradas
-        </h2>
+        <h2 className="text-2xl font-bold text-blue-800 mb-2 md:mb-0">Postulaciones Registradas</h2>
         <div className="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
           <input
             type="text"
-            placeholder="Filtrar por Carrera"
+            placeholder="Filtrar por Carrera (ej. sistemas)"
             value={filterCareer}
             onChange={(e) => setFilterCareer(e.target.value)}
             className="px-3 py-2 border rounded-md"
@@ -210,7 +252,7 @@ function Postulacionesporcarrera() {
       </div>
       {error && <p className="text-red-500">{error}</p>}
       {filteredPostulaciones.length === 0 && !error ? (
-        <p className="text-gray-600">No hay postulaciones registradas para esta carrera.</p>
+        <p className="text-gray-600">No hay postulaciones registradas para la carrera filtrada.</p>
       ) : (
         <>
           {/* Vista en tabla para pantallas medianas y superiores */}
@@ -218,48 +260,59 @@ function Postulacionesporcarrera() {
             <table className="min-w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="border border-gray-300 px-4 py-2">Nombre Completo</th>
-                  <th className="border border-gray-300 px-4 py-2">Correo</th>
-                  <th className="border border-gray-300 px-4 py-2">Celular</th>
-                  <th className="border border-gray-300 px-4 py-2">C.I.</th>
-                  <th className="border border-gray-300 px-4 py-2">Universidad CEUB</th>
-                  <th className="border border-gray-300 px-4 py-2">Año de Titulación</th>
-                  <th className="border border-gray-300 px-4 py-2">Carrera</th>
-                  <th className="border border-gray-300 px-4 py-2">Profesión</th>
-                  <th className="border border-gray-300 px-4 py-2">Tipo de Docente</th>
-                  <th className="border border-gray-300 px-4 py-2">Materias Postuladas</th>
-                  <th className="border border-gray-300 px-4 py-2">Documentación</th>
-                  <th className="border border-gray-300 px-4 py-2">Acciones</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Nombre Completo</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Correo</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Celular</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">C.I.</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Universidad CEUB</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Año de Titulación</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Carrera</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Profesión</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Tipo de Docente</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Materias Filtradas</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Documentación</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPostulaciones.map((postulacion, index) => (
                   <React.Fragment key={postulacion._id}>
-                    <tr className="hover:bg-gray-100">
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.nombre}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.correo}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.celular}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.ci}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.universidad}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.anioTitulacion}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.carrera}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.profesion}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.tipoDocente}</td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {formatAsignaturas(postulacion.asignaturasSeleccionadas)}
+                    <tr className="hover:bg-gray-50 odd:bg-white even:bg-gray-50">
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.nombre}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.correo}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.celular}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.ci}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.universidad}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.anioTitulacion}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.carrera}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.profesion}</td>
+                      <td className="border border-gray-300 px-4 py-3">{postulacion.tipoDocente}</td>
+                      <td className="border border-gray-300 px-4 py-3">
+                        {postulacion.materiasFiltradas && postulacion.materiasFiltradas.length > 0 ? (
+                          postulacion.materiasFiltradas.map((item, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-block bg-blue-100 text-blue-800 px-2 py-1 mr-2 mb-1 rounded-full text-xs font-semibold"
+                            >
+                              {toTitleCase(item.asignatura)} ({toTitleCase(item.carrera)}, {toTitleCase(item.nivel)})
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500">N/A</span>
+                        )}
                       </td>
-                      <td className="border border-gray-300 px-4 py-2">
+                      <td className="border border-gray-300 px-4 py-3">
                         <button
                           onClick={() => toggleRowExpansion(index)}
-                          className="text-blue-500 underline hover:text-blue-700"
+                          className="text-blue-500 underline hover:text-blue-700 text-sm"
                         >
-                          {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
+                          {expandedRows[index] ? 'Ocultar Doc.' : 'Ver Doc.'}
                         </button>
                       </td>
-                      <td className="border border-gray-300 px-4 py-2">
+                      <td className="border border-gray-300 px-4 py-3">
                         <button
                           onClick={() => handleDelete(postulacion._id)}
-                          className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                          className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition"
                         >
                           Eliminar
                         </button>
@@ -281,45 +334,54 @@ function Postulacionesporcarrera() {
           {/* Vista en tarjetas para pantallas pequeñas */}
           <div className="block sm:hidden">
             {filteredPostulaciones.map((postulacion, index) => (
-              <div key={postulacion._id} className="border border-gray-300 rounded-lg p-4 mb-4 hover:bg-gray-100">
+              <div key={postulacion._id} className="border border-gray-300 rounded-lg p-4 mb-4">
                 <div className="mb-2">
-                  <span className="font-bold text-gray-800">{postulacion.nombre}</span>
+                  <span className="font-bold text-gray-800 text-lg">{postulacion.nombre}</span>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Correo:</strong> {postulacion.correo}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Celular:</strong> {postulacion.celular}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>C.I.:</strong> {postulacion.ci}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Universidad CEUB:</strong> {postulacion.universidad}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Año de Titulación:</strong> {postulacion.anioTitulacion}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Carrera:</strong> {postulacion.carrera}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Profesión:</strong> {postulacion.profesion}</p>
                 </div>
-                <div className="mb-1">
+                <div className="mb-1 text-sm">
                   <p className="text-gray-600"><strong>Tipo de Docente:</strong> {postulacion.tipoDocente}</p>
                 </div>
                 <div className="mb-1">
-                  <p className="text-gray-600">
-                    <strong>Materias Postuladas:</strong> {formatAsignaturas(postulacion.asignaturasSeleccionadas)}
-                  </p>
+                  <p className="text-gray-600 text-sm"><strong>Materias Filtradas:</strong></p>
+                  {postulacion.materiasFiltradas && postulacion.materiasFiltradas.length > 0 ? (
+                    <ul className="list-disc pl-4">
+                      {postulacion.materiasFiltradas.map((item, idx) => (
+                        <li key={idx} className="text-sm">
+                          {toTitleCase(item.asignatura)} (<span className="font-semibold">{toTitleCase(item.carrera)}</span>, {toTitleCase(item.nivel)})
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-gray-500 text-sm">N/A</span>
+                  )}
                 </div>
                 <div className="mb-1">
                   <button
                     onClick={() => toggleRowExpansion(index)}
-                    className="text-blue-500 underline hover:text-blue-700"
+                    className="text-blue-500 underline hover:text-blue-700 text-sm"
                   >
-                    {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
+                    {expandedRows[index] ? 'Ocultar Doc.' : 'Ver Doc.'}
                   </button>
                 </div>
                 {expandedRows[index] && (
@@ -330,7 +392,7 @@ function Postulacionesporcarrera() {
                 <div className="mt-2">
                   <button
                     onClick={() => handleDelete(postulacion._id)}
-                    className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                    className="w-full px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition"
                   >
                     Eliminar
                   </button>

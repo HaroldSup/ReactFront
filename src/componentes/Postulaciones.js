@@ -4,6 +4,13 @@ import * as XLSX from 'xlsx';
 import swal from 'sweetalert';
 import { FaFileAlt } from 'react-icons/fa';
 
+// Función para convertir un string a formato título
+const toTitleCase = (str) => {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+};
+
 // Lista de documentos requeridos y sus etiquetas
 const documentosList = [
   { key: 'cartaDocenteAntiguoLicenciatura', label: 'Carta de Postulación Docente Antiguo Licenciatura' },
@@ -43,10 +50,10 @@ const getFileName = (filePath) => {
   return filePath.split('\\').pop().split('/').pop();
 };
 
-// Función para formatear la información de las asignaturas postuladas  
+// Función para formatear la información de las asignaturas postuladas
+// (La función se utiliza al exportar a Excel; en la tabla manejamos el parsing de asignaturas de forma local)
 const formatAsignaturas = (asignaturas) => {
   if (!asignaturas) return '';
-  // Si no es un arreglo, intentar parsearlo (en caso de que se guarde como cadena JSON)
   if (!Array.isArray(asignaturas)) {
     try {
       asignaturas = JSON.parse(asignaturas);
@@ -56,12 +63,12 @@ const formatAsignaturas = (asignaturas) => {
   }
   return asignaturas
     .map((item) => {
-      // Si el elemento es un objeto con las propiedades esperadas
       if (typeof item === 'object' && item !== null) {
-        const { asignatura, departamento, nivel } = item;
-        return `${asignatura || ''} (${departamento || ''}, ${nivel || ''})`;
+        const nombre = item.asignatura ? toTitleCase(item.asignatura) : '';
+        const carrera = item.carrera ? toTitleCase(item.carrera) : '';
+        const nivel = item.nivel ? toTitleCase(item.nivel) : '';
+        return `${nombre} (${carrera}, ${nivel})`;
       }
-      // Si es un string, simplemente retornarlo
       return item;
     })
     .join(' | ');
@@ -78,7 +85,7 @@ const formatDocumentosForExcel = (documentos) => {
     .join(' || ');
 };
 
-// Componente que muestra los documentos en tarjetas (2 columnas, con íconos)
+// Componente para mostrar los documentos en tarjetas
 const DocumentosDetalle = ({ documentos, baseURL }) => {
   return (
     <div className="grid grid-cols-2 gap-4 p-4">
@@ -117,6 +124,8 @@ function Postulaciones() {
     const fetchPostulaciones = async () => {
       try {
         const response = await axios.get(`${baseURL}/postulaciones`);
+        // Verifica en consola lo que recibes:
+        // console.log('Postulaciones recibidas:', response.data.data);
         setPostulaciones(response.data.data || []);
       } catch (error) {
         console.error('Error al obtener las postulaciones:', error);
@@ -127,7 +136,19 @@ function Postulaciones() {
     fetchPostulaciones();
   }, [baseURL]);
 
-  // Alternar visualización de documentos
+  // Función para parsear asignaturas (ya que pueden venir como cadena JSON)
+  const parseAsignaturas = (asignaturasRaw) => {
+    if (!asignaturasRaw) return [];
+    if (Array.isArray(asignaturasRaw)) return asignaturasRaw;
+    try {
+      return JSON.parse(asignaturasRaw);
+    } catch (err) {
+      console.error('Error al parsear asignaturasSeleccionadas', err);
+      return [];
+    }
+  };
+
+  // Alterna la visualización de la sección de documentos en cada fila
   const toggleRowExpansion = (index) => {
     setExpandedRows((prev) => ({ ...prev, [index]: !prev[index] }));
   };
@@ -216,111 +237,139 @@ function Postulaciones() {
                   <th className="border border-gray-300 px-4 py-2">Profesión</th>
                   <th className="border border-gray-300 px-4 py-2">Tipo de Docente</th>
                   <th className="border border-gray-300 px-4 py-2">Materias Postuladas</th>
+                  <th className="border border-gray-300 px-4 py-2">Carrera de la Materia</th>
                   <th className="border border-gray-300 px-4 py-2">Documentación</th>
                   <th className="border border-gray-300 px-4 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {postulaciones.map((postulacion, index) => (
-                  <React.Fragment key={postulacion._id}>
-                    <tr className="hover:bg-gray-100">
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.nombre}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.correo}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.celular}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.ci}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.universidad}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.anioTitulacion}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.profesion}</td>
-                      <td className="border border-gray-300 px-4 py-2">{postulacion.tipoDocente}</td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {formatAsignaturas(postulacion.asignaturasSeleccionadas)}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        <button
-                          onClick={() => toggleRowExpansion(index)}
-                          className="text-blue-500 underline hover:text-blue-700"
-                        >
-                          {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
-                        </button>
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        <button
-                          onClick={() => handleDelete(postulacion._id)}
-                          className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedRows[index] && (
-                      <tr>
-                        <td colSpan="11" className="border border-gray-300">
-                          <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
+                {postulaciones.map((postulacion, index) => {
+                  // Convertir asignaturasSeleccionadas a arreglo si es cadena
+                  const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas);
+                  return (
+                    <React.Fragment key={postulacion._id}>
+                      <tr className="hover:bg-gray-100">
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.nombre}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.correo}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.celular}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.ci}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.universidad}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.anioTitulacion}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.profesion}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.tipoDocente}</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          {asignaturas
+                            .map(item => item.asignatura ? toTitleCase(item.asignatura) : '')
+                            .join(' | ')
+                          }
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          {asignaturas
+                            .map(item => item.carrera ? toTitleCase(item.carrera) : '')
+                            .join(' | ')
+                          }
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          <button
+                            onClick={() => toggleRowExpansion(index)}
+                            className="text-blue-500 underline hover:text-blue-700"
+                          >
+                            {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
+                          </button>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          <button
+                            onClick={() => handleDelete(postulacion._id)}
+                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                          >
+                            Eliminar
+                          </button>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
+                      {expandedRows[index] && (
+                        <tr>
+                          <td colSpan="12" className="border border-gray-300">
+                            <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Vista en tarjetas para pantallas pequeñas */}
           <div className="block sm:hidden">
-            {postulaciones.map((postulacion, index) => (
-              <div key={postulacion._id} className="border border-gray-300 rounded-lg p-4 mb-4 hover:bg-gray-100">
-                <div className="mb-2">
-                  <span className="font-bold text-gray-800">{postulacion.nombre}</span>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Correo:</strong> {postulacion.correo}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Celular:</strong> {postulacion.celular}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>C.I.:</strong> {postulacion.ci}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Universidad CEUB:</strong> {postulacion.universidad}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Año de Titulación:</strong> {postulacion.anioTitulacion}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Profesión:</strong> {postulacion.profesion}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600"><strong>Tipo de Docente:</strong> {postulacion.tipoDocente}</p>
-                </div>
-                <div className="mb-1">
-                  <p className="text-gray-600">
-                    <strong>Materias Postuladas:</strong> {formatAsignaturas(postulacion.asignaturasSeleccionadas)}
-                  </p>
-                </div>
-                <div className="mb-1">
-                  <button
-                    onClick={() => toggleRowExpansion(index)}
-                    className="text-blue-500 underline hover:text-blue-700"
-                  >
-                    {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
-                  </button>
-                </div>
-                {expandedRows[index] && (
-                  <div className="mt-2">
-                    <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
+            {postulaciones.map((postulacion, index) => {
+              const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas);
+              return (
+                <div key={postulacion._id} className="border border-gray-300 rounded-lg p-4 mb-4 hover:bg-gray-100">
+                  <div className="mb-2">
+                    <span className="font-bold text-gray-800">{postulacion.nombre}</span>
                   </div>
-                )}
-                <div className="mt-2">
-                  <button
-                    onClick={() => handleDelete(postulacion._id)}
-                    className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                  >
-                    Eliminar
-                  </button>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Correo:</strong> {postulacion.correo}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Celular:</strong> {postulacion.celular}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>C.I.:</strong> {postulacion.ci}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Universidad CEUB:</strong> {postulacion.universidad}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Año de Titulación:</strong> {postulacion.anioTitulacion}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Profesión:</strong> {postulacion.profesion}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600"><strong>Tipo de Docente:</strong> {postulacion.tipoDocente}</p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600">
+                      <strong>Materias Postuladas:</strong> {asignaturas
+                        .map(item => item.asignatura ? toTitleCase(item.asignatura) : '')
+                        .join(' | ')
+                      }
+                    </p>
+                  </div>
+                  <div className="mb-1">
+                    <p className="text-gray-600">
+                      <strong>Carrera de la Materia:</strong> {asignaturas
+                        .map(item => item.carrera ? toTitleCase(item.carrera) : '')
+                        .join(' | ')
+                      }
+                    </p>
+                  </div>
+                  <div className="mb-1">
+                    <button
+                      onClick={() => toggleRowExpansion(index)}
+                      className="text-blue-500 underline hover:text-blue-700"
+                    >
+                      {expandedRows[index] ? 'Ocultar Documentos' : 'Ver Documentos'}
+                    </button>
+                  </div>
+                  {expandedRows[index] && (
+                    <div className="mt-2">
+                      <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
+                    </div>
+                  )}
+                  <div className="mt-2">
+                    <button
+                      onClick={() => handleDelete(postulacion._id)}
+                      className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

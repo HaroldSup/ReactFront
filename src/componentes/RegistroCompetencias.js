@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, (txt) =>
+    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+  );
+}
+
 function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }) {
+  // Se agrega la propiedad "carrera" en el estado inicial
   const [formData, setFormData] = useState({
     tipoEvaluador: '',
     nombre: '',
     carnet: '',
     materia: '',
+    carrera: '', // NUEVO: registro de la carrera asociada a la materia
     fecha: '',
     planConcordancia: '',
     planCompetencia: '',
@@ -18,14 +26,14 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     procesoDominio: '',
     procesoTICs: '',
     procesoExplicacion: '',
-    // NUEVO: Campo para el nombre del evaluador
     nombreEvaluador: '',
-    // NUEVO: Se agregará evaluadorId al registrar
     evaluadorId: '',
   });
 
-  // Nuevo estado para almacenar las materias postuladas
+  // Estado para almacenar las materias postuladas (del postulante)
   const [materiasPostuladas, setMateriasPostuladas] = useState([]);
+  // Estado para el filtro: carrera seleccionada para filtrar materias
+  const [filtroCarrera, setFiltroCarrera] = useState('');
 
   const baseURL =
     process.env.NODE_ENV === 'development'
@@ -86,12 +94,38 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     return () => clearTimeout(delayDebounceFn);
   }, [formData.carnet, baseURL]);
 
+  // Manejo de cambios para cualquier campo (excepto Materia)
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Cálculos de la Segunda Etapa
+  // Manejo específico del select de Materia que, al cambiar, registra también la carrera correspondiente.
+  const handleMateriaChange = (e) => {
+    const selectedMateria = e.target.value;
+    // Buscamos en las materias filtradas la materia seleccionada
+    const materiasFiltradas =
+      filtroCarrera.trim() !== ''
+        ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+        : materiasPostuladas;
+    const materiaObj = materiasFiltradas.find(
+      (mat) => mat.asignatura === selectedMateria
+    );
+    setFormData((prev) => ({
+      ...prev,
+      materia: selectedMateria,
+      carrera: materiaObj ? materiaObj.carrera : '',
+    }));
+  };
+
+  // Calcula el progreso
+  const totalFields = Object.keys(formData).length;
+  const filledFields = Object.values(formData).filter(
+    (val) => val !== '' && val !== null
+  ).length;
+  const progressPercentage = Math.round((filledFields / totalFields) * 100);
+
+  // Calcula sumatorias y promedios para las etapas (etapa 2 y 3)
   const stage2Sum =
     (parseInt(formData.planConcordancia) || 0) +
     (parseInt(formData.planCompetencia) || 0) +
@@ -100,18 +134,12 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (parseInt(formData.planEstrategiasEvaluacion) || 0);
   const stage2Promedio = ((stage2Sum / 100) * 30).toFixed(2);
 
-  // Cálculos de la Tercera Etapa
   const stage3Sum =
     (parseInt(formData.procesoMotivacion) || 0) +
     (parseInt(formData.procesoDominio) || 0) +
     (parseInt(formData.procesoTICs) || 0) +
     (parseInt(formData.procesoExplicacion) || 0);
   const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2);
-
-  // Se aumenta el totalFields en 1 para incluir nombreEvaluador y evaluadorId
-  const totalFields = Object.keys(formData).length;
-  const filledFields = Object.values(formData).filter((val) => val !== '' && val !== null).length;
-  const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   const stage2Color =
     stage2Sum <= 60 ? 'text-red-500' : stage2Sum > 80 ? 'text-green-500' : 'text-yellow-600';
@@ -138,7 +166,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
         onCompetenciaRegistered();
       } else {
-        // Si es nuevo registro, asignamos evaluadorId desde localStorage
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           dataToSend.evaluadorId = user._id;
@@ -148,22 +175,25 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         }
         const response = await axios.post(`${baseURL}/api/examen-competencias`, dataToSend);
         Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
-        // Pasamos el registro recién creado al callback
         onCompetenciaRegistered(response.data);
       }
     } catch (error) {
       console.error('Error al guardar el registro:', error);
-      Swal.fire(
-        'Error',
-        error.response?.data?.message || 'Ocurrió un problema al guardar el registro.',
-        'error'
-      );
+      Swal.fire('Error', error.response?.data?.message || 'Ocurrió un problema al guardar el registro.', 'error');
     }
   };
 
+  // Obtenemos un arreglo único de carreras a partir de las materias postuladas
+  const uniqueCarreras = Array.from(new Set(materiasPostuladas.map((mat) => mat.carrera)));
+
+  // Filtrar materias según el filtro de carrera
+  const materiasFiltradas =
+    filtroCarrera.trim() !== ''
+      ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+      : materiasPostuladas;
+
   return (
     <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor responsivo centrado y con ancho máximo en pantallas grandes */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-6">
@@ -174,14 +204,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           <div className="mb-6">
             <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
+              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
             </div>
           </div>
 
-          {/* Selección de tipo de evaluador */}
+          {/* Selección del tipo de evaluador */}
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
             <label className="block text-lg font-bold text-gray-700 mb-2">
               Seleccionar tipo de Evaluador
@@ -200,18 +227,14 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               <option value="Presidente Tribunal">Presidente Tribunal</option>
             </select>
             {formData.tipoEvaluador === '' && (
-              <p className="text-xs text-red-500 mt-1">
-                Debe seleccionar un tipo de evaluador.
-              </p>
+              <p className="text-xs text-red-500 mt-1">Debe seleccionar un tipo de evaluador.</p>
             )}
           </div>
 
           <form onSubmit={handleSubmit} id="competenciaForm" className="space-y-6">
             {/* Registro de datos del postulante */}
             <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">
-                Registro de datos del postulante
-              </h3>
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Registro de datos del postulante</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Campo CI */}
                 <div>
@@ -247,26 +270,49 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              {/* Filtro para materias: se filtran por carrera */}
+              <div className="mt-4">
+                <label className="block text-lg font-bold text-gray-700 mb-2">
+                  Filtrar materias por Carrera:
+                </label>
+                <select
+                  value={filtroCarrera}
+                  onChange={(e) => setFiltroCarrera(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Mostrar todas</option>
+                  {uniqueCarreras.map((carrera) => (
+                    <option key={carrera} value={carrera}>
+                      {carrera}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Selección de la materia postulada (filtrada por la carrera seleccionada) */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-2xl font-bold text-gray-700 mb-4">Seleccionar Materia Postulada</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
                   <select
                     name="materia"
                     value={formData.materia}
-                    onChange={handleChange}
+                    onChange={handleMateriaChange}
                     required
                     title="Seleccione la asignatura a la que postula"
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Seleccione la asignatura</option>
-                    {materiasPostuladas.length > 0 ? (
-                      materiasPostuladas.map((mat, idx) => (
+                    {materiasFiltradas.length > 0 ? (
+                      materiasFiltradas.map((mat, idx) => (
                         <option key={idx} value={mat.asignatura}>
                           {mat.asignatura}
                         </option>
                       ))
                     ) : (
-                      <option value="">No se encontraron materias postuladas</option>
+                      <option value="">No se encontraron materias para la carrera seleccionada</option>
                     )}
                   </select>
                 </div>
@@ -284,7 +330,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               </div>
             </div>
 
-            {/* NUEVO: Nombre de Evaluador */}
+            {/* Sección para ingresar el Nombre del Evaluador */}
             <div className="p-6 bg-blue-50 rounded-lg border">
               <h3 className="text-2xl font-bold text-gray-700 mb-4">Nombre de Evaluador</h3>
               <input
@@ -529,13 +575,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         className="fixed bottom-4 right-4 bg-blue-800 text-white p-4 rounded-full shadow-lg hover:bg-blue-900 transition md:hidden"
         title="Enviar Formulario"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </button>

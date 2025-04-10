@@ -10,13 +10,14 @@ function Examendecompetencias() {
   const [registros, setRegistros] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [competenciaEdit, setCompetenciaEdit] = useState(null);
+  const [filterCareer, setFilterCareer] = useState(""); // Estado para filtrar por carrera
 
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
-  // Obtener los registros desde el backend y filtrarlos según el usuario
+  // Obtener registros desde el backend y filtrarlos según el usuario
   const fetchRegistros = async () => {
     try {
       const response = await axios.get(`${baseURL}/api/examen-competencias`);
@@ -27,7 +28,7 @@ function Examendecompetencias() {
       console.log('Usuario logueado:', user);
 
       if (user && !user.administrador) {
-        // Solo mostrar registros que tengan evaluadorId y que coincidan con el _id del usuario
+        // Mostrar solo registros del evaluador si no es admin
         const registrosFiltrados = response.data.filter(
           (registro) =>
             registro.evaluadorId && registro.evaluadorId === user._id
@@ -50,7 +51,7 @@ function Examendecompetencias() {
     fetchRegistros();
   }, [baseURL]);
 
-  // Manejo de eliminación de un registro
+  // Manejo de eliminación de registro
   const handleDelete = async (id) => {
     const confirm = await Swal.fire({
       title: '¿Estás seguro?',
@@ -99,7 +100,8 @@ function Examendecompetencias() {
         'Tipo Evaluador': registro.tipoEvaluador,
         Nombre: registro.nombre,
         Carnet: registro.carnet,
-        Materia: registro.materia,
+        Materia: registro.materia,           // Se muestra la materia
+        Carrera: registro.carrera,           // NUEVA columna de carrera
         Fecha: new Date(registro.fecha).toLocaleDateString(),
         'Nota Plan Trabajo (30%)': registro.notaPlanTrabajo,
         'Nota Procesos Pedagógicos (30%)': registro.notaProcesosPedagogicos,
@@ -120,11 +122,11 @@ function Examendecompetencias() {
       });
       return;
     }
-
+    
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text('Registros de Competencias', 14, 20);
-
+    
     const tableColumn = [
       'Nro',
       'Nombre Evaluador',
@@ -132,12 +134,13 @@ function Examendecompetencias() {
       'Nombre',
       'Carnet',
       'Materia',
+      'Carrera',
       'Fecha',
       'Nota Plan Trabajo (30%)',
       'Nota Procesos Pedagógicos (30%)',
     ];
     const tableRows = [];
-
+    
     registros.forEach((registro, index) => {
       const rowData = [
         index + 1,
@@ -146,13 +149,14 @@ function Examendecompetencias() {
         registro.nombre,
         registro.carnet,
         registro.materia,
+        registro.carrera, // Incluimos la carrera
         new Date(registro.fecha).toLocaleDateString(),
         registro.notaPlanTrabajo,
         registro.notaProcesosPedagogicos,
       ];
       tableRows.push(rowData);
     });
-
+    
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
@@ -162,7 +166,6 @@ function Examendecompetencias() {
   };
 
   // Actualiza la lista luego de registrar o editar
-  // Si se recibe un nuevo registro y el usuario NO es admin, se muestra solo ese registro.
   const onCompetenciaRegistered = (nuevoRegistro) => {
     setMostrarFormulario(false);
     const user = JSON.parse(localStorage.getItem('user'));
@@ -229,6 +232,7 @@ function Examendecompetencias() {
                 <th className="py-3 px-6 text-left">Nombre</th>
                 <th className="py-3 px-6 text-left">Carnet</th>
                 <th className="py-3 px-6 text-left">Materia</th>
+                <th className="py-3 px-6 text-left">Carrera</th>
                 <th className="py-3 px-6 text-left">Fecha</th>
                 <th className="py-3 px-6 text-left">Nota Plan Trabajo (30%)</th>
                 <th className="py-3 px-6 text-left">Nota Procesos Pedagógicos (30%)</th>
@@ -244,22 +248,17 @@ function Examendecompetencias() {
                   <td className="py-3 px-6 text-left whitespace-nowrap">
                     {index + 1}
                   </td>
-                  <td className="py-3 px-6 text-left">
-                    {registro.nombreEvaluador || ''}
-                  </td>
+                  <td className="py-3 px-6 text-left">{registro.nombreEvaluador || ''}</td>
                   <td className="py-3 px-6 text-left">{registro.tipoEvaluador}</td>
                   <td className="py-3 px-6 text-left">{registro.nombre}</td>
                   <td className="py-3 px-6 text-left">{registro.carnet}</td>
                   <td className="py-3 px-6 text-left">{registro.materia}</td>
+                  <td className="py-3 px-6 text-left">{registro.carrera}</td>
                   <td className="py-3 px-6 text-left">
                     {new Date(registro.fecha).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-6 text-left">
-                    {registro.notaPlanTrabajo}
-                  </td>
-                  <td className="py-3 px-6 text-left">
-                    {registro.notaProcesosPedagogicos}
-                  </td>
+                  <td className="py-3 px-6 text-left">{registro.notaPlanTrabajo}</td>
+                  <td className="py-3 px-6 text-left">{registro.notaProcesosPedagogicos}</td>
                   <td className="py-3 px-6 text-center">
                     <div className="flex justify-center space-x-2">
                       <button
@@ -287,10 +286,7 @@ function Examendecompetencias() {
           {/* Vista en tarjetas para pantallas pequeñas */}
           <div className="block sm:hidden w-full">
             {registros.map((registro, index) => (
-              <div
-                key={registro._id}
-                className="border-b border-gray-200 hover:bg-gray-100 p-4"
-              >
+              <div key={registro._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
                 <div>
                   <span className="font-bold text-gray-800">
                     {index + 1}. {registro.nombre}
@@ -310,16 +306,16 @@ function Examendecompetencias() {
                     <strong>Materia:</strong> {registro.materia}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Fecha:</strong>{' '}
-                    {new Date(registro.fecha).toLocaleDateString()}
+                    <strong>Carrera:</strong> {registro.carrera}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Nota Plan Trabajo (30%):</strong>{' '}
-                    {registro.notaPlanTrabajo}
+                    <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
                   </p>
                   <p className="text-gray-600">
-                    <strong>Nota Procesos Pedagógicos (30%):</strong>{' '}
-                    {registro.notaProcesosPedagogicos}
+                    <strong>Nota Plan Trabajo (30%):</strong> {registro.notaPlanTrabajo}
+                  </p>
+                  <p className="text-gray-600">
+                    <strong>Nota Procesos Pedagógicos (30%):</strong> {registro.notaProcesosPedagogicos}
                   </p>
                 </div>
                 <div className="mt-4 flex justify-center space-x-4">

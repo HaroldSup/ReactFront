@@ -67,18 +67,20 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     }
   };
 
+  // Usar la lista filtrada para la exportación
   const handleDownloadExcel = () => {
-    if (acefalias.length === 0) {
+    // Se usa filteredAcefalias en lugar de acefalias
+    if (filteredAcefalias.length === 0) {
       Swal.fire({
         icon: 'info',
         title: 'Sin registros',
-        text: 'No hay acefalías para descargar.',
+        text: 'No hay acefalías para descargar con el filtro aplicado.',
       });
       return;
     }
 
     const worksheet = XLSX.utils.json_to_sheet(
-      acefalias.map((acefalia) => ({
+      filteredAcefalias.map((acefalia) => ({
         Asignatura: acefalia.asignatura,
         Requisitos: acefalia.requisitos,
         Semestre: acefalia.semestre,
@@ -93,11 +95,12 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
   };
 
   const handleDownloadPDF = () => {
-    if (acefalias.length === 0) {
+    // Se usa filteredAcefalias en lugar de acefalias
+    if (filteredAcefalias.length === 0) {
       Swal.fire({
         icon: 'info',
         title: 'Sin registros',
-        text: 'No hay acefalías para descargar.',
+        text: 'No hay acefalías para descargar con el filtro aplicado.',
       });
       return;
     }
@@ -107,7 +110,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     const tableColumn = ["Nro", "Asignatura", "Requisitos", "Semestre", "Nivel Académico", "Carrera"];
     const tableRows = [];
 
-    acefalias.forEach((acefalia, index) => {
+    filteredAcefalias.forEach((acefalia, index) => {
       const requisitos = acefalia.requisitos
         ? acefalia.requisitos.split('.').filter(req => req.trim() !== "").join(" | ")
         : "";
