@@ -73,7 +73,6 @@ function Dashboard() {
     Examendeconocimientos: 'Examen de Conocimientos',
     Registrodeconocimientos: 'Registro de Conocimientos',
     ExamendeCompetencias: 'Examen de Competencias',
-    // Se añade la sección para Reporte General de Notas
     ReporteGeneralDeNotas: 'Reporte General de Notas',
     propuestaDocente: 'Firma Digital',
     workflow: 'Automatización Secuencial'
@@ -144,7 +143,7 @@ function Dashboard() {
       <aside
         className={`bg-gradient-to-b from-blue-900 to-blue-700 text-white ${
           isExpanded ? 'w-48 md:w-64' : 'w-20'
-        } h-screen transition-all duration-300 flex flex-col shadow-xl`}
+        } h-screen overflow-y-auto transition-all duration-300 flex flex-col shadow-xl`}
       >
         <div className="flex items-center p-4 w-full border-b border-blue-800">
           <img src={logo} alt="Logo EMI" className="w-10 h-auto" />

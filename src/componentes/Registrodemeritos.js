@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
@@ -7,7 +7,6 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     nombrePostulante: '',
     ci: '',
     fechaEvaluacion: '',
-    // Se eliminó el campo "carrera"
     puntosEvaluacion: '',
     nombreEvaluador: '',
     evaluadorId: '',
@@ -20,7 +19,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
   useEffect(() => {
     if (merito) {
-      // Se remueve la propiedad "carrera" en caso de que venga en el objeto merito
+      // Remover la propiedad "carrera" si llega a venir
       const { carrera, ...rest } = merito;
       setFormData(rest);
     }
@@ -65,16 +64,12 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     e.preventDefault();
 
     if (!/^\d{1,10}$/.test(formData.ci)) {
-      Swal.fire(
-        'Error',
-        'El CI debe contener solo números y máximo 10 dígitos.',
-        'error'
-      );
+      Swal.fire('Error', 'El CI debe contener solo números y máximo 10 dígitos.', 'error');
       return;
     }
 
     try {
-      // Crear un objeto a enviar. Si es nuevo registro, asignamos evaluadorId desde localStorage.
+      // Crear objeto para enviar al backend
       let registroData = { ...formData };
       if (!merito) {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -105,24 +100,24 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     }
   };
 
-  // Actualizamos el total de campos a 5 (se eliminó "carrera")
-  const totalFields = 5;
+  // Se ajusta el total de campos para el indicador de progreso
+  const totalFields = 5; 
   const filledFields = Object.values(formData).filter((val) => val !== '').length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-4">
+    <div className="min-h-screen bg-gray-100 py-4 overflow-x-hidden">
+      {/* Contenedor centrado y con espaciado lateral */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
-        <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
+        {/* Tarjeta principal */}
+        <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-lg w-full">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             {merito ? 'Editar Nota' : 'Registrar Nota'}
           </h2>
 
           {/* Indicador de Progreso */}
           <div className="mb-4">
-            <p className="text-sm text-gray-600">
-              Progreso: {progressPercentage}% completado
-            </p>
+            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full"
@@ -133,16 +128,14 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
           <form onSubmit={handleSubmit} id="meritoForm" className="space-y-6">
             {/* Sección: Datos del Postulante */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
+            <div className="p-4 sm:p-6 bg-blue-50 rounded-lg border">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
                 Datos del Postulante
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Campo CI: ubicado a la izquierda */}
+                {/* Campo CI */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    CI
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">CI</label>
                   <input
                     type="text"
                     name="ci"
@@ -156,7 +149,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                {/* Campo Nombre del Postulante: ubicado a la derecha, bloqueado */}
+                {/* Campo Nombre del Postulante (autocompletado y bloqueado) */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     Nombre del Postulante
@@ -172,6 +165,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {/* Campo Fecha de Evaluación */}
                 <div className="sm:col-span-2">
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     Fecha de Evaluación
@@ -189,11 +183,10 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
 
             {/* Sección: Datos de Evaluación */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
-                Datos de Evaluación
-              </h3>
+            <div className="p-4 sm:p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Datos de Evaluación</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campo Nombre de Evaluador */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     Nombre de Evaluador
@@ -207,6 +200,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {/* Campo Puntos de Evaluación */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     Puntos de Evaluación
@@ -259,12 +253,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </button>
     </div>

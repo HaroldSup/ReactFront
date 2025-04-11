@@ -3,7 +3,6 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import { FaFileAlt } from 'react-icons/fa';
 
 function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
@@ -193,8 +192,8 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         />
       </div>
 
-      {/* Vista en tabla para pantallas medianas y superiores */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden hidden sm:table">
+      {/* Contenedor responsivo para la tabla */}
+      <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto hidden sm:block">
         <table className="min-w-full bg-white border border-gray-200">
           <thead>
             <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
