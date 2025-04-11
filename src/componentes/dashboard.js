@@ -34,6 +34,8 @@ import Registrodeconocimientos from './Registrodeconocimientos';
 import FirmaDigital from './firmadigital';
 import Workflow from './workflow';
 import Postulacionesporcarrera from './Postulacionesporcarrera';
+// Importamos el nuevo módulo Reportes
+import Reportes from './Reportes';
 
 function Dashboard() {
   // ============ CORRECCIÓN EN ESTAS LÍNEAS ============
@@ -71,6 +73,8 @@ function Dashboard() {
     Examendeconocimientos: 'Examen de Conocimientos',
     Registrodeconocimientos: 'Registro de Conocimientos',
     ExamendeCompetencias: 'Examen de Competencias',
+    // Se añade la sección para Reporte General de Notas
+    ReporteGeneralDeNotas: 'Reporte General de Notas',
     propuestaDocente: 'Firma Digital',
     workflow: 'Automatización Secuencial'
   };
@@ -103,6 +107,7 @@ function Dashboard() {
     Registrodeconocimientos: ['Comité de Evaluación', 'Gestión de la documentación examen de conocimientos', 'Registrar puntos de evaluación'],
     ExamendeCompetencias: ['Comité de evaluación', 'Gestión de la documentación examen de competencias', 'Registrar puntos de evaluación'],
     propuestaDocente: ['Director de la unidad académica', 'Subir documentación', 'Descargar documentación con Firma Digital', 'Fin']
+    // Nota: No se agregó workflowMapping para ReporteGeneralDeNotas, puedes definirlo si es necesario.
   };
 
   const toggleMenu = (section) => {
@@ -265,6 +270,20 @@ function Dashboard() {
                   onClick={() => toggleMenu('ExamendeCompetencias')}
                 />
               )}
+            </MenuGroup>
+          )}
+
+          {/* Nuevo módulo Reporte General de Notas */}
+          {hasPermission('Reportes') && (
+            <MenuGroup label="Reportes" isExpanded={isExpanded}>
+              <MenuItem
+                icon={<DocumentTextIcon className="w-6 h-6" />}
+                label="ReporteGeneralDeNotas"
+                displayLabel="Reporte General de Notas"
+                isExpanded={isExpanded}
+                isActive={activeSection === 'ReporteGeneralDeNotas'}
+                onClick={() => toggleMenu('ReporteGeneralDeNotas')}
+              />
             </MenuGroup>
           )}
 
@@ -454,6 +473,12 @@ function Dashboard() {
           />
         )}
         {activeSection === 'ExamendeCompetencias' && <ExamendeCompetencias />}
+        {activeSection === 'ReporteGeneralDeNotas' && (
+          <div>
+            <h2 className="text-xl font-bold text-blue-900 mb-4">Reporte General de Notas</h2>
+            <Reportes />
+          </div>
+        )}
         {activeSection === 'propuestaDocente' && (
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">Firma Digital</h2>
