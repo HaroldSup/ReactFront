@@ -4,33 +4,50 @@ import Swal from 'sweetalert2';
 
 function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCancel }) {
   const [formData, setFormData] = useState({
-    tipoEvaluador: '',
     nombre: '',
-    carnet: '', // Internamente se sigue llamando "carnet", pero en la UI lo mostraremos como "CI"
-    // Se eliminó "materia"
+    carnet: '', // Se muestra como CI en la UI
     fecha: '',
     examenConocimientos: '',
-    nombreEvaluador: ''
+    nombreEvaluador: '',
+    profesion: '',
+    materia: '',
+    carrera: '',
+    habilitado: 'Habilitado', // Por defecto, siempre habilitado.
+    observaciones: ''
   });
+
+  // Para almacenar las materias postuladas (recuperadas al buscar por CI)
+  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
+  // Para filtrar las materias según la carrera
+  const [filtroCarrera, setFiltroCarrera] = useState('');
 
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
+  // Si se está editando un registro, se precargan los datos (incluidos los campos nuevos)
   useEffect(() => {
     if (conocimiento) {
-      // Se remueve la propiedad "materia" en caso de existir en el objeto conocimiento
+      // Se remueve la propiedad "materia" si existe, y se asignan el resto de los campos
       const { materia, ...rest } = conocimiento;
-      setFormData(rest);
+      setFormData({
+        ...rest,
+        profesion: conocimiento.profesion || '',
+        materia: conocimiento.materia || '',
+        carrera: conocimiento.carrera || '',
+        habilitado: "Habilitado", // Siempre fijo en "Habilitado"
+        observaciones: conocimiento.observaciones || ''
+      });
     }
   }, [conocimiento]);
 
-  // Buscar postulante por carnet y autocompletar nombre
+  // Buscar postulante por CI y autocompletar nombre, profesión y materias postuladas
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.carnet.trim() === '') {
-        setFormData((prev) => ({ ...prev, nombre: '' }));
+        setFormData((prev) => ({ ...prev, nombre: '', profesion: '' }));
+        setMateriasPostuladas([]);
         return;
       }
       try {
@@ -38,12 +55,24 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
         if (response.data.data) {
           setFormData((prev) => ({
             ...prev,
-            nombre: response.data.data.nombre
+            nombre: response.data.data.nombre,
+            // Se asume que la API retorna la profesión en la propiedad "profesion"
+            profesion: response.data.data.profesion || ''
           }));
+          if (response.data.data.asignaturasSeleccionadas) {
+            const materias =
+              typeof response.data.data.asignaturasSeleccionadas === 'string'
+                ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+                : response.data.data.asignaturasSeleccionadas;
+            setMateriasPostuladas(materias);
+          } else {
+            setMateriasPostuladas([]);
+          }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
-          setFormData((prev) => ({ ...prev, nombre: '' }));
+          setFormData((prev) => ({ ...prev, nombre: '', profesion: '' }));
+          setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por carnet:', error);
       }
@@ -56,18 +85,47 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     return () => clearTimeout(delayDebounceFn);
   }, [formData.carnet, baseURL]);
 
+  // Manejo de cambios en los campos
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Para el campo de examen, se asegura que el estado siempre sea "Habilitado"
+    if (name === 'examenConocimientos') {
+      setFormData((prev) => ({ ...prev, [name]: value, habilitado: "Habilitado" }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  // Calcular la nota final (40% del examen)
+  // Manejo específico al seleccionar una materia; asigna también la carrera correspondiente
+  const handleMateriaChange = (e) => {
+    const selectedMateria = e.target.value;
+    const materiasFiltradas =
+      filtroCarrera.trim() !== ''
+        ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+        : materiasPostuladas;
+    const materiaObj = materiasFiltradas.find((mat) => mat.asignatura === selectedMateria);
+    setFormData((prev) => ({
+      ...prev,
+      materia: selectedMateria,
+      carrera: materiaObj ? materiaObj.carrera : ''
+    }));
+  };
+
+  // Obtención de un arreglo único de carreras a partir de las materias postuladas
+  const uniqueCarreras = Array.from(new Set(materiasPostuladas.map((mat) => mat.carrera)));
+  // Filtrar materias según el filtro de carrera seleccionado
+  const materiasFiltradas =
+    filtroCarrera.trim() !== ''
+      ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+      : materiasPostuladas;
+
+  // Cálculo de la nota final (40% del examen teórico-científico)
   const examenScore = parseFloat(formData.examenConocimientos) || 0;
   const notaFinal = (examenScore * 0.4).toFixed(2);
 
-  // Progreso de campos completados
+  // Indicador de progreso en función de los campos completados
   const totalFields = Object.keys(formData).length;
-  const filledFields = Object.values(formData).filter((val) => val !== '' && val !== null).length;
+  const filledFields = Object.values(formData).filter(val => val !== '' && val !== null).length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   const handleSubmit = async (e) => {
@@ -80,7 +138,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
         Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
         onConocimientoRegistered();
       } else {
-        // Asignar evaluadorId desde localStorage para nuevo registro
         const user = JSON.parse(localStorage.getItem('user'));
         if (user) {
           dataToSend.evaluadorId = user._id;
@@ -104,10 +161,8 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor responsivo */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
-          {/* Encabezado principal */}
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             {conocimiento ? 'Editar Conocimiento' : 'Registrar Conocimiento'}
           </h2>
@@ -121,30 +176,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           </div>
 
           <form onSubmit={handleSubmit} id="conocimientoForm" className="space-y-6">
-            {/* Selección de tipo de evaluador */}
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <label className="block text-lg font-bold text-gray-700 mb-2">
-                Seleccionar tipo de Evaluador
-              </label>
-              <select
-                name="tipoEvaluador"
-                value={formData.tipoEvaluador}
-                onChange={handleChange}
-                required
-                title="Seleccione el tipo de evaluador"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Seleccione</option>
-                <option value="Evaluador 1">Evaluador 1</option>
-                <option value="Evaluador 2">Evaluador 2</option>
-                <option value="Presidente Tribunal">Presidente Tribunal</option>
-              </select>
-              {formData.tipoEvaluador === '' && (
-                <p className="text-xs text-red-500 mt-1">Debe seleccionar un tipo de evaluador.</p>
-              )}
-            </div>
-
-            {/* Campo Nombre de Evaluador reposicionado */}
+            {/* Nombre de Evaluador */}
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
               <label className="block text-lg font-bold text-gray-700 mb-2">Nombre de Evaluador</label>
               <input
@@ -157,13 +189,11 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
               />
             </div>
 
-            {/* Primera Etapa: Evaluación de Conocimiento Teórico-Científico */}
+            {/* Datos del Postulante */}
             <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
-                Primera Etapa: Evaluación de Conocimiento Teórico-Científico
-              </h3>
+              <h3 className="text-xl font-bold text-gray-700 mb-4">Datos del Postulante</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Campo CI a la izquierda */}
+                {/* Campo CI */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">CI</label>
                   <input
@@ -179,7 +209,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                {/* Campo Nombre del Postulante a la derecha, bloqueado */}
+                {/* Campo Nombre del Postulante */}
                 <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">Nombre del Postulante</label>
                   <input
@@ -192,6 +222,20 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                     title="El nombre se autocompleta al ingresar el CI"
                     required
                     className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Campo Profesión */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Profesión</label>
+                  <input
+                    type="text"
+                    name="profesion"
+                    value={formData.profesion}
+                    onChange={handleChange}
+                    placeholder="Profesión autocompletada"
+                    readOnly
+                    required
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -207,31 +251,114 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
                   className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              {/* Campo de Examen Conocimientos (40%) */}
-              <div className="mt-4">
+            </div>
+
+            {/* Información Académica */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl font-bold text-gray-700 mb-4">Información Académica</h3>
+              {/* Filtro para materias por Carrera */}
+              <div className="mb-4">
                 <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Examen Conocimientos (40%)
+                  Filtrar materias por Carrera:
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="examenConocimientos"
-                  value={formData.examenConocimientos}
-                  onChange={handleChange}
-                  placeholder="Ingrese la nota del examen"
-                  title="Ingrese la nota del examen"
+                <select
+                  value={filtroCarrera}
+                  onChange={(e) => setFiltroCarrera(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                >
+                  <option value="">Mostrar todas</option>
+                  {uniqueCarreras.map((carrera) => (
+                    <option key={carrera} value={carrera}>
+                      {carrera}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Selección de Materia */}
+              <div>
+                <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
+                <select
+                  name="materia"
+                  value={formData.materia}
+                  onChange={handleMateriaChange}
                   required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                >
+                  <option value="">Seleccione la asignatura</option>
+                  {materiasFiltradas.length > 0 ? (
+                    materiasFiltradas.map((mat, idx) => (
+                      <option key={idx} value={mat.asignatura}>
+                        {mat.asignatura}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No se encontraron materias para la carrera seleccionada</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            {/* Evaluación de Conocimiento */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl font-bold text-gray-700 mb-4">
+                Primera Etapa: Evaluación de Conocimiento Teórico-Científico
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campo Examen Conocimientos */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Examen Conocimientos (40%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="examenConocimientos"
+                    value={formData.examenConocimientos}
+                    onChange={handleChange}
+                    placeholder="Ingrese la nota del examen"
+                    title="Ingrese la nota del examen"
+                    required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Nota Final */}
             <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Nota Final</h3>
-              <div className="text-lg sm:text-xl font-semibold">
+              <h3 className="text-xl font-bold text-gray-700 mb-4">Nota Final</h3>
+              <div className="text-lg font-semibold">
                 <p>Examen (40%): {(examenScore * 0.4).toFixed(2)}</p>
                 <p className="mt-2">Nota Final: {notaFinal}</p>
+              </div>
+            </div>
+
+            {/* Información adicional: Observaciones y Estado */}
+            <div className="p-6 bg-blue-50 rounded-lg border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Campo Observaciones */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Observaciones</label>
+                  <textarea
+                    name="observaciones"
+                    value={formData.observaciones}
+                    onChange={handleChange}
+                    placeholder="Ingrese observaciones..."
+                    rows="4"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                  ></textarea>
+                </div>
+                {/* Campo Estado (fijo "Habilitado") */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Estado</label>
+                  <input
+                    type="text"
+                    name="habilitado"
+                    value={formData.habilitado}
+                    readOnly
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
 

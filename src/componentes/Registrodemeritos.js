@@ -10,26 +10,44 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     puntosEvaluacion: '',
     nombreEvaluador: '',
     evaluadorId: '',
+    profesion: '',
+    materia: '',
+    carrera: '',
+    habilitado: '',
+    observaciones: '',
   });
+
+  // Estado para almacenar las materias postuladas (viene de la búsqueda por CI)
+  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
+  // Estado para filtro de carrera para las materias
+  const [filtroCarrera, setFiltroCarrera] = useState('');
 
   const baseURL =
     process.env.NODE_ENV === 'development'
       ? process.env.REACT_APP_urlbacklocalhost
       : process.env.REACT_APP_urlback;
 
+  // Si existe un objeto merito (para editar), se remueven propiedades innecesarias y se carga el resto en el estado
   useEffect(() => {
     if (merito) {
-      // Remover la propiedad "carrera" si llega a venir
-      const { carrera, ...rest } = merito;
-      setFormData(rest);
+      const { carrera, materia, profesion, habilitado, observaciones, ...rest } = merito;
+      setFormData({
+        ...rest,
+        profesion: profesion || '',
+        materia: materia || '',
+        carrera: carrera || '',
+        habilitado: habilitado || '',
+        observaciones: observaciones || '',
+      });
     }
   }, [merito]);
 
-  // Buscar postulante por CI y autocompletar el nombre
+  // Buscar postulante por CI y autocompletar nombre, profesión y materias postuladas
   useEffect(() => {
     const fetchPostulante = async () => {
       if (formData.ci.trim() === '') {
-        setFormData((prev) => ({ ...prev, nombrePostulante: '' }));
+        setFormData((prev) => ({ ...prev, nombrePostulante: '', profesion: '' }));
+        setMateriasPostuladas([]);
         return;
       }
       try {
@@ -38,11 +56,23 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
           setFormData((prev) => ({
             ...prev,
             nombrePostulante: response.data.data.nombre,
+            // Se asume que la API retorna la profesión en la propiedad "profesion"
+            profesion: response.data.data.profesion || '',
           }));
+          if (response.data.data.asignaturasSeleccionadas) {
+            const materias =
+              typeof response.data.data.asignaturasSeleccionadas === 'string'
+                ? JSON.parse(response.data.data.asignaturasSeleccionadas)
+                : response.data.data.asignaturasSeleccionadas;
+            setMateriasPostuladas(materias);
+          } else {
+            setMateriasPostuladas([]);
+          }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
-          setFormData((prev) => ({ ...prev, nombrePostulante: '' }));
+          setFormData((prev) => ({ ...prev, nombrePostulante: '', profesion: '' }));
+          setMateriasPostuladas([]);
         }
         console.error('Error al buscar postulante por CI:', error);
       }
@@ -55,11 +85,44 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     return () => clearTimeout(delayDebounceFn);
   }, [formData.ci, baseURL]);
 
+  // Manejo de cambios en los campos del formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Al cambiar los puntos se evalúa el estado Habilitado/No habilitado
+    if (name === 'puntosEvaluacion') {
+      const pts = parseInt(value) || 0;
+      const estado = pts >= 220 ? 'Habilitado' : 'No habilitado';
+      setFormData((prev) => ({ ...prev, [name]: value, habilitado: estado }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
+  // Manejo específico para el select de Materia (filtrado por carrera)
+  const handleMateriaChange = (e) => {
+    const selectedMateria = e.target.value;
+    const materiasFiltradas =
+      filtroCarrera.trim() !== ''
+        ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+        : materiasPostuladas;
+    const materiaObj = materiasFiltradas.find((mat) => mat.asignatura === selectedMateria);
+    setFormData((prev) => ({
+      ...prev,
+      materia: selectedMateria,
+      carrera: materiaObj ? materiaObj.carrera : '',
+    }));
+  };
+
+  // Obtenemos un arreglo único de carreras a partir de las materias postuladas
+  const uniqueCarreras = Array.from(new Set(materiasPostuladas.map((mat) => mat.carrera)));
+
+  // Filtrar materias según el filtro de carrera seleccionado
+  const materiasFiltradas =
+    filtroCarrera.trim() !== ''
+      ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
+      : materiasPostuladas;
+
+  // Manejo del envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -69,7 +132,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     }
 
     try {
-      // Crear objeto para enviar al backend
+      // Preparar objeto para enviar al backend
       let registroData = { ...formData };
       if (!merito) {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -100,16 +163,14 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
     }
   };
 
-  // Se ajusta el total de campos para el indicador de progreso
-  const totalFields = 5; 
+  // Indicador de progreso (se ajusta la cantidad de campos obligatorios)
+  const totalFields = 7; // CI, Nombre, Fecha, Puntos, Evaluador, Profesión, Observaciones (y se puede ir ajustando)
   const filledFields = Object.values(formData).filter((val) => val !== '').length;
   const progressPercentage = Math.round((filledFields / totalFields) * 100);
 
   return (
     <div className="min-h-screen bg-gray-100 py-4 overflow-x-hidden">
-      {/* Contenedor centrado y con espaciado lateral */}
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
-        {/* Tarjeta principal */}
         <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-lg w-full">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
             {merito ? 'Editar Nota' : 'Registrar Nota'}
@@ -117,7 +178,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
           {/* Indicador de Progreso */}
           <div className="mb-4">
-            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
+            <p className="text-sm text-gray-600">
+              Progreso: {progressPercentage}% completado
+            </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
                 className="bg-blue-600 h-2 rounded-full"
@@ -162,11 +225,27 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     placeholder="Nombre autocompletado"
                     required
                     disabled
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
+                  />
+                </div>
+                {/* Campo Profesión (autocompletado y bloqueado) */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Profesión
+                  </label>
+                  <input
+                    type="text"
+                    name="profesion"
+                    value={formData.profesion}
+                    onChange={handleChange}
+                    placeholder="Profesión autocompletada"
+                    required
+                    disabled
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
                   />
                 </div>
                 {/* Campo Fecha de Evaluación */}
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-lg font-bold text-gray-700 mb-2">
                     Fecha de Evaluación
                   </label>
@@ -176,15 +255,68 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     value={formData.fechaEvaluacion}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg"
                   />
                 </div>
               </div>
             </div>
 
+            {/* Sección: Información Académica (Filtrar y seleccionar Materia) */}
+            <div className="p-4 sm:p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Información Académica
+              </h3>
+              {/* Filtro para materias por carrera */}
+              <div className="mb-4">
+                <label className="block text-lg font-bold text-gray-700 mb-2">
+                  Filtrar materias por Carrera:
+                </label>
+                <select
+                  value={filtroCarrera}
+                  onChange={(e) => setFiltroCarrera(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                >
+                  <option value="">Mostrar todas</option>
+                  {uniqueCarreras.map((carrera) => (
+                    <option key={carrera} value={carrera}>
+                      {carrera}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Selección de Materia */}
+              <div>
+                <label className="block text-lg font-bold text-gray-700 mb-2">
+                  Materia
+                </label>
+                <select
+                  name="materia"
+                  value={formData.materia}
+                  onChange={handleMateriaChange}
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                >
+                  <option value="">Seleccione la asignatura</option>
+                  {materiasFiltradas.length > 0 ? (
+                    materiasFiltradas.map((mat, idx) => (
+                      <option key={idx} value={mat.asignatura}>
+                        {mat.asignatura}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">
+                      No se encontraron materias para la carrera seleccionada
+                    </option>
+                  )}
+                </select>
+              </div>
+            </div>
+
             {/* Sección: Datos de Evaluación */}
             <div className="p-4 sm:p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">Datos de Evaluación</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Datos de Evaluación
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Campo Nombre de Evaluador */}
                 <div>
@@ -197,7 +329,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     value={formData.nombreEvaluador}
                     onChange={handleChange}
                     placeholder="Ingrese el nombre del evaluador"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none"
                   />
                 </div>
                 {/* Campo Puntos de Evaluación */}
@@ -213,10 +345,38 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     value={formData.puntosEvaluacion}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                  />
+                </div>
+                {/* Campo Habilitado/No habilitado (calculado automáticamente) */}
+                <div>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">
+                    Estado
+                  </label>
+                  <input
+                    type="text"
+                    name="habilitado"
+                    value={formData.habilitado}
+                    readOnly
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Sección: Observaciones */}
+            <div className="p-4 sm:p-6 bg-blue-50 rounded-lg border">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-700 mb-4">
+                Observaciones
+              </h3>
+              <textarea
+                name="observaciones"
+                value={formData.observaciones}
+                onChange={handleChange}
+                placeholder="Ingrese observaciones..."
+                rows="4"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+              />
             </div>
 
             {/* Botones de Acción */}
@@ -239,7 +399,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
         </div>
       </div>
 
-      {/* Botón de confirmación flotante para dispositivos móviles */}
+      {/* Botón flotante de confirmación para dispositivos móviles */}
       <button
         type="button"
         onClick={() => document.getElementById('meritoForm').requestSubmit()}
