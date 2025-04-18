@@ -1,203 +1,458 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Swal from 'sweetalert2';
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import axios from "axios"
+import Swal from "sweetalert2"
 
 function toTitleCase(str) {
-  return str.replace(/\w\S*/g, (txt) =>
-    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-  );
+  return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
 }
 
 function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }) {
   // Se agrega la propiedad "carrera" en el estado inicial
   const [formData, setFormData] = useState({
-    tipoEvaluador: '',
-    nombre: '',
-    carnet: '',
-    materia: '',
-    carrera: '', // NUEVO: registro de la carrera asociada a la materia
-    fecha: '',
-    planConcordancia: '',
-    planCompetencia: '',
-    planContenidos: '',
-    planEstrategiasEnsenanza: '',
-    planEstrategiasEvaluacion: '',
-    procesoMotivacion: '',
-    procesoDominio: '',
-    procesoTICs: '',
-    procesoExplicacion: '',
-    nombreEvaluador: '',
-    evaluadorId: '',
-  });
+    tipoEvaluador: "",
+    nombre: "",
+    carnet: "",
+    materia: "",
+    carrera: "", // NUEVO: registro de la carrera asociada a la materia
+    fecha: "",
+    planConcordancia: "",
+    planCompetencia: "",
+    planContenidos: "",
+    planEstrategiasEnsenanza: "",
+    planEstrategiasEvaluacion: "",
+    procesoMotivacion: "",
+    procesoDominio: "",
+    procesoTICs: "",
+    procesoExplicacion: "",
+    nombreEvaluador: "",
+    evaluadorId: "",
+  })
 
   // Estado para almacenar las materias postuladas (del postulante)
-  const [materiasPostuladas, setMateriasPostuladas] = useState([]);
+  const [materiasPostuladas, setMateriasPostuladas] = useState([])
   // Estado para el filtro: carrera seleccionada para filtrar materias
-  const [filtroCarrera, setFiltroCarrera] = useState('');
+  const [filtroCarrera, setFiltroCarrera] = useState("")
+
+  // Estados para controlar el proceso de envío y verificación
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [lastOperationId, setLastOperationId] = useState(null)
 
   const baseURL =
-    process.env.NODE_ENV === 'development'
-      ? process.env.REACT_APP_urlbacklocalhost
-      : process.env.REACT_APP_urlback;
+    process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
   useEffect(() => {
     if (competencia) {
-      setFormData({ ...competencia });
+      setFormData({ ...competencia })
       if (competencia.asignaturasSeleccionadas) {
         setMateriasPostuladas(
-          typeof competencia.asignaturasSeleccionadas === 'string'
+          typeof competencia.asignaturasSeleccionadas === "string"
             ? JSON.parse(competencia.asignaturasSeleccionadas)
-            : competencia.asignaturasSeleccionadas
-        );
+            : competencia.asignaturasSeleccionadas,
+        )
       }
     }
-  }, [competencia]);
+  }, [competencia])
 
   // Buscar postulante por carnet y autocompletar nombre y materias postuladas
   useEffect(() => {
     const fetchPostulante = async () => {
-      if (formData.carnet.trim() === '') {
-        setFormData((prev) => ({ ...prev, nombre: '' }));
-        setMateriasPostuladas([]);
-        return;
+      if (formData.carnet.trim() === "") {
+        setFormData((prev) => ({ ...prev, nombre: "" }))
+        setMateriasPostuladas([])
+        return
       }
       try {
-        const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`);
+        const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`)
         if (response.data.data) {
           setFormData((prev) => ({
             ...prev,
             nombre: response.data.data.nombre,
-          }));
+          }))
           if (response.data.data.asignaturasSeleccionadas) {
             const materias =
-              typeof response.data.data.asignaturasSeleccionadas === 'string'
+              typeof response.data.data.asignaturasSeleccionadas === "string"
                 ? JSON.parse(response.data.data.asignaturasSeleccionadas)
-                : response.data.data.asignaturasSeleccionadas;
-            setMateriasPostuladas(materias);
+                : response.data.data.asignaturasSeleccionadas
+            setMateriasPostuladas(materias)
           } else {
-            setMateriasPostuladas([]);
+            setMateriasPostuladas([])
           }
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
-          setFormData((prev) => ({ ...prev, nombre: '' }));
-          setMateriasPostuladas([]);
+          setFormData((prev) => ({ ...prev, nombre: "" }))
+          setMateriasPostuladas([])
         }
-        console.error('Error al buscar postulante por carnet:', error);
+        console.error("Error al buscar postulante por carnet:", error)
       }
-    };
+    }
 
     const delayDebounceFn = setTimeout(() => {
-      fetchPostulante();
-    }, 500);
+      fetchPostulante()
+    }, 500)
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [formData.carnet, baseURL]);
+    return () => clearTimeout(delayDebounceFn)
+  }, [formData.carnet, baseURL])
 
   // Manejo de cambios para cualquier campo (excepto Materia)
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   // Manejo específico del select de Materia que, al cambiar, registra también la carrera correspondiente.
   const handleMateriaChange = (e) => {
-    const selectedMateria = e.target.value;
+    const selectedMateria = e.target.value
     // Buscamos en las materias filtradas la materia seleccionada
     const materiasFiltradas =
-      filtroCarrera.trim() !== ''
+      filtroCarrera.trim() !== ""
         ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
-        : materiasPostuladas;
-    const materiaObj = materiasFiltradas.find(
-      (mat) => mat.asignatura === selectedMateria
-    );
+        : materiasPostuladas
+    const materiaObj = materiasFiltradas.find((mat) => mat.asignatura === selectedMateria)
     setFormData((prev) => ({
       ...prev,
       materia: selectedMateria,
-      carrera: materiaObj ? materiaObj.carrera : '',
-    }));
-  };
+      carrera: materiaObj ? materiaObj.carrera : "",
+    }))
+  }
 
   // Calcula el progreso
-  const totalFields = Object.keys(formData).length;
-  const filledFields = Object.values(formData).filter(
-    (val) => val !== '' && val !== null
-  ).length;
-  const progressPercentage = Math.round((filledFields / totalFields) * 100);
+  const totalFields = Object.keys(formData).length
+  const filledFields = Object.values(formData).filter((val) => val !== "" && val !== null).length
+  const progressPercentage = Math.round((filledFields / totalFields) * 100)
 
   // Calcula sumatorias y promedios para las etapas (etapa 2 y 3)
   const stage2Sum =
-    (parseInt(formData.planConcordancia) || 0) +
-    (parseInt(formData.planCompetencia) || 0) +
-    (parseInt(formData.planContenidos) || 0) +
-    (parseInt(formData.planEstrategiasEnsenanza) || 0) +
-    (parseInt(formData.planEstrategiasEvaluacion) || 0);
-  const stage2Promedio = ((stage2Sum / 100) * 30).toFixed(2);
+    (Number.parseInt(formData.planConcordancia) || 0) +
+    (Number.parseInt(formData.planCompetencia) || 0) +
+    (Number.parseInt(formData.planContenidos) || 0) +
+    (Number.parseInt(formData.planEstrategiasEnsenanza) || 0) +
+    (Number.parseInt(formData.planEstrategiasEvaluacion) || 0)
+  const stage2Promedio = ((stage2Sum / 100) * 30).toFixed(2)
 
   const stage3Sum =
-    (parseInt(formData.procesoMotivacion) || 0) +
-    (parseInt(formData.procesoDominio) || 0) +
-    (parseInt(formData.procesoTICs) || 0) +
-    (parseInt(formData.procesoExplicacion) || 0);
-  const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2);
+    (Number.parseInt(formData.procesoMotivacion) || 0) +
+    (Number.parseInt(formData.procesoDominio) || 0) +
+    (Number.parseInt(formData.procesoTICs) || 0) +
+    (Number.parseInt(formData.procesoExplicacion) || 0)
+  const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2)
 
-  const stage2Color =
-    stage2Sum <= 60 ? 'text-red-500' : stage2Sum > 80 ? 'text-green-500' : 'text-yellow-600';
-  const stage3Color =
-    stage3Sum <= 60 ? 'text-red-500' : stage3Sum > 80 ? 'text-green-500' : 'text-yellow-600';
+  const stage2Color = stage2Sum <= 60 ? "text-red-500" : stage2Sum > 80 ? "text-green-500" : "text-yellow-600"
+  const stage3Color = stage3Sum <= 60 ? "text-red-500" : stage3Sum > 80 ? "text-green-500" : "text-yellow-600"
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Función para mostrar alertas con SweetAlert2 y redirección automática
+  const showAlert = useCallback((icon, title, text, callback = null) => {
+    return Swal.fire({
+      icon,
+      title,
+      text,
+      confirmButtonText: "Aceptar",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+    }).then((result) => {
+      if (callback && result.isConfirmed) {
+        callback()
+      }
+      return result
+    })
+  }, [])
 
-    if (stage2Sum > 100 || stage3Sum > 100) {
-      Swal.fire('Error', 'La sumatoria de puntajes excede el máximo permitido.', 'error');
-      return;
-    }
+  // Función para generar un ID único para la operación
+  const generateOperationId = useCallback(() => {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 5)
+  }, [])
 
-    const dataToSend = {
-      ...formData,
-      notaPlanTrabajo: stage2Promedio,
-      notaProcesosPedagogicos: stage3Promedio,
-    };
+  // Función para verificar si ya existe un registro con los mismos datos
+  const verificarRegistroExistente = useCallback(
+    async (dataToVerify) => {
+      try {
+        setIsVerifying(true)
 
-    try {
-      if (competencia) {
-        await axios.put(`${baseURL}/api/examen-competencias/${competencia._id}`, dataToSend);
-        Swal.fire('Éxito', 'Registro actualizado correctamente.', 'success');
-        onCompetenciaRegistered();
-      } else {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (user) {
-          dataToSend.evaluadorId = user._id;
-          if (!dataToSend.nombreEvaluador) {
-            dataToSend.nombreEvaluador = user.nombre || '';
+        // Datos mínimos necesarios para verificar
+        const verificacionData = {
+          tipoEvaluador: dataToVerify.tipoEvaluador,
+          materia: dataToVerify.materia,
+          carrera: dataToVerify.carrera,
+        }
+
+        console.log("Verificando registro existente:", verificacionData)
+
+        // Intentar verificar directamente con un endpoint específico
+        try {
+          const verificacionResponse = await axios({
+            method: "post",
+            url: `${baseURL}/api/examen-competencias/verificar`,
+            data: verificacionData,
+            timeout: 10000, // 10 segundos de timeout
+          })
+
+          console.log("Respuesta de verificación:", verificacionResponse.data)
+          return verificacionResponse.data.exists
+        } catch (error) {
+          console.error("Error en verificación directa:", error)
+
+          // Si falla la verificación directa, intentar obtener todos los registros
+          try {
+            const allRegistrosResponse = await axios.get(`${baseURL}/api/examen-competencias`)
+            const allRegistros = allRegistrosResponse.data
+
+            // Buscar coincidencia manual por tipoEvaluador, materia y carrera
+            const found = allRegistros.some(
+              (registro) =>
+                registro.tipoEvaluador === dataToVerify.tipoEvaluador &&
+                registro.materia === dataToVerify.materia &&
+                registro.carrera === dataToVerify.carrera &&
+                (!competencia || registro._id !== competencia._id), // Excluir el registro actual si estamos editando
+            )
+
+            console.log("Verificación alternativa:", found)
+            return found
+          } catch (secondError) {
+            console.error("Error en verificación alternativa:", secondError)
+            return false
           }
         }
-        const response = await axios.post(`${baseURL}/api/examen-competencias`, dataToSend);
-        Swal.fire('Éxito', 'Registro creado correctamente.', 'success');
-        onCompetenciaRegistered(response.data);
+      } catch (error) {
+        console.error("Error al verificar registro existente:", error)
+        return false
+      } finally {
+        setIsVerifying(false)
+      }
+    },
+    [baseURL, competencia],
+  )
+
+  // Función para ejecutar la redirección
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (stage2Sum > 100 || stage3Sum > 100) {
+      showAlert("error", "Error", "La sumatoria de puntajes excede el máximo permitido.")
+      return
+    }
+
+    // Evitar múltiples envíos simultáneos
+    if (isSubmitting || isVerifying) return
+
+    // Generar un ID único para esta operación
+    const operationId = generateOperationId()
+    setLastOperationId(operationId)
+
+    // Verificar si ya existe un registro con los mismos datos
+    const registroExistente = await verificarRegistroExistente(formData)
+    if (registroExistente && !competencia) {
+      return showAlert(
+        "warning",
+        "Registro duplicado",
+        "Ya existe un registro para este tipo de evaluador con la misma materia y carrera.",
+      )
+    }
+
+    // Marcar como enviando
+    setIsSubmitting(true)
+
+    // Guardar los datos que se van a enviar para verificación posterior
+    const dataToSubmit = { ...formData }
+    dataToSubmit.notaPlanTrabajo = stage2Promedio
+    dataToSubmit.notaProcesosPedagogicos = stage3Promedio
+
+    // Mostrar indicador de carga
+    Swal.fire({
+      title: "Procesando...",
+      text: "Por favor espere mientras se procesa su solicitud",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      didOpen: () => {
+        Swal.showLoading()
+      },
+    })
+
+    try {
+      // Preparar objeto para enviar al backend
+      const dataToSend = {
+        ...formData,
+        notaPlanTrabajo: stage2Promedio,
+        notaProcesosPedagogicos: stage3Promedio,
+      }
+
+      if (!competencia) {
+        const user = JSON.parse(localStorage.getItem("user"))
+        if (user) {
+          dataToSend.evaluadorId = user._id
+          if (!dataToSend.nombreEvaluador) {
+            dataToSend.nombreEvaluador = user.nombre || ""
+          }
+        }
+      }
+
+      let response
+      if (competencia) {
+        // Actualizar registro existente
+        response = await axios({
+          method: "put",
+          url: `${baseURL}/api/examen-competencias/${competencia._id}`,
+          data: dataToSend,
+          timeout: 15000, // 15 segundos de timeout
+        })
+      } else {
+        // Crear nuevo registro
+        response = await axios({
+          method: "post",
+          url: `${baseURL}/api/examen-competencias`,
+          data: dataToSend,
+          timeout: 15000, // 15 segundos de timeout
+        })
+      }
+
+      // Cerrar el indicador de carga
+      Swal.close()
+
+      // Verificar la respuesta
+      if (response.status === 200 || response.status === 201) {
+        // Pequeño retraso para asegurar que el SweetAlert anterior se cierre completamente
+        setTimeout(() => {
+          Swal.fire({
+            icon: "success",
+            title: competencia ? "¡Actualizado!" : "¡Registrado!",
+            text: competencia ? "Registro actualizado exitosamente." : "Registro creado exitosamente.",
+            confirmButtonText: "Aceptar",
+          }).then(() => {
+            // Llamar directamente a onCompetenciaRegistered como en el código original
+            if (onCompetenciaRegistered) {
+              onCompetenciaRegistered(competencia ? null : response.data)
+            }
+          })
+        }, 300)
+      } else {
+        throw new Error("Respuesta inesperada del servidor")
       }
     } catch (error) {
-      console.error('Error al guardar el registro:', error);
-      Swal.fire('Error', error.response?.data?.message || 'Ocurrió un problema al guardar el registro.', 'error');
+      console.error("Error al guardar el registro:", error)
+
+      // Determinar el mensaje de error apropiado
+      let errorMessage = "Hubo un problema al procesar la solicitud. Inténtalo de nuevo."
+      let shouldVerifyRegistration = false
+
+      if (error.response) {
+        // El servidor respondió con un código de estado fuera del rango 2xx
+        errorMessage = error.response?.data?.message || "Error en la respuesta del servidor."
+      } else if (error.request) {
+        // La solicitud se hizo pero no se recibió respuesta - posible problema de red
+        errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión a internet."
+        shouldVerifyRegistration = true // Verificar si se registró a pesar del error
+      } else {
+        // Algo ocurrió al configurar la solicitud
+        errorMessage = error.message || "Error al preparar la solicitud."
+      }
+
+      // Si es un error de conexión y no estamos editando, verificar si los datos se guardaron
+      if (shouldVerifyRegistration && !competencia) {
+        try {
+          // Cerrar el indicador de carga actual
+          Swal.close()
+
+          // Mostrar indicador de verificación
+          Swal.fire({
+            title: "Verificando registro...",
+            text: "Estamos verificando si el registro fue guardado correctamente",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            didOpen: () => {
+              Swal.showLoading()
+            },
+          })
+
+          // Esperar un momento antes de verificar
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+
+          // Verificar si el registro se guardó a pesar del error
+          const registroGuardado = await verificarRegistroExistente(dataToSubmit)
+
+          // Cerrar el indicador de verificación
+          Swal.close()
+
+          if (registroGuardado) {
+            // El registro sí se guardó a pesar del error de conexión
+            setTimeout(() => {
+              showAlert(
+                "success",
+                "¡Registrado correctamente!",
+                "A pesar del error de conexión, el registro fue guardado exitosamente. Redirigiendo en 2 segundos...",
+                () => {
+                  // Solo notificar al componente padre si esta es la operación más reciente
+                  if (operationId === lastOperationId) {
+                    onCompetenciaRegistered()
+                  }
+                },
+                true, // Activar redirección automática
+              )
+            }, 300)
+            return
+          } else {
+            // Intentar una última verificación después de un tiempo adicional
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            const segundaVerificacion = await verificarRegistroExistente(dataToSubmit)
+
+            if (segundaVerificacion) {
+              setTimeout(() => {
+                showAlert(
+                  "success",
+                  "¡Registrado correctamente!",
+                  "El registro fue guardado exitosamente después de una verificación adicional. Redirigiendo en 2 segundos...",
+                  () => {
+                    if (operationId === lastOperationId) {
+                      onCompetenciaRegistered()
+                    }
+                  },
+                  true, // Activar redirección automática
+                )
+              }, 300)
+              return
+            }
+
+            // El registro no se guardó, mostrar el error original
+            setTimeout(() => {
+              showAlert("error", "Error", errorMessage)
+            }, 300)
+          }
+        } catch (verificationError) {
+          console.error("Error al verificar el registro:", verificationError)
+          // Continuar con el mensaje de error original
+          setTimeout(() => {
+            showAlert("error", "Error", errorMessage)
+          }, 300)
+        }
+      } else {
+        // Para otros tipos de errores o cuando estamos editando, mostrar el error directamente
+        setTimeout(() => {
+          showAlert("error", "Error", errorMessage)
+        }, 300)
+      }
+    } finally {
+      // Marcar como no enviando, independientemente del resultado
+      setIsSubmitting(false)
     }
-  };
+  }
 
   // Obtenemos un arreglo único de carreras a partir de las materias postuladas
-  const uniqueCarreras = Array.from(new Set(materiasPostuladas.map((mat) => mat.carrera)));
+  const uniqueCarreras = Array.from(new Set(materiasPostuladas.map((mat) => mat.carrera)))
 
   // Filtrar materias según el filtro de carrera
   const materiasFiltradas =
-    filtroCarrera.trim() !== ''
-      ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
-      : materiasPostuladas;
+    filtroCarrera.trim() !== "" ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera) : materiasPostuladas
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
         <div className="bg-white p-6 md:p-10 rounded-xl shadow-2xl w-full">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-6">
-            {competencia ? 'Editar Competencia' : 'Registrar Competencia'}
+            {competencia ? "Editar Competencia" : "Registrar Competencia"}
           </h2>
 
           {/* Indicador de Progreso */}
@@ -210,9 +465,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
 
           {/* Selección del tipo de evaluador */}
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-            <label className="block text-lg font-bold text-gray-700 mb-2">
-              Seleccionar tipo de Evaluador
-            </label>
+            <label className="block text-lg font-bold text-gray-700 mb-2">Seleccionar tipo de Evaluador</label>
             <select
               name="tipoEvaluador"
               value={formData.tipoEvaluador}
@@ -226,7 +479,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               <option value="Evaluador 2">Evaluador 2</option>
               <option value="Presidente Tribunal">Presidente Tribunal</option>
             </select>
-            {formData.tipoEvaluador === '' && (
+            {formData.tipoEvaluador === "" && (
               <p className="text-xs text-red-500 mt-1">Debe seleccionar un tipo de evaluador.</p>
             )}
           </div>
@@ -254,9 +507,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 </div>
                 {/* Campo Nombre del Postulante */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Nombre del Postulante
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre del Postulante</label>
                   <input
                     type="text"
                     name="nombre"
@@ -272,9 +523,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               </div>
               {/* Filtro para materias: se filtran por carrera */}
               <div className="mt-4">
-                <label className="block text-lg font-bold text-gray-700 mb-2">
-                  Filtrar materias por Carrera:
-                </label>
+                <label className="block text-lg font-bold text-gray-700 mb-2">Filtrar materias por Carrera:</label>
                 <select
                   value={filtroCarrera}
                   onChange={(e) => setFiltroCarrera(e.target.value)}
@@ -368,9 +617,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   </select>
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Competencia
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Competencia</label>
                   <select
                     name="planCompetencia"
                     value={formData.planCompetencia}
@@ -386,9 +633,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   </select>
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Contenidos
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Contenidos</label>
                   <select
                     name="planContenidos"
                     value={formData.planContenidos}
@@ -404,9 +649,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   </select>
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Estrategias de enseñanza
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Estrategias de enseñanza</label>
                   <select
                     name="planEstrategiasEnsenanza"
                     value={formData.planEstrategiasEnsenanza}
@@ -422,9 +665,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   </select>
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Estrategias de evaluación
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Estrategias de evaluación</label>
                   <select
                     name="planEstrategiasEvaluacion"
                     value={formData.planEstrategiasEvaluacion}
@@ -441,12 +682,8 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 </div>
               </div>
               <div className="mt-4">
-                <p className={`text-lg font-semibold ${stage2Color}`}>
-                  Sumatoria: {stage2Sum} / 100
-                </p>
-                <p className="text-lg font-semibold">
-                  Promedio (30%): {stage2Promedio}
-                </p>
+                <p className={`text-lg font-semibold ${stage2Color}`}>Sumatoria: {stage2Sum} / 100</p>
+                <p className="text-lg font-semibold">Promedio (30%): {stage2Promedio}</p>
               </div>
             </div>
 
@@ -457,9 +694,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Motivación a los estudiantes
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Motivación a los estudiantes</label>
                   <select
                     name="procesoMotivacion"
                     value={formData.procesoMotivacion}
@@ -493,9 +728,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                   </select>
                 </div>
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">
-                    Uso de las TICs
-                  </label>
+                  <label className="block text-lg font-bold text-gray-700 mb-2">Uso de las TICs</label>
                   <select
                     name="procesoTICs"
                     value={formData.procesoTICs}
@@ -530,12 +763,8 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 </div>
               </div>
               <div className="mt-4">
-                <p className={`text-lg font-semibold ${stage3Color}`}>
-                  Sumatoria: {stage3Sum} / 100
-                </p>
-                <p className="text-lg font-semibold">
-                  Promedio (30%): {stage3Promedio}
-                </p>
+                <p className={`text-lg font-semibold ${stage3Color}`}>Sumatoria: {stage3Sum} / 100</p>
+                <p className="text-lg font-semibold">Promedio (30%): {stage3Promedio}</p>
               </div>
             </div>
 
@@ -561,7 +790,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 type="submit"
                 className="flex-1 py-2 px-4 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-900 transition duration-200"
               >
-                {competencia ? 'Guardar Cambios' : 'Registrar'}
+                {competencia ? "Guardar Cambios" : "Registrar"}
               </button>
             </div>
           </form>
@@ -571,16 +800,22 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       {/* Botón flotante para móviles */}
       <button
         type="button"
-        onClick={() => document.getElementById('competenciaForm').requestSubmit()}
+        onClick={() => document.getElementById("competenciaForm").requestSubmit()}
         className="fixed bottom-4 right-4 bg-blue-800 text-white p-4 rounded-full shadow-lg hover:bg-blue-900 transition md:hidden"
         title="Enviar Formulario"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       </button>
     </div>
-  );
+  )
 }
 
-export default RegistroCompetencias;
+export default RegistroCompetencias
