@@ -3,6 +3,17 @@
 import { useState, useEffect, useCallback } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
+import {
+  User,
+  Calendar,
+  Award,
+  Book,
+  Briefcase,
+  CheckCircle,
+  FileText,
+  GraduationCap,
+  ClipboardCheck,
+} from "lucide-react"
 
 function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCancel }) {
   const [formData, setFormData] = useState({
@@ -27,6 +38,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [lastOperationId, setLastOperationId] = useState(null)
+
+  // Estado para controlar la vista en dispositivos móviles
+  const [activeTab, setActiveTab] = useState(0)
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
@@ -301,6 +315,18 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     // Guardar los datos que se van a enviar para verificación posterior
     const dataToSubmit = { ...formData, notaFinal }
 
+    // Mostrar indicador de carga
+    Swal.fire({
+      title: "Procesando...",
+      text: "Por favor espere mientras se procesa su solicitud",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      didOpen: () => {
+        Swal.showLoading()
+      },
+    })
+
     try {
       if (conocimiento && conocimiento._id) {
         // Actualizar registro existente
@@ -310,6 +336,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           data: dataToSubmit,
           timeout: 15000, // 15 segundos de timeout
         })
+
+        // Cerrar el indicador de carga
+        Swal.close()
 
         // Mostrar mensaje de éxito y redirigir inmediatamente
         Swal.fire({
@@ -341,6 +370,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           timeout: 15000, // 15 segundos de timeout
         })
 
+        // Cerrar el indicador de carga
+        Swal.close()
+
         // Mostrar mensaje de éxito y redirigir inmediatamente
         Swal.fire({
           icon: "success",
@@ -356,6 +388,9 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
       }
     } catch (error) {
       console.error("Error al guardar el registro:", error)
+
+      // Cerrar el indicador de carga
+      Swal.close()
 
       // Determinar el mensaje de error apropiado
       let errorMessage = "Hubo un problema al procesar la solicitud. Inténtalo de nuevo."
@@ -376,9 +411,6 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
       // Si es un error de conexión y no estamos editando, verificar si los datos se guardaron
       if (shouldVerifyRegistration && !conocimiento) {
         try {
-          // Cerrar el indicador de carga actual
-          Swal.close()
-
           // Mostrar indicador de verificación
           Swal.fire({
             title: "Verificando registro...",
@@ -466,253 +498,428 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100 py-4">
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
-        <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg w-full">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            {conocimiento ? "Editar Conocimiento" : "Registrar Conocimiento"}
-          </h2>
+  // Definir las secciones para la navegación por pestañas en móvil
+  const tabs = [
+    { id: 0, name: "Datos", icon: <User className="w-5 h-5" /> },
+    { id: 1, name: "Académico", icon: <Book className="w-5 h-5" /> },
+    { id: 2, name: "Evaluación", icon: <Award className="w-5 h-5" /> },
+    { id: 3, name: "Observaciones", icon: <FileText className="w-5 h-5" /> },
+  ]
 
-          {/* Indicador de Progreso */}
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
+      <div className="w-full mx-auto">
+        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
+          {/* Encabezado */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+              <ClipboardCheck className="h-8 w-8 text-blue-700" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {conocimiento ? "Editar Registro de Conocimientos" : "Registro de Conocimientos"}
+            </h2>
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">
+              Complete el formulario para {conocimiento ? "actualizar" : "registrar"} el examen de conocimientos
+            </p>
+          </div>
+
+          {/* Indicador de Progreso mejorado */}
           <div className="mb-6">
-            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
+              <p className="text-sm font-medium text-blue-600">{progressPercentage}% completado</p>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-2.5 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${progressPercentage}%`,
+                  backgroundColor:
+                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
+                }}
+              ></div>
             </div>
           </div>
 
+          {/* Navegación por pestañas para móvil */}
+          <div className="md:hidden border-b border-gray-200 px-4 mt-4">
+            <div className="flex overflow-x-auto space-x-4 scrollbar-hide">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center py-3 px-1 border-b-2 whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "border-blue-600 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  <span className="font-medium">{tab.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Formulario */}
           <form onSubmit={handleSubmit} id="conocimientoForm" className="space-y-6">
-            {/* Nombre de Evaluador */}
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-              <label className="block text-lg font-bold text-gray-700 mb-2">Nombre de Evaluador</label>
-              <input
-                type="text"
-                name="nombreEvaluador"
-                value={formData.nombreEvaluador}
-                onChange={handleChange}
-                placeholder="Ingrese el nombre del evaluador"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            {/* Sección 1: Datos del Evaluador y Postulante */}
+            <div
+              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 0 && "hidden md:block"}`}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Datos del Evaluador y Postulante
+                </h3>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                {/* Nombre de Evaluador */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre de Evaluador <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="nombreEvaluador"
+                      value={formData.nombreEvaluador}
+                      onChange={handleChange}
+                      placeholder="Ingrese el nombre del evaluador"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Campo CI */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CI <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="carnet"
+                        value={formData.carnet}
+                        onChange={handleChange}
+                        placeholder="Ingrese CI (máximo 10 dígitos)"
+                        maxLength="10"
+                        pattern="\d{1,10}"
+                        title="Solo se permiten números y máximo 10 dígitos"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Ingrese el número de carnet de identidad</p>
+                  </div>
+
+                  {/* Campo Nombre del Postulante */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del Postulante <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={formData.nombre}
+                        onChange={handleChange}
+                        readOnly
+                        placeholder="Nombre autocompletado"
+                        title="El nombre se autocompleta al ingresar el CI"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
+                  </div>
+
+                  {/* Campo Profesión */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Profesión <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <GraduationCap className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="profesion"
+                        value={formData.profesion}
+                        onChange={handleChange}
+                        placeholder="Profesión autocompletada"
+                        readOnly
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
+                  </div>
+
+                  {/* Campo Fecha */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="date"
+                        name="fecha"
+                        value={formData.fecha}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Datos del Postulante */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl font-bold text-gray-700 mb-4">Datos del Postulante</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Campo CI */}
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">CI</label>
-                  <input
-                    type="text"
-                    name="carnet"
-                    value={formData.carnet}
-                    onChange={handleChange}
-                    placeholder="Ingrese CI (máximo 10 dígitos)"
-                    maxLength="10"
-                    pattern="\d{1,10}"
-                    title="Solo se permiten números y máximo 10 dígitos"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                {/* Campo Nombre del Postulante */}
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Nombre del Postulante</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    readOnly
-                    placeholder="Nombre autocompletado"
-                    title="El nombre se autocompleta al ingresar el CI"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                {/* Campo Profesión */}
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Profesión</label>
-                  <input
-                    type="text"
-                    name="profesion"
-                    value={formData.profesion}
-                    onChange={handleChange}
-                    placeholder="Profesión autocompletada"
-                    readOnly
-                    required
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
-                  />
-                </div>
+            {/* Sección 2: Información Académica */}
+            <div
+              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 1 && "hidden md:block"}`}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <Book className="h-5 w-5 mr-2" />
+                  Información Académica
+                </h3>
               </div>
-              {/* Campo Fecha */}
-              <div className="mt-4">
-                <label className="block text-lg font-bold text-gray-700 mb-2">Fecha</label>
-                <input
-                  type="date"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                {/* Filtro para materias por Carrera */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar materias por Carrera:</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Briefcase className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <select
+                      value={filtroCarrera}
+                      onChange={(e) => setFiltroCarrera(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
+                    >
+                      <option value="">Mostrar todas</option>
+                      {uniqueCarreras.map((carrera) => (
+                        <option key={carrera} value={carrera}>
+                          {carrera}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Selección de Materia */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Materia <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Book className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <select
+                      name="materia"
+                      value={formData.materia}
+                      onChange={handleMateriaChange}
+                      required
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
+                    >
+                      <option value="">Seleccione la asignatura</option>
+                      {materiasFiltradas.length > 0 ? (
+                        materiasFiltradas.map((mat, idx) => (
+                          <option key={idx} value={mat.asignatura}>
+                            {mat.asignatura}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>
+                          No se encontraron materias para la carrera seleccionada
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Seleccione la materia a evaluar</p>
+                </div>
+
+                {/* Mostrar la carrera seleccionada */}
+                {formData.carrera && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-medium text-blue-800">
+                      Carrera: <span className="font-bold">{formData.carrera}</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Información Académica */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl font-bold text-gray-700 mb-4">Información Académica</h3>
-              {/* Filtro para materias por Carrera */}
-              <div className="mb-4">
-                <label className="block text-lg font-bold text-gray-700 mb-2">Filtrar materias por Carrera:</label>
-                <select
-                  value={filtroCarrera}
-                  onChange={(e) => setFiltroCarrera(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                >
-                  <option value="">Mostrar todas</option>
-                  {uniqueCarreras.map((carrera) => (
-                    <option key={carrera} value={carrera}>
-                      {carrera}
-                    </option>
-                  ))}
-                </select>
+            {/* Sección 3: Evaluación de Conocimiento */}
+            <div
+              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 2 && "hidden md:block"}`}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <Award className="h-5 w-5 mr-2" />
+                  Evaluación de Conocimiento
+                </h3>
               </div>
-              {/* Selección de Materia */}
-              <div>
-                <label className="block text-lg font-bold text-gray-700 mb-2">Materia</label>
-                <select
-                  name="materia"
-                  value={formData.materia}
-                  onChange={handleMateriaChange}
-                  required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none"
-                >
-                  <option value="">Seleccione la asignatura</option>
-                  {materiasFiltradas.length > 0 ? (
-                    materiasFiltradas.map((mat, idx) => (
-                      <option key={idx} value={mat.asignatura}>
-                        {mat.asignatura}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">No se encontraron materias para la carrera seleccionada</option>
-                  )}
-                </select>
-              </div>
-            </div>
 
-            {/* Evaluación de Conocimiento */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl font-bold text-gray-700 mb-4">
-                Primera Etapa: Evaluación de Conocimiento Teórico-Científico
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* Campo Examen Conocimientos */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Examen Conocimientos (40%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="examenConocimientos"
-                    value={formData.examenConocimientos}
-                    onChange={handleChange}
-                    placeholder="Ingrese la nota del examen"
-                    title="Ingrese la nota del examen"
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Examen Conocimientos (40%) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Award className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="examenConocimientos"
+                      value={formData.examenConocimientos}
+                      onChange={handleChange}
+                      placeholder="Ingrese la nota del examen"
+                      title="Ingrese la nota del examen"
+                      required
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Nota Final */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="text-lg font-medium text-blue-800 mb-2 flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2 text-blue-600" />
+                    Nota Final
+                  </h3>
+                  <div className="space-y-2">
+                    <p className="text-sm text-blue-700">
+                      Examen (40%): <span className="font-semibold">{(examenScore * 0.4).toFixed(2)}</span>
+                    </p>
+                    <p className="text-base font-bold text-blue-800">Nota Final: {notaFinal}</p>
+                  </div>
+                </div>
+
+                {/* Campo Estado (fijo "Habilitado") */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                    <input
+                      type="text"
+                      name="habilitado"
+                      value={formData.habilitado}
+                      readOnly
+                      className="w-full pl-10 pr-4 py-2.5 border border-green-300 rounded-lg bg-gray-100 cursor-not-allowed text-green-700"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Estado fijo para examen de conocimientos</p>
                 </div>
               </div>
             </div>
 
-            {/* Nota Final */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-xl font-bold text-gray-700 mb-4">Nota Final</h3>
-              <div className="text-lg font-semibold">
-                <p>Examen (40%): {(examenScore * 0.4).toFixed(2)}</p>
-                <p className="mt-2">Nota Final: {notaFinal}</p>
+            {/* Sección 4: Observaciones */}
+            <div
+              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 3 && "hidden md:block"}`}
+            >
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Observaciones
+                </h3>
               </div>
-            </div>
 
-            {/* Información adicional: Observaciones y Estado */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Campo Observaciones */}
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Observaciones</label>
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="relative">
                   <textarea
                     name="observaciones"
                     value={formData.observaciones}
                     onChange={handleChange}
                     placeholder="Ingrese observaciones..."
                     rows="4"
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   ></textarea>
                 </div>
-                {/* Campo Estado (fijo "Habilitado") */}
-                <div>
-                  <label className="block text-lg font-bold text-gray-700 mb-2">Estado</label>
-                  <input
-                    type="text"
-                    name="habilitado"
-                    value={formData.habilitado}
-                    readOnly
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-200 cursor-not-allowed"
-                  />
-                </div>
+                <p className="mt-1 text-xs text-gray-500">Información adicional sobre la evaluación</p>
               </div>
             </div>
 
-            {/* Botones de acción */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* Botones de Acción */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
               <button
                 type="button"
                 onClick={onCancel}
                 disabled={isSubmitting || isVerifying}
-                className={`w-full sm:w-auto px-6 py-3 ${
-                  isSubmitting || isVerifying ? "bg-gray-500" : "bg-gray-600 hover:bg-gray-700"
-                } text-white font-semibold rounded-lg shadow-md transition duration-200`}
+                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                  isSubmitting || isVerifying
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                }`}
               >
                 Cancelar
               </button>
+
               <button
                 type="submit"
                 disabled={isSubmitting || isVerifying}
-                className={`w-full sm:w-auto px-6 py-3 ${
-                  isSubmitting || isVerifying ? "bg-gray-500" : "bg-blue-800 hover:bg-blue-900"
-                } text-white font-bold rounded-lg shadow-md transition duration-200 flex justify-center items-center`}
+                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                  isSubmitting || isVerifying
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
+                }`}
               >
-                {isSubmitting || isVerifying ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {isVerifying ? "Verificando..." : "Procesando..."}
-                  </>
-                ) : conocimiento ? (
-                  "Guardar Cambios"
-                ) : (
-                  "Registrar"
-                )}
+                <span className="flex items-center justify-center">
+                  {isSubmitting || isVerifying ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {isVerifying ? "Verificando..." : "Procesando..."}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      {conocimiento ? "Guardar Cambios" : "Registrar"}
+                    </>
+                  )}
+                </span>
               </button>
             </div>
           </form>
@@ -728,13 +935,15 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
           }
         }}
         disabled={isSubmitting || isVerifying}
-        className={`fixed bottom-4 right-4 ${
-          isSubmitting || isVerifying ? "bg-gray-500" : "bg-blue-800 hover:bg-blue-900"
-        } text-white p-4 rounded-full shadow-lg transition md:hidden`}
-        title="Guardar Registro"
+        className={`fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 z-50 ${
+          isSubmitting || isVerifying
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+        } md:hidden`}
+        title={conocimiento ? "Actualizar Registro" : "Registrar Conocimiento"}
       >
         {isSubmitting || isVerifying ? (
-          <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24">
+          <svg className="h-6 w-6 animate-spin text-white" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"
@@ -751,15 +960,7 @@ function Registrodeconocimientos({ conocimiento, onConocimientoRegistered, onCan
             ></path>
           </svg>
         ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+          <CheckCircle className="h-6 w-6 text-white" />
         )}
       </button>
     </div>
