@@ -655,19 +655,22 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
+      <div className="w-full mx-auto">
+        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
           {/* Encabezado */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
               <Award className="h-8 w-8 text-blue-700" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">{merito ? "Editar Nota" : "Registrar Nota"}</h2>
-            <p className="text-gray-500 mt-2 text-sm">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {merito ? "Editar Nota" : "Registrar Nota"}
+            </h2>
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">
               Complete el formulario para {merito ? "actualizar" : "registrar"} la nota del concurso de méritos
             </p>
           </div>
+
           {/* Indicador de Progreso */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -676,9 +679,11 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div
-                className="h-2.5 rounded-full transition-all duration-500 ease-out bg-yellow-400"
+                className="h-2.5 rounded-full transition-all duration-500 ease-out"
                 style={{
                   width: `${progressPercentage}%`,
+                  backgroundColor:
+                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
                 }}
               ></div>
             </div>
