@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
-import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import Registrodeconocimientos from "./Registrodeconocimientos"
@@ -107,37 +106,6 @@ function Examendeconocimientos() {
     } else {
       fetchRegistros()
     }
-  }
-
-  // Descargar registros en formato Excel
-  const handleDownloadExcel = () => {
-    if (registros.length === 0) {
-      Swal.fire({
-        icon: "info",
-        title: "Sin registros",
-        text: "No hay registros para descargar.",
-      })
-      return
-    }
-
-    const worksheet = XLSX.utils.json_to_sheet(
-      registros.map((registro, index) => ({
-        Nro: index + 1,
-        Nombre: registro.nombre,
-        Carnet: registro.carnet,
-        "Nombre Evaluador": registro.nombreEvaluador || "",
-        Profesión: registro.profesion || "",
-        Carrera: registro.carrera || "",
-        Materia: registro.materia || "",
-        Estado: registro.habilitado || "",
-        Observaciones: registro.observaciones || "",
-        Fecha: new Date(registro.fecha).toLocaleDateString(),
-        "Nota Final (40%)": registro.notaFinal,
-      })),
-    )
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Registros")
-    XLSX.writeFile(workbook, "Registros_Conocimientos.xlsx")
   }
 
   // Función para buscar el registro de méritos correspondiente
@@ -568,6 +536,14 @@ function Examendeconocimientos() {
           yPos = currentY + 5
         })
 
+        // Verificar si hay espacio suficiente para la firma
+        // Necesitamos aproximadamente 50 puntos de altura para la firma
+        if (yPos + 50 > pageHeight - 20) {
+          // No hay suficiente espacio, añadir nueva página
+          doc.addPage()
+          yPos = margenSuperior
+        }
+
         // Fecha en la esquina inferior derecha
         doc.setFontSize(8)
 
@@ -600,13 +576,12 @@ function Examendeconocimientos() {
         // Espacio para firmas - ajustado para formato horizontal
         const firmaY = yPos + 30
 
-        // Una sola firma centrada - Jefe de Unidad
+        // Una sola firma centrada - Jefe de Unidad (sin cargo profesional)
         doc.line(margenIzquierdo + anchoUtil / 2 - 30, firmaY, margenIzquierdo + anchoUtil / 2 + 30, firmaY)
-        doc.text("Tcnl.", margenIzquierdo + anchoUtil / 2, firmaY + 5, { align: "center" })
-        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 10, {
+        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 5, {
           align: "center",
         })
-        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 15, { align: "center" })
+        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 10, { align: "center" })
       } catch (error) {
         console.error("Error al generar el PDF:", error)
         // Si hay error al cargar la imagen, continuamos sin ella
@@ -628,12 +603,6 @@ function Examendeconocimientos() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Examen de Conocimientos</h2>
         <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
-          >
-            Descargar Excel
-          </button>
           <button
             onClick={handleDownloadPDF}
             className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"

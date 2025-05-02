@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
-import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import RegistroCompetencias from "./RegistroCompetencias"
@@ -13,7 +12,6 @@ function Examendecompetencias() {
   const [registros, setRegistros] = useState([])
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [competenciaEdit, setCompetenciaEdit] = useState(null)
-  //const [filterCareer, setFilterCareer] = useState("") // Filtro por carrera
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
@@ -79,289 +77,6 @@ function Examendecompetencias() {
         })
       }
     }
-  }
-
-  // Reemplaza completamente la función handleDownloadExcel con esta versión mejorada:
-  const handleDownloadExcel = () => {
-    if (registros.length === 0) {
-      Swal.fire({
-        icon: "info",
-        title: "Sin registros",
-        text: "No hay registros para descargar.",
-      })
-      return
-    }
-
-    // Agrupar registros con reduce - igual que en PDF
-    const grouped = registros.reduce((acc, registro) => {
-      const key = `${registro.carnet}-${registro.materia}-${registro.carrera}`
-      // Sumar las dos notas de cada evaluación (Plan de Trabajo + Procesos Pedagógicos)
-      const notaTotal = Number(registro.notaPlanTrabajo) + Number(registro.notaProcesosPedagogicos)
-
-      if (!acc[key]) {
-        acc[key] = {
-          carnet: registro.carnet,
-          nombre: registro.nombre,
-          materia: registro.materia,
-          carrera: registro.carrera,
-          evaluaciones: [],
-        }
-      }
-
-      acc[key].evaluaciones.push({
-        evaluador: registro.nombreEvaluador || "N/A",
-        tipo: registro.tipoEvaluador,
-        nota: notaTotal,
-      })
-
-      return acc
-    }, {})
-
-    const groupedArray = Object.values(grouped).map((group, index) => {
-      const evaluaciones = group.evaluaciones.reduce((acc, ev) => {
-        acc[ev.tipo] = ev.nota
-        return acc
-      }, {})
-
-      // Aseguramos que existan las tres notas (Evaluador 1, Evaluador 2, Presidente)
-      const evaluador1 = evaluaciones["Evaluador 1"] || 0.0
-      const evaluador2 = evaluaciones["Evaluador 2"] || 0.0
-      const presidente = evaluaciones["Presidente Tribunal"] || 0.0
-
-      const total = evaluador1 + evaluador2 + presidente
-      const promedio = (total / 3).toFixed(1)
-
-      return {
-        nro: index + 1,
-        nombre: group.nombre,
-        materia: group.materia,
-        evaluador1,
-        evaluador2,
-        presidenteTribunal: presidente,
-        promedio,
-      }
-    })
-
-    // Crear un libro de trabajo
-    const wb = XLSX.utils.book_new()
-
-    // Preparar los datos para Excel con un formato mejorado
-    const datosExcel = []
-
-    // Encabezado con información institucional
-    datosExcel.push(["ESCUELA MILITAR DE INGENIERÍA", "", "", "", "", "", ""])
-    datosExcel.push(["UNIDAD DE EVALUACIÓN ACADÉMICA", "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-
-    // Información del documento
-    datosExcel.push(["RESULTADOS FINALES DEL EXAMEN DE COMPETENCIAS", "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-
-    // Encabezados de la tabla
-    datosExcel.push([
-      "N°",
-      "Nombres y Apellidos",
-      "Materia a la que postula",
-      "Puntaje Evaluador 1",
-      "Puntaje Evaluador 2",
-      "Puntaje Presidente Tribunal",
-      "PROMEDIO TOTAL",
-    ])
-
-    // Datos de estudiantes
-    groupedArray.forEach((record) => {
-      datosExcel.push([
-        record.nro,
-        record.nombre || "",
-        record.materia || "",
-        Number.parseFloat(record.evaluador1).toFixed(1).replace(".", ","),
-        Number.parseFloat(record.evaluador2).toFixed(1).replace(".", ","),
-        Number.parseFloat(record.presidenteTribunal).toFixed(1).replace(".", ","),
-        Number.parseFloat(record.promedio).toFixed(1).replace(".", ","),
-      ])
-    })
-
-    // Ya no completamos hasta 25 filas, solo usamos los datos existentes
-
-    // Espacio para firmas
-    datosExcel.push(["", "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-
-    // Obtener fecha formateada
-    const fecha = new Date()
-    const dia = fecha.getDate()
-    const meses = [
-      "enero",
-      "febrero",
-      "marzo",
-      "abril",
-      "mayo",
-      "junio",
-      "julio",
-      "agosto",
-      "septiembre",
-      "octubre",
-      "noviembre",
-      "diciembre",
-    ]
-    const mes = meses[fecha.getMonth()]
-    const anio = fecha.getFullYear()
-    const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
-
-    datosExcel.push([fechaFormateada, "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-    datosExcel.push(["PDTE. DE LA COMISIÓN EVALUADORA – EXAMEN DE COMPETENCIAS", "", "", "", "", "", ""])
-    datosExcel.push(["", "", "", "", "", "", ""])
-    datosExcel.push(["Página 1 de 1", "", "", "", "", "", ""])
-
-    // Crear una hoja de cálculo con los datos
-    const ws = XLSX.utils.aoa_to_sheet(datosExcel)
-
-    // Configurar ancho de columnas para mejor visualización
-    const wscols = [
-      { wch: 5 }, // N°
-      { wch: 30 }, // Nombres y Apellidos
-      { wch: 30 }, // Materia
-      { wch: 15 }, // Evaluador 1
-      { wch: 15 }, // Evaluador 2
-      { wch: 20 }, // Presidente Tribunal
-      { wch: 15 }, // PROMEDIO TOTAL
-    ]
-    ws["!cols"] = wscols
-
-    // Configurar altura de filas para los encabezados
-    const wsrows = [
-      { hpt: 25 }, // Altura para fila 1
-      { hpt: 25 }, // Altura para fila 2
-      { hpt: 15 }, // Altura para fila 3
-      { hpt: 30 }, // Altura para fila 4 (título)
-      { hpt: 25 }, // Altura para fila 5
-      { hpt: 15 }, // Altura para fila 6
-      { hpt: 30 }, // Altura para fila 7 (encabezados de tabla)
-    ]
-    ws["!rows"] = wsrows
-
-    // Aplicar estilos a celdas específicas
-
-    // Estilo para el título institucional
-    ws["A1"] = {
-      v: "ESCUELA MILITAR DE INGENIERÍA",
-      t: "s",
-      s: {
-        font: { bold: true, sz: 14 },
-        alignment: { horizontal: "center", vertical: "center" },
-      },
-    }
-    // Fusionar celdas para el título institucional
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // A1:G1
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, // A2:G2
-      { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }, // A4:G4
-    ]
-
-    // Estilo para la unidad
-    ws["A2"] = {
-      v: "UNIDAD DE EVALUACIÓN ACADÉMICA",
-      t: "s",
-      s: {
-        font: { bold: true, sz: 12 },
-        alignment: { horizontal: "center", vertical: "center" },
-      },
-    }
-
-    // Estilo para el título principal
-    ws["A4"] = {
-      v: "RESULTADOS FINALES DEL EXAMEN DE COMPETENCIAS",
-      t: "s",
-      s: {
-        font: { bold: true, sz: 14 },
-        alignment: { horizontal: "center", vertical: "center" },
-      },
-    }
-
-    // Estilos para los encabezados de la tabla
-    for (let col = 0; col < 7; col++) {
-      const cellRef = XLSX.utils.encode_cell({ r: 6, c: col })
-      ws[cellRef] = {
-        ...ws[cellRef],
-        s: {
-          fill: { fgColor: { rgb: "4472C4" } }, // Azul institucional
-          font: { color: { rgb: "FFFFFF" }, bold: true, sz: 11 },
-          alignment: { horizontal: "center", vertical: "center", wrapText: true },
-          border: {
-            top: { style: "thin" },
-            bottom: { style: "thin" },
-            left: { style: "thin" },
-            right: { style: "thin" },
-          },
-        },
-      }
-    }
-
-    // Estilos para los datos de la tabla
-    for (let row = 7; row < 7 + groupedArray.length; row++) {
-      for (let col = 0; col < 7; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col })
-        if (ws[cellRef]) {
-          ws[cellRef] = {
-            ...ws[cellRef],
-            s: {
-              alignment: { horizontal: col === 1 || col === 2 ? "left" : "center", vertical: "center" },
-              border: {
-                top: { style: "thin" },
-                bottom: { style: "thin" },
-                left: { style: "thin" },
-                right: { style: "thin" },
-              },
-            },
-          }
-        }
-      }
-    }
-
-    // Estilo para la fecha
-    const fechaRow = 7 + groupedArray.length + 2
-    ws[XLSX.utils.encode_cell({ r: fechaRow, c: 0 })] = {
-      ...ws[XLSX.utils.encode_cell({ r: fechaRow, c: 0 })],
-      s: {
-        font: { bold: true, sz: 11 },
-        alignment: { horizontal: "center" }, // Centrar la fecha
-      },
-    }
-    // Fusionar celdas para la fecha
-    if (!ws["!merges"]) ws["!merges"] = []
-    ws["!merges"].push({ s: { r: fechaRow, c: 0 }, e: { r: fechaRow, c: 6 } })
-
-    // Estilo para la firma
-    const firmaRow = fechaRow + 2
-    ws[XLSX.utils.encode_cell({ r: firmaRow, c: 0 })] = {
-      ...ws[XLSX.utils.encode_cell({ r: firmaRow, c: 0 })],
-      s: {
-        font: { bold: true, sz: 11 },
-        alignment: { horizontal: "center" },
-      },
-    }
-    // Fusionar celdas para la firma
-    ws["!merges"].push({ s: { r: firmaRow, c: 0 }, e: { r: firmaRow, c: 6 } })
-
-    // Estilo para el número de página
-    const paginaRow = firmaRow + 2
-    ws[XLSX.utils.encode_cell({ r: paginaRow, c: 0 })] = {
-      ...ws[XLSX.utils.encode_cell({ r: paginaRow, c: 0 })],
-      s: {
-        font: { sz: 10 },
-        alignment: { horizontal: "center" }, // Centrar el número de página
-      },
-    }
-    // Fusionar celdas para el número de página
-    ws["!merges"].push({ s: { r: paginaRow, c: 0 }, e: { r: paginaRow, c: 6 } })
-
-    // Agregar la hoja al libro
-    XLSX.utils.book_append_sheet(wb, ws, "Resultados")
-
-    // Guardar el archivo
-    XLSX.writeFile(wb, "resultados_examen_competencias.xlsx")
   }
 
   // Función para descargar PDF
@@ -629,7 +344,17 @@ function Examendecompetencias() {
       // Espacio reducido entre fecha y firma
       const espacioEntreFechaYFirma = 30
 
-      // Centrar el texto del presidente
+      // Línea para la firma
+      const anchoLinea = 60
+      doc.setLineWidth(0.5)
+      doc.line(
+        anchoDocumento / 2 - anchoLinea / 2,
+        finalY + espacioPostTabla + espacioEntreFechaYFirma - 10,
+        anchoDocumento / 2 + anchoLinea / 2,
+        finalY + espacioPostTabla + espacioEntreFechaYFirma - 10,
+      )
+
+      // Centrar el texto del presidente (manteniendo PDTE.)
       doc.setFont("helvetica", "bold")
       doc.text(
         "PDTE. DE LA COMISIÓN EVALUADORA – EXAMEN DE COMPETENCIAS",
@@ -659,12 +384,6 @@ function Examendecompetencias() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Registro de Competencias</h2>
         <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
-          >
-            Descargar Excel
-          </button>
           <button
             onClick={handleDownloadPDF}
             className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"

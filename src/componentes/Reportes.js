@@ -568,74 +568,106 @@ function Reportes() {
           // Dibujar cada fila de datos
           // Si no hay postulantes, no dibujar filas vacías
           if (postulantes.length === 0) return
+
           postulantes.forEach((postulante, index) => {
-            // Dibujar rectángulo para toda la fila
-            doc.rect(margenIzquierdo, currentY, anchoUtil, rowHeight)
+            // Calcular la altura necesaria para esta fila basada en su contenido
+            const nombreText = postulante.nombre || ""
+            const profesionText = postulante.profesion || ""
+            const materiaText = materia || ""
+
+            // Dividir textos para calcular cuántas líneas ocuparán
+            const nombreLines = doc.splitTextToSize(nombreText, colWidths[1] - 4)
+            const profesionLines = doc.splitTextToSize(profesionText, colWidths[2] - 4)
+            const materiaLines = doc.splitTextToSize(materiaText, colWidths[3] - 4)
+
+            // Determinar el número máximo de líneas para calcular la altura de la fila
+            const maxLines = Math.max(nombreLines.length, profesionLines.length, materiaLines.length)
+
+            // Calcular la altura de la fila basada en el contenido
+            const calculatedRowHeight = Math.max(rowHeight, maxLines * 3 + 4) // 3 puntos por línea + 4 de margen
+
+            // Dibujar rectángulo para toda la fila con la altura calculada
+            doc.rect(margenIzquierdo, currentY, anchoUtil, calculatedRowHeight)
 
             // Dibujar líneas verticales para separar columnas
             let colX = margenIzquierdo
             for (let i = 0; i < colWidths.length - 1; i++) {
               colX += colWidths[i]
-              doc.line(colX, currentY, colX, currentY + rowHeight)
+              doc.line(colX, currentY, colX, currentY + calculatedRowHeight)
             }
 
             // Agregar textos de datos
             colX = margenIzquierdo
-            doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
+            doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + calculatedRowHeight / 2 + 2, {
+              align: "center",
+            })
 
             colX += colWidths[0]
-            // Asegurar que el nombre no se salga de la celda
-            const nombreText = postulante.nombre || ""
-            const nombreLines = doc.splitTextToSize(nombreText, colWidths[1] - 4)
-            doc.text(nombreLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
+            // Centrar verticalmente el texto en la celda
+            const nombreY = currentY + (calculatedRowHeight - nombreLines.length * 3) / 2 + 3
+            doc.text(nombreLines, colX + 2, nombreY)
 
             colX += colWidths[1]
-            // Asegurar que la profesión no se salga de la celda
-            const profesionText = postulante.profesion || ""
-            const profesionLines = doc.splitTextToSize(profesionText, colWidths[2] - 4)
-            doc.text(profesionLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
+            // Centrar verticalmente el texto en la celda
+            const profesionY = currentY + (calculatedRowHeight - profesionLines.length * 3) / 2 + 3
+            doc.text(profesionLines, colX + 2, profesionY)
 
             colX += colWidths[2]
-            // Asegurar que la materia no se salga de la celda
-            const materiaLines = doc.splitTextToSize(materia, colWidths[3] - 4)
-            doc.text(materiaLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
+            // Centrar verticalmente el texto en la celda
+            const materiaY = currentY + (calculatedRowHeight - materiaLines.length * 3) / 2 + 3
+            doc.text(materiaLines, colX + 2, materiaY)
 
             colX += colWidths[3]
             // Puntaje Concurso de Méritos
-            doc.text(postulante.meritos.toString(), colX + colWidths[4] / 2, currentY + rowHeight / 2 + 2, {
+            doc.text(postulante.meritos.toString(), colX + colWidths[4] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
 
             colX += colWidths[4]
             // Habilitado/No Habilitado para Concurso de Méritos
-            doc.text(postulante.meritosHabilitado, colX + colWidths[5] / 2, currentY + rowHeight / 2 + 2, {
+            doc.text(postulante.meritosHabilitado, colX + colWidths[5] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
 
             colX += colWidths[5]
             // Puntaje Examen de Conocimiento
-            doc.text(postulante.conocimientos.toString(), colX + colWidths[6] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
+            doc.text(
+              postulante.conocimientos.toString(),
+              colX + colWidths[6] / 2,
+              currentY + calculatedRowHeight / 2 + 2,
+              {
+                align: "center",
+              },
+            )
 
             colX += colWidths[6]
             // Habilitado/No Habilitado para Examen de Conocimiento
-            doc.text(postulante.conocimientosHabilitado, colX + colWidths[7] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
+            doc.text(
+              postulante.conocimientosHabilitado,
+              colX + colWidths[7] / 2,
+              currentY + calculatedRowHeight / 2 + 2,
+              {
+                align: "center",
+              },
+            )
 
             colX += colWidths[7]
             // Resultado Fases 2 y 3
-            doc.text(postulante.resultadoFases2y3.toFixed(2), colX + colWidths[8] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
+            doc.text(
+              postulante.resultadoFases2y3.toFixed(2),
+              colX + colWidths[8] / 2,
+              currentY + calculatedRowHeight / 2 + 2,
+              {
+                align: "center",
+              },
+            )
 
             colX += colWidths[8]
             // Total Examen de Competencia
             doc.text(
               postulante.totalExamenCompetencia.toFixed(2),
               colX + colWidths[9] / 2,
-              currentY + rowHeight / 2 + 2,
+              currentY + calculatedRowHeight / 2 + 2,
               {
                 align: "center",
               },
@@ -643,44 +675,41 @@ function Reportes() {
 
             colX += colWidths[9]
             // Resultado Final
-            doc.text(postulante.resultadoFinal.toFixed(2), colX + colWidths[10] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
+            doc.text(
+              postulante.resultadoFinal.toFixed(2),
+              colX + colWidths[10] / 2,
+              currentY + calculatedRowHeight / 2 + 2,
+              {
+                align: "center",
+              },
+            )
 
             colX += colWidths[10]
             // Ganador
-            doc.text(postulante.ganador, colX + colWidths[11] / 2, currentY + rowHeight / 2 + 2, {
+            doc.text(postulante.ganador, colX + colWidths[11] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
 
             colX += colWidths[11]
             // Observaciones
             const obsText = postulante.observaciones || ""
-            doc.text(obsText, colX + colWidths[12] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
+            doc.text(obsText, colX + colWidths[12] / 2, currentY + calculatedRowHeight / 2 + 2, { align: "center" })
 
-            // Ajustar la altura de la fila si algún texto ocupa más de una línea
-            const maxLines = Math.max(nombreLines.length, profesionLines.length, materiaLines.length)
-
-            if (maxLines > 1) {
-              const extraHeight = (maxLines - 1) * 3
-              doc.rect(margenIzquierdo, currentY, anchoUtil, rowHeight + extraHeight)
-
-              // Redibujar las líneas verticales para la fila más alta
-              let colX2 = margenIzquierdo
-              for (let j = 0; j < colWidths.length - 1; j++) {
-                colX2 += colWidths[j]
-                doc.line(colX2, currentY, colX2, currentY + rowHeight + extraHeight)
-              }
-
-              currentY += extraHeight
-            }
-
-            currentY += rowHeight
+            // Actualizar la posición Y para la siguiente fila
+            currentY += calculatedRowHeight
           })
 
           // Actualizar posición Y para la siguiente tabla - agregar espacio entre tablas
-          yPos = currentY + 10 // Espacio fijo de 10px entre tablas, sin importar el contenido
+          yPos = currentY + 10 // Espacio fijo de 10px entre tablas
         })
+
+        // Verificar si hay espacio suficiente para la firma
+        // Necesitamos aproximadamente 50 puntos de altura para la firma y fecha
+        if (yPos + 50 > pageHeight - 20) {
+          // No hay suficiente espacio, añadir nueva página
+          doc.addPage()
+          yPos = margenSuperior
+        }
 
         // Fecha en la esquina inferior derecha
         doc.setFontSize(8)
@@ -709,17 +738,15 @@ function Reportes() {
         const anio = fechaBolivia.getFullYear()
 
         const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
-        // Asegurar que haya suficiente espacio para la fecha y firma
         doc.text(fechaFormateada, pageWidth - margenIzquierdo, yPos + 10, { align: "right" })
 
-        // Una sola firma centrada - Jefe de Unidad
-        const firmaY = yPos + 25 // Aumentar ligeramente el espacio para la firma
+        // Una sola firma centrada - Jefe de Unidad (sin cargo profesional)
+        const firmaY = yPos + 25
         doc.line(margenIzquierdo + anchoUtil / 2 - 30, firmaY, margenIzquierdo + anchoUtil / 2 + 30, firmaY)
-        doc.text("Tcnl.", margenIzquierdo + anchoUtil / 2, firmaY + 5, { align: "center" })
-        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 10, {
+        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 5, {
           align: "center",
         })
-        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 15, { align: "center" })
+        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 10, { align: "center" })
       } catch (error) {
         console.error("Error al generar el PDF:", error)
         // Si hay error al cargar la imagen, continuamos sin ella

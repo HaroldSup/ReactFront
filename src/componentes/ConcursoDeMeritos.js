@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
-import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import RegistroDeMeritos from "./Registrodemeritos"
@@ -78,38 +77,6 @@ function ConcursoDeMeritos() {
         })
       }
     }
-  }
-
-  // Descargar registros en formato Excel con los nuevos campos
-  const handleDownloadExcel = () => {
-    if (registros.length === 0) {
-      Swal.fire({
-        icon: "info",
-        title: "Sin registros",
-        text: "No hay registros para descargar.",
-      })
-      return
-    }
-
-    const worksheet = XLSX.utils.json_to_sheet(
-      registros.map((registro, index) => ({
-        Nro: index + 1,
-        Evaluador: registro.nombreEvaluador || "",
-        "Nombre Postulante": registro.nombrePostulante,
-        CI: registro.ci,
-        Fecha: new Date(registro.fechaEvaluacion).toLocaleDateString(),
-        Profesión: registro.profesion || "",
-        Carrera: registro.carrera || "",
-        Materia: registro.materia || "",
-        Observaciones: registro.observaciones || "",
-        Estado: registro.habilitado || "",
-        Puntos: registro.puntosEvaluacion,
-      })),
-    )
-
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Concurso de Méritos")
-    XLSX.writeFile(workbook, "ConcursoDeMeritos.xlsx")
   }
 
   // Descargar registros en formato PDF con el formato específico solicitado
@@ -485,6 +452,14 @@ function ConcursoDeMeritos() {
           yPos = currentY + 5
         })
 
+        // Verificar si hay espacio suficiente para las firmas
+        // Necesitamos aproximadamente 50 puntos de altura para las firmas
+        if (yPos + 50 > pageHeight - 20) {
+          // No hay suficiente espacio, añadir nueva página
+          doc.addPage()
+          yPos = margenSuperior
+        }
+
         // Fecha en la esquina inferior derecha
         doc.setFontSize(8)
 
@@ -518,37 +493,34 @@ function ConcursoDeMeritos() {
         const firmaY = yPos + 30
         const tercioAnchoCalculadoFirma = (pageWidth - 2 * margenIzquierdo) / 3
 
-        // Firma 1 - Comisión Evaluador 1
+        // Firma 1 - Comisión Evaluador 1 (sin título profesional)
         doc.line(
           margenIzquierdo + tercioAnchoCalculadoFirma / 2 - 30,
           firmaY,
           margenIzquierdo + tercioAnchoCalculadoFirma / 2 + 30,
           firmaY,
         )
-        doc.text("Ing.", margenIzquierdo + tercioAnchoCalculadoFirma / 2, firmaY + 5, { align: "center" })
-        doc.text("COMISIÓN EVALUADOR 1", margenIzquierdo + tercioAnchoCalculadoFirma / 2, firmaY + 10, {
+        doc.text("COMISIÓN EVALUADOR 1", margenIzquierdo + tercioAnchoCalculadoFirma / 2, firmaY + 5, {
           align: "center",
         })
 
-        // Firma 2 - Comisión Evaluador 2
+        // Firma 2 - Comisión Evaluador 2 (sin título profesional)
         doc.line(
           margenIzquierdo + tercioAnchoCalculadoFirma * 2.5 - 30,
           firmaY,
           margenIzquierdo + tercioAnchoCalculadoFirma * 2.5 + 30,
           firmaY,
         )
-        doc.text("Ing.", margenIzquierdo + tercioAnchoCalculadoFirma * 2.5, firmaY + 5, { align: "center" })
-        doc.text("COMISIÓN EVALUADOR 2", margenIzquierdo + tercioAnchoCalculadoFirma * 2.5, firmaY + 10, {
+        doc.text("COMISIÓN EVALUADOR 2", margenIzquierdo + tercioAnchoCalculadoFirma * 2.5, firmaY + 5, {
           align: "center",
         })
 
-        // Firma 3 - Jefe de Unidad
+        // Firma 3 - Jefe de Unidad (sin grado militar)
         doc.line(margenIzquierdo + anchoUtil / 2 - 30, firmaY + 25, margenIzquierdo + anchoUtil / 2 + 30, firmaY + 25)
-        doc.text("Tcnl.", margenIzquierdo + anchoUtil / 2, firmaY + 30, { align: "center" })
-        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 35, {
+        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 30, {
           align: "center",
         })
-        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 40, { align: "center" })
+        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 35, { align: "center" })
       } catch (error) {
         console.error("Error al generar el PDF:", error)
         // Si hay error al cargar la imagen, continuamos sin ella
@@ -585,12 +557,6 @@ function ConcursoDeMeritos() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Concurso de Méritos</h2>
         <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
-          >
-            Descargar Excel
-          </button>
           <button
             onClick={handleDownloadPDF}
             className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"
