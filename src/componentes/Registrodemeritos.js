@@ -648,9 +648,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   const progressPercentage = Math.round((filledFields / totalFields) * 100)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
+    <div className="min-h-screen py-4 px-2 sm:py-6">
       <div className="w-full mx-auto">
-        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
+        <div className="w-full p-4 sm:p-6 md:p-8">
           {/* Encabezado */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
