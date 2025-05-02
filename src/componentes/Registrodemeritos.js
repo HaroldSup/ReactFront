@@ -656,540 +656,537 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
   return (
     <div className="min-h-screen w-full bg-white">
+      {/* Contenedor principal - sin márgenes laterales en móvil */}
       <div className="w-full">
-        {/* Contenedor principal - sin márgenes laterales en móvil */}
-        <div className="w-full bg-white">
-          {/* Encabezado */}
-          <div className="text-center py-6">
-            <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-              <Award className="h-8 w-8 text-blue-700" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800">{merito ? "Editar Nota" : "Registrar Nota"}</h2>
-            <p className="text-gray-500 mt-2 text-sm px-4">
-              Complete el formulario para {merito ? "actualizar" : "registrar"} la nota del concurso de méritos
-            </p>
+        {/* Encabezado */}
+        <div className="text-center py-4">
+          <div className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-full mb-2">
+            <Award className="h-6 w-6 text-blue-700" />
           </div>
+          <h2 className="text-xl font-bold text-gray-800">{merito ? "Editar Nota" : "Registrar Nota"}</h2>
+          <p className="text-gray-500 mt-1 text-sm">
+            Complete el formulario para {merito ? "actualizar" : "registrar"} la nota
+          </p>
+        </div>
 
-          {/* Indicador de Progreso */}
-          <div className="mb-6 px-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
-              <p className="text-sm font-medium text-blue-600">{progressPercentage}%</p>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-2.5 rounded-full transition-all duration-500 ease-out"
-                style={{
-                  width: `${progressPercentage}%`,
-                  backgroundColor:
-                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
-                }}
-              ></div>
-            </div>
+        {/* Indicador de Progreso */}
+        <div className="mb-4 px-2">
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-xs font-medium text-gray-700">Progreso del formulario</p>
+            <p className="text-xs font-medium text-blue-600">{progressPercentage}%</p>
           </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-2 rounded-full transition-all duration-500 ease-out"
+              style={{
+                width: `${progressPercentage}%`,
+                backgroundColor: progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
+              }}
+            ></div>
+          </div>
+        </div>
 
-          {/* Selector de modo (individual o múltiple) */}
-          {!merito && (
-            <div className="mb-6 px-4">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setModoMultiple(false)}
-                  className={`w-full px-3 py-3 rounded-lg transition-all ${
-                    !modoMultiple
-                      ? "bg-blue-600 text-white font-bold shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-center">
-                    <User className="mr-2 h-5 w-5" />
-                    <span className="text-sm">Individual</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModoMultiple(true)}
-                  className={`w-full px-3 py-3 rounded-lg transition-all ${
-                    modoMultiple
-                      ? "bg-blue-600 text-white font-bold shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-center">
-                    <Plus className="mr-2 h-5 w-5" />
-                    <span className="text-sm">Múltiple</span>
-                  </div>
-                </button>
-              </div>
-              {modoMultiple && (
-                <p className="mt-3 text-xs text-center text-gray-600">
-                  Modo múltiple: Seleccione varias materias para registrarlas con la misma puntuación.
-                </p>
-              )}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} id="meritoForm" className="space-y-4 px-4">
-            {/* Sección 1: Datos del Postulante */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="bg-blue-600 px-4 py-3">
-                <h3 className="text-base font-semibold text-white flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  Datos del Postulante
-                </h3>
-              </div>
-
-              <div className="p-4 space-y-4">
-                <div className="space-y-4">
-                  {/* Campo CI */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CI <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="ci"
-                        value={formData.ci}
-                        onChange={handleChange}
-                        placeholder="Ingrese CI (máximo 10 dígitos)"
-                        maxLength="10"
-                        pattern="\d{1,10}"
-                        title="Solo se permiten números y máximo 10 dígitos"
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Ingrese el número de carnet de identidad</p>
-                  </div>
-
-                  {/* Campo Nombre del Postulante (autocompletado y bloqueado) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre del Postulante <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="nombrePostulante"
-                        value={formData.nombrePostulante}
-                        onChange={handleChange}
-                        placeholder="Nombre autocompletado"
-                        required
-                        disabled
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
-                  </div>
-
-                  {/* Campo Profesión (autocompletado y bloqueado) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Profesión <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <GraduationCap className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="profesion"
-                        value={formData.profesion}
-                        onChange={handleChange}
-                        placeholder="Profesión autocompletada"
-                        required
-                        disabled
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
-                  </div>
-
-                  {/* Campo Fecha de Evaluación */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha de Evaluación <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Calendar className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="date"
-                        name="fechaEvaluacion"
-                        value={formData.fechaEvaluacion}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sección 2: Información Académica */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="bg-blue-600 px-4 py-3">
-                <h3 className="text-base font-semibold text-white flex items-center">
-                  <Book className="h-4 w-4 mr-2" />
-                  Información Académica
-                </h3>
-              </div>
-
-              <div className="p-4 space-y-4">
-                {modoMultiple ? (
-                  /* Vista de selección múltiple de materias */
-                  <>
-                    <div className="mb-4">
-                      <button
-                        type="button"
-                        onClick={toggleSeleccionarTodasMaterias}
-                        className="w-full px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center"
-                      >
-                        <Check className="mr-2 h-5 w-5" />
-                        {materiasSeleccionadas.length === materiasPostuladas.length
-                          ? "Deseleccionar Todas"
-                          : "Seleccionar Todas"}
-                      </button>
-                    </div>
-
-                    {/* Filtro para materias por carrera */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Filtrar materias por Carrera:
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Briefcase className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <select
-                          value={filtroCarrera}
-                          onChange={(e) => setFiltroCarrera(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                        >
-                          <option value="">Mostrar todas</option>
-                          {uniqueCarreras.map((carrera) => (
-                            <option key={carrera} value={carrera}>
-                              {carrera}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Lista de materias con checkboxes */}
-                    <div className="mt-4">
-                      <h4 className="text-base font-semibold text-gray-700 mb-2">
-                        Materias disponibles ({materiasFiltradas.length}):
-                      </h4>
-                      {materiasFiltradas.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto p-2">
-                          {materiasFiltradas.map((materia, idx) => (
-                            <div
-                              key={idx}
-                              className={`p-3 border rounded-lg transition-all ${
-                                materiasSeleccionadas.some(
-                                  (m) => m.asignatura === materia.asignatura && m.carrera === materia.carrera,
-                                )
-                                  ? "bg-blue-100 border-blue-500"
-                                  : "bg-white hover:bg-gray-50"
-                              }`}
-                            >
-                              <label className="flex items-center space-x-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={materiasSeleccionadas.some(
-                                    (m) => m.asignatura === materia.asignatura && m.carrera === materia.carrera,
-                                  )}
-                                  onChange={() => handleSeleccionMateria(materia)}
-                                  className="h-5 w-5 rounded text-blue-600 focus:ring-blue-500"
-                                />
-                                <span>
-                                  <strong>{materia.asignatura}</strong>
-                                  <br />
-                                  <span className="text-sm text-gray-600">{materia.carrera}</span>
-                                </span>
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-600 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                          No se encontraron materias para la carrera seleccionada.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Resumen de materias seleccionadas */}
-                    {materiasSeleccionadas.length > 0 && (
-                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <h4 className="text-base font-semibold text-green-800 mb-2 flex items-center">
-                          <Check className="mr-2 h-5 w-5 text-green-600" />
-                          Materias seleccionadas ({materiasSeleccionadas.length}):
-                        </h4>
-                        <div className="max-h-40 overflow-y-auto">
-                          <ul className="list-disc list-inside">
-                            {materiasSeleccionadas.map((materia, idx) => (
-                              <li key={idx} className="text-green-700 py-1">
-                                {materia.asignatura} - <span className="text-green-600">{materia.carrera}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  /* Vista de selección individual de materia */
-                  <>
-                    {/* Filtro para materias por carrera */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Filtrar materias por Carrera:
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Briefcase className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <select
-                          value={filtroCarrera}
-                          onChange={(e) => setFiltroCarrera(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                        >
-                          <option value="">Mostrar todas</option>
-                          {uniqueCarreras.map((carrera) => (
-                            <option key={carrera} value={carrera}>
-                              {carrera}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Selección de Materia */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Materia <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Book className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <select
-                          name="materia"
-                          value={formData.materia}
-                          onChange={handleMateriaChange}
-                          required
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                        >
-                          <option value="">Seleccione la asignatura</option>
-                          {materiasFiltradas.length > 0 ? (
-                            materiasFiltradas.map((mat, idx) => (
-                              <option key={idx} value={mat.asignatura}>
-                                {mat.asignatura}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="" disabled>
-                              No se encontraron materias para la carrera seleccionada
-                            </option>
-                          )}
-                        </select>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">Seleccione la materia a evaluar</p>
-                    </div>
-
-                    {/* Mostrar la carrera seleccionada */}
-                    {formData.carrera && (
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm font-medium text-blue-800">
-                          Carrera: <span className="font-bold">{formData.carrera}</span>
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Sección 3: Datos de Evaluación */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="bg-blue-600 px-4 py-3">
-                <h3 className="text-base font-semibold text-white flex items-center">
-                  <Award className="h-4 w-4 mr-2" />
-                  Datos de Evaluación
-                </h3>
-              </div>
-
-              <div className="p-4 space-y-4">
-                <div className="space-y-4">
-                  {/* Campo Nombre de Evaluador */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre de Evaluador <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="nombreEvaluador"
-                        value={formData.nombreEvaluador}
-                        onChange={handleChange}
-                        placeholder="Ingrese el nombre del evaluador"
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Campo Puntos de Evaluación */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Puntos de Evaluación <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Award className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="number"
-                        name="puntosEvaluacion"
-                        min="0"
-                        max="10000"
-                        value={formData.puntosEvaluacion}
-                        onChange={handleChange}
-                        required
-                        placeholder="Ingrese los puntos"
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Mínimo 220 puntos para habilitar</p>
-                  </div>
-
-                  {/* Campo Habilitado/No habilitado (calculado automáticamente) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        {formData.habilitado === "Habilitado" ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-red-500" />
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        name="habilitado"
-                        value={formData.habilitado}
-                        readOnly
-                        className={`w-full pl-10 pr-4 py-2.5 border rounded-lg bg-gray-100 cursor-not-allowed ${
-                          formData.habilitado === "Habilitado"
-                            ? "text-green-700 border-green-300"
-                            : formData.habilitado === "No habilitado"
-                              ? "text-red-700 border-red-300"
-                              : "text-gray-500 border-gray-300"
-                        }`}
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Se calcula automáticamente según los puntos</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sección 4: Observaciones */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="bg-blue-600 px-4 py-3">
-                <h3 className="text-base font-semibold text-white flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Observaciones
-                </h3>
-              </div>
-
-              <div className="p-4 space-y-4">
-                <div className="relative">
-                  <textarea
-                    name="observaciones"
-                    value={formData.observaciones}
-                    onChange={handleChange}
-                    placeholder="Ingrese observaciones..."
-                    rows="4"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  ></textarea>
-                </div>
-                <p className="mt-1 text-xs text-gray-500">Información adicional sobre la evaluación</p>
-              </div>
-            </div>
-
-            {/* Botones de Acción */}
-            <div className="flex flex-col gap-3 mt-6 mb-20">
-              <button
-                type="submit"
-                disabled={isSubmitting || isVerifying}
-                className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
-                  isSubmitting || isVerifying
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
-                }`}
-              >
-                <span className="flex items-center justify-center">
-                  {isSubmitting || isVerifying ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      {isVerifying ? "Verificando..." : "Procesando..."}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      {modoMultiple ? "Registrar Materias Seleccionadas" : merito ? "Guardar Cambios" : "Registrar"}
-                    </>
-                  )}
-                </span>
-              </button>
-
+        {/* Selector de modo (individual o múltiple) */}
+        {!merito && (
+          <div className="mb-4 px-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={onCancel}
-                disabled={isSubmitting || isVerifying}
-                className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
-                  isSubmitting || isVerifying
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                onClick={() => setModoMultiple(false)}
+                className={`w-full px-2 py-2 rounded-lg transition-all ${
+                  !modoMultiple
+                    ? "bg-blue-600 text-white font-bold shadow-sm"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                Cancelar
+                <div className="flex items-center justify-center">
+                  <User className="mr-1 h-4 w-4" />
+                  <span className="text-xs">Individual</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoMultiple(true)}
+                className={`w-full px-2 py-2 rounded-lg transition-all ${
+                  modoMultiple
+                    ? "bg-blue-600 text-white font-bold shadow-sm"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <div className="flex items-center justify-center">
+                  <Plus className="mr-1 h-4 w-4" />
+                  <span className="text-xs">Múltiple</span>
+                </div>
               </button>
             </div>
-          </form>
-        </div>
+            {modoMultiple && (
+              <p className="mt-1 text-xs text-center text-gray-600">
+                Seleccione varias materias para registrarlas con la misma puntuación.
+              </p>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} id="meritoForm" className="space-y-3">
+          {/* Sección 1: Datos del Postulante */}
+          <div className="bg-white border-t border-b border-gray-200">
+            <div className="bg-blue-600 px-2 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center">
+                <User className="h-3 w-3 mr-1" />
+                Datos del Postulante
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              <div className="space-y-3">
+                {/* Campo CI */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    CI <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="ci"
+                      value={formData.ci}
+                      onChange={handleChange}
+                      placeholder="Ingrese CI (máximo 10 dígitos)"
+                      maxLength="10"
+                      pattern="\d{1,10}"
+                      title="Solo se permiten números y máximo 10 dígitos"
+                      required
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Ingrese el número de carnet de identidad</p>
+                </div>
+
+                {/* Campo Nombre del Postulante (autocompletado y bloqueado) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Nombre del Postulante <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="nombrePostulante"
+                      value={formData.nombrePostulante}
+                      onChange={handleChange}
+                      placeholder="Nombre autocompletado"
+                      required
+                      disabled
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
+                </div>
+
+                {/* Campo Profesión (autocompletado y bloqueado) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Profesión <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <GraduationCap className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="profesion"
+                      value={formData.profesion}
+                      onChange={handleChange}
+                      placeholder="Profesión autocompletada"
+                      required
+                      disabled
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
+                </div>
+
+                {/* Campo Fecha de Evaluación */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Fecha de Evaluación <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="date"
+                      name="fechaEvaluacion"
+                      value={formData.fechaEvaluacion}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección 2: Información Académica */}
+          <div className="bg-white border-t border-b border-gray-200">
+            <div className="bg-blue-600 px-2 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center">
+                <Book className="h-3 w-3 mr-1" />
+                Información Académica
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              {modoMultiple ? (
+                /* Vista de selección múltiple de materias */
+                <>
+                  <div className="mb-2">
+                    <button
+                      type="button"
+                      onClick={toggleSeleccionarTodasMaterias}
+                      className="w-full px-2 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 transition flex items-center justify-center text-xs"
+                    >
+                      <Check className="mr-1 h-4 w-4" />
+                      {materiasSeleccionadas.length === materiasPostuladas.length
+                        ? "Deseleccionar Todas"
+                        : "Seleccionar Todas"}
+                    </button>
+                  </div>
+
+                  {/* Filtro para materias por carrera */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Filtrar materias por Carrera:
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                        <Briefcase className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        value={filtroCarrera}
+                        onChange={(e) => setFiltroCarrera(e.target.value)}
+                        className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                      >
+                        <option value="">Mostrar todas</option>
+                        {uniqueCarreras.map((carrera) => (
+                          <option key={carrera} value={carrera}>
+                            {carrera}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Lista de materias con checkboxes */}
+                  <div className="mt-2">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                      Materias disponibles ({materiasFiltradas.length}):
+                    </h4>
+                    {materiasFiltradas.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto">
+                        {materiasFiltradas.map((materia, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2 border rounded-lg transition-all ${
+                              materiasSeleccionadas.some(
+                                (m) => m.asignatura === materia.asignatura && m.carrera === materia.carrera,
+                              )
+                                ? "bg-blue-100 border-blue-500"
+                                : "bg-white hover:bg-gray-50"
+                            }`}
+                          >
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={materiasSeleccionadas.some(
+                                  (m) => m.asignatura === materia.asignatura && m.carrera === materia.carrera,
+                                )}
+                                onChange={() => handleSeleccionMateria(materia)}
+                                className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-xs">
+                                <strong>{materia.asignatura}</strong>
+                                <br />
+                                <span className="text-xs text-gray-600">{materia.carrera}</span>
+                              </span>
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-600 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        No se encontraron materias para la carrera seleccionada.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Resumen de materias seleccionadas */}
+                  {materiasSeleccionadas.length > 0 && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="text-sm font-semibold text-green-800 mb-1 flex items-center">
+                        <Check className="mr-1 h-4 w-4 text-green-600" />
+                        Materias seleccionadas ({materiasSeleccionadas.length}):
+                      </h4>
+                      <div className="max-h-32 overflow-y-auto">
+                        <ul className="list-disc list-inside text-xs">
+                          {materiasSeleccionadas.map((materia, idx) => (
+                            <li key={idx} className="text-green-700 py-1">
+                              {materia.asignatura} - <span className="text-green-600">{materia.carrera}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Vista de selección individual de materia */
+                <>
+                  {/* Filtro para materias por carrera */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Filtrar materias por Carrera:
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                        <Briefcase className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        value={filtroCarrera}
+                        onChange={(e) => setFiltroCarrera(e.target.value)}
+                        className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                      >
+                        <option value="">Mostrar todas</option>
+                        {uniqueCarreras.map((carrera) => (
+                          <option key={carrera} value={carrera}>
+                            {carrera}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Selección de Materia */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Materia <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                        <Book className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        name="materia"
+                        value={formData.materia}
+                        onChange={handleMateriaChange}
+                        required
+                        className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                      >
+                        <option value="">Seleccione la asignatura</option>
+                        {materiasFiltradas.length > 0 ? (
+                          materiasFiltradas.map((mat, idx) => (
+                            <option key={idx} value={mat.asignatura}>
+                              {mat.asignatura}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>
+                            No se encontraron materias para la carrera seleccionada
+                          </option>
+                        )}
+                      </select>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Seleccione la materia a evaluar</p>
+                  </div>
+
+                  {/* Mostrar la carrera seleccionada */}
+                  {formData.carrera && (
+                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs font-medium text-blue-800">
+                        Carrera: <span className="font-bold">{formData.carrera}</span>
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Sección 3: Datos de Evaluación */}
+          <div className="bg-white border-t border-b border-gray-200">
+            <div className="bg-blue-600 px-2 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center">
+                <Award className="h-3 w-3 mr-1" />
+                Datos de Evaluación
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              <div className="space-y-3">
+                {/* Campo Nombre de Evaluador */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Nombre de Evaluador <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="nombreEvaluador"
+                      value={formData.nombreEvaluador}
+                      onChange={handleChange}
+                      placeholder="Ingrese el nombre del evaluador"
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Campo Puntos de Evaluación */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Puntos de Evaluación <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <Award className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      name="puntosEvaluacion"
+                      min="0"
+                      max="10000"
+                      value={formData.puntosEvaluacion}
+                      onChange={handleChange}
+                      required
+                      placeholder="Ingrese los puntos"
+                      className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Mínimo 220 puntos para habilitar</p>
+                </div>
+
+                {/* Campo Habilitado/No habilitado (calculado automáticamente) */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      {formData.habilitado === "Habilitado" ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      name="habilitado"
+                      value={formData.habilitado}
+                      readOnly
+                      className={`w-full pl-8 pr-2 py-2 border rounded-lg bg-gray-100 cursor-not-allowed text-sm ${
+                        formData.habilitado === "Habilitado"
+                          ? "text-green-700 border-green-300"
+                          : formData.habilitado === "No habilitado"
+                            ? "text-red-700 border-red-300"
+                            : "text-gray-500 border-gray-300"
+                      }`}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Se calcula automáticamente según los puntos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección 4: Observaciones */}
+          <div className="bg-white border-t border-b border-gray-200">
+            <div className="bg-blue-600 px-2 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center">
+                <FileText className="h-3 w-3 mr-1" />
+                Observaciones
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              <div className="relative">
+                <textarea
+                  name="observaciones"
+                  value={formData.observaciones}
+                  onChange={handleChange}
+                  placeholder="Ingrese observaciones..."
+                  rows="3"
+                  className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                ></textarea>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Información adicional sobre la evaluación</p>
+            </div>
+          </div>
+
+          {/* Botones de Acción */}
+          <div className="flex flex-col gap-2 mt-4 mb-20 px-2">
+            <button
+              type="submit"
+              disabled={isSubmitting || isVerifying}
+              className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                isSubmitting || isVerifying
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                {isSubmitting || isVerifying ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    {isVerifying ? "Verificando..." : "Procesando..."}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    {modoMultiple ? "Registrar Materias" : merito ? "Guardar Cambios" : "Registrar"}
+                  </>
+                )}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting || isVerifying}
+              className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                isSubmitting || isVerifying
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Botón flotante para dispositivos móviles */}
