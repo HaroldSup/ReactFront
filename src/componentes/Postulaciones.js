@@ -14,6 +14,16 @@ import {
   FaRedo,
   FaDownload,
   FaTrash,
+  FaUser,
+  FaEnvelope,
+  FaPhone,
+  FaIdCard,
+  FaUniversity,
+  FaCalendarAlt,
+  FaGraduationCap,
+  FaChalkboardTeacher,
+  FaBook,
+  FaBuilding,
 } from "react-icons/fa"
 
 // Función para convertir un string a formato título
@@ -380,7 +390,7 @@ function Postulaciones() {
       {!loading && !error && filteredPostulaciones.length > 0 && (
         <>
           {/* Vista en tabla para pantallas medianas y superiores */}
-          <div className="hidden sm:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
@@ -466,8 +476,8 @@ function Postulaciones() {
             </table>
           </div>
 
-          {/* Vista en tarjetas para pantallas pequeñas */}
-          <div className="block sm:hidden space-y-4">
+          {/* Vista en tarjetas para pantallas pequeñas - MEJORADA */}
+          <div className="block md:hidden space-y-4">
             {filteredPostulaciones.map((postulacion, index) => {
               const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas)
               return (
@@ -475,61 +485,132 @@ function Postulaciones() {
                   key={postulacion._id || index}
                   className="border border-gray-300 rounded-lg overflow-hidden shadow-sm"
                 >
+                  {/* Encabezado de la tarjeta */}
                   <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 border-b border-gray-300">
-                    <h3 className="font-bold text-gray-800 text-lg">{postulacion.nombre || "Sin nombre"}</h3>
+                    <h3 className="font-bold text-gray-800 text-lg truncate flex items-center">
+                      <FaUser className="text-blue-600 mr-2" />
+                      {postulacion.nombre || "Sin nombre"}
+                    </h3>
                   </div>
 
-                  <div className="p-4 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-sm text-gray-500">Correo:</p>
-                        <p className="font-medium">{postulacion.correo || "-"}</p>
+                  {/* Contenido de la tarjeta */}
+                  <div className="p-4 space-y-3 bg-white">
+                    {/* Información de contacto */}
+                    <div className="space-y-3 border-b border-gray-200 pb-3">
+                      <div className="flex items-start">
+                        <FaEnvelope className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Correo electrónico:</p>
+                          <p className="font-medium text-sm break-all">{postulacion.correo || "-"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Celular:</p>
-                        <p className="font-medium">{postulacion.celular || "-"}</p>
+
+                      <div className="flex items-start">
+                        <FaPhone className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Celular:</p>
+                          <p className="font-medium text-sm">{postulacion.celular || "-"}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">C.I.:</p>
-                        <p className="font-medium">{postulacion.ci || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Universidad:</p>
-                        <p className="font-medium">{postulacion.universidad || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Año Titulación:</p>
-                        <p className="font-medium">{postulacion.anioTitulacion || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Profesión:</p>
-                        <p className="font-medium">{postulacion.profesion || "-"}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Tipo Docente:</p>
-                        <p className="font-medium">{postulacion.tipoDocente || "-"}</p>
+
+                      <div className="flex items-start">
+                        <FaIdCard className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">C.I.:</p>
+                          <p className="font-medium text-sm">{postulacion.ci || "-"}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-500">Materias Postuladas:</p>
-                      <p className="font-medium">
-                        {asignaturas && asignaturas.length > 0
-                          ? asignaturas.map((item) => (item.asignatura ? toTitleCase(item.asignatura) : "")).join(" | ")
-                          : "-"}
-                      </p>
+                    {/* Información académica */}
+                    <div className="space-y-3 border-b border-gray-200 pb-3">
+                      <div className="flex items-start">
+                        <FaUniversity className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Universidad:</p>
+                          <p className="font-medium text-sm">{postulacion.universidad || "-"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <FaCalendarAlt className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Año Titulación:</p>
+                          <p className="font-medium text-sm">{postulacion.anioTitulacion || "-"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <FaGraduationCap className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Profesión:</p>
+                          <p className="font-medium text-sm">{postulacion.profesion || "-"}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <FaChalkboardTeacher className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Tipo Docente:</p>
+                          <p className="font-medium text-sm">{postulacion.tipoDocente || "-"}</p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-500">Carrera de la Materia:</p>
-                      <p className="font-medium">
-                        {asignaturas && asignaturas.length > 0
-                          ? asignaturas.map((item) => (item.carrera ? toTitleCase(item.carrera) : "")).join(" | ")
-                          : "-"}
-                      </p>
+                    {/* Materias postuladas */}
+                    <div className="space-y-3 border-b border-gray-200 pb-3">
+                      <div className="flex items-start">
+                        <FaBook className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Materias Postuladas:</p>
+                          <div className="max-h-24 overflow-y-auto pr-1">
+                            {asignaturas && asignaturas.length > 0 ? (
+                              <ul className="list-disc pl-4 space-y-1">
+                                {asignaturas.map((item, idx) => (
+                                  <li key={idx} className="text-sm">
+                                    <span className="font-medium">
+                                      {item.asignatura ? toTitleCase(item.asignatura) : ""}
+                                    </span>
+                                    {item.carrera && (
+                                      <span className="text-gray-600">
+                                        {" "}
+                                        ({toTitleCase(item.carrera)}
+                                        {item.nivel && `, ${toTitleCase(item.nivel)}`})
+                                      </span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-sm text-gray-500">No hay materias postuladas</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <FaBuilding className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 mb-1">Carreras:</p>
+                          <div className="max-h-24 overflow-y-auto pr-1">
+                            {asignaturas && asignaturas.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {Array.from(new Set(asignaturas.map((item) => item.carrera))).map((carrera, idx) => (
+                                  <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                    {toTitleCase(carrera || "")}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500">No hay carreras</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-200">
+                    {/* Botones de acción */}
+                    <div className="pt-2 flex flex-col gap-2">
                       <button
                         onClick={() => toggleRowExpansion(index)}
                         className="flex items-center justify-center w-full py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition"
@@ -544,15 +625,7 @@ function Postulaciones() {
                           </>
                         )}
                       </button>
-                    </div>
 
-                    {expandedRows[index] && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
-                      </div>
-                    )}
-
-                    <div className="mt-4">
                       <button
                         onClick={() => handleDelete(postulacion._id)}
                         className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition flex items-center justify-center"
@@ -560,6 +633,14 @@ function Postulaciones() {
                         <FaTrash className="mr-2" /> Eliminar
                       </button>
                     </div>
+
+                    {/* Documentos expandibles */}
+                    {expandedRows[index] && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <h4 className="font-bold text-gray-700 mb-2">Documentación:</h4>
+                        <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
+                      </div>
+                    )}
                   </div>
                 </div>
               )
