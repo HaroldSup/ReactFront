@@ -1,23 +1,24 @@
 "use client"
 
-import React from "react"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback, useMemo } from "react"
 import axios from "axios"
 import * as XLSX from "xlsx"
-import Swal from "sweetalert2"
+import swal from "sweetalert"
 import {
   FaFileAlt,
-  FaDownload,
-  FaTrashAlt,
+  FaEyeSlash,
+  FaEye,
   FaSearch,
   FaSpinner,
-  FaExclamationCircle,
-  FaEye,
-  FaEyeOff,
+  FaExclamationTriangle,
+  FaRedo,
+  FaDownload,
+  FaTrash,
 } from "react-icons/fa"
 
 // Función para convertir un string a formato título
 const toTitleCase = (str) => {
+  if (!str) return ""
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
 }
 
@@ -97,21 +98,21 @@ const formatDocumentosForExcel = (documentos) => {
 // Componente para mostrar los documentos en tarjetas
 const DocumentosDetalle = ({ documentos, baseURL }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       {documentosList.map((doc, idx) => (
         <div
           key={idx}
-          className="flex items-center border border-gray-200 p-3 rounded-md bg-white shadow-sm hover:shadow-md transition-shadow"
+          className="flex items-center border border-gray-200 p-2 rounded-md hover:bg-gray-50 transition-colors"
         >
-          <FaFileAlt className="text-blue-500 mr-3 h-5 w-5 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <span className="font-medium text-gray-700 block truncate">{doc.label}:</span>
+          <FaFileAlt className="text-blue-500 mr-2 flex-shrink-0" size={20} />
+          <div className="flex-grow">
+            <span className="font-bold">{doc.label}:</span>
             {documentos && documentos[doc.key] ? (
               <a
                 href={`${baseURL}/uploads/${getFileName(documentos[doc.key])}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 underline block truncate"
+                className="text-blue-500 underline block truncate"
               >
                 {getFileName(documentos[doc.key])}
               </a>
@@ -125,30 +126,57 @@ const DocumentosDetalle = ({ documentos, baseURL }) => {
   )
 }
 
+// Componente de error con botón de reintento
+const ErrorMessage = ({ message, onRetry }) => (
+  <div className="bg-red-50 border border-red-200 rounded-md p-4 my-4 text-center">
+    <FaExclamationTriangle className="text-red-500 mx-auto mb-2" size={24} />
+    <p className="text-red-700 mb-3">{message}</p>
+    {onRetry && (
+      <button
+        onClick={onRetry}
+        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition flex items-center mx-auto"
+      >
+        <FaRedo className="mr-2" /> Reintentar
+      </button>
+    )}
+  </div>
+)
+
+// Componente de carga
+const LoadingSpinner = () => (
+  <div className="flex justify-center items-center p-8">
+    <FaSpinner className="animate-spin text-blue-500" size={32} />
+    <span className="ml-2 text-blue-700">Cargando postulaciones...</span>
+  </div>
+)
+
 function Postulaciones() {
+  // Estados
   const [postulaciones, setPostulaciones] = useState([])
+  const [filteredPostulaciones, setFilteredPostulaciones] = useState([])
   const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [expandedRows, setExpandedRows] = useState({})
-  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [retryCount, setRetryCount] = useState(0)
-  const MAX_RETRIES = 3
+  const [showPassword, setShowPassword] = useState({})
 
-  // Determinar la URL base dependiendo del entorno
-  const baseURL =
-    process.env.NODE_ENV === "development"
+  // Determinar la URL base según el entorno
+  const baseURL = useMemo(() => {
+    return process.env.NODE_ENV === "development"
       ? "http://localhost:5000"
-      : process.env.REACT_APP_urlback || "https://tu-url-de-produccion.com" // Asegúrate de configurar esta variable
+      : process.env.REACT_APP_urlback || window.location.origin
+  }, [])
 
-  useEffect(() => {
-    const fetchPostulaciones = async () => {
-      setIsLoading(true)
+  // Función para obtener las postulaciones con reintentos
+  const fetchPostulaciones = useCallback(
+    async (retryCount = 0) => {
+      const MAX_RETRIES = 3
+      setLoading(true)
       setError(null)
 
       try {
-        // Aumentar el timeout para entornos de producción
         const response = await axios.get(`${baseURL}/postulaciones`, {
-          timeout: 15000, // 15 segundos
+          timeout: 15000, // 15 segundos de timeout
           headers: {
             Accept: "application/json",
             "Cache-Control": "no-cache",
@@ -162,6 +190,7 @@ function Postulaciones() {
 
           if (Array.isArray(postulacionesData)) {
             setPostulaciones(postulacionesData)
+            setFilteredPostulaciones(postulacionesData)
           } else {
             console.error("Formato de respuesta inesperado:", response.data)
             setError("El formato de respuesta del servidor no es válido")
@@ -172,47 +201,64 @@ function Postulaciones() {
       } catch (error) {
         console.error("Error al obtener las postulaciones:", error)
 
-        // Mensaje de error más detallado
+        // Mensaje de error específico según el tipo de error
         let errorMessage = "Error al obtener las postulaciones."
 
         if (error.response) {
-          // El servidor respondió con un código de error
-          errorMessage += ` Error ${error.response.status}: ${error.response.data?.message || "Error en la respuesta del servidor"}`
+          // El servidor respondió con un código de estado fuera del rango 2xx
+          errorMessage = `Error ${error.response.status}: ${error.response.data?.message || "Error en la respuesta del servidor"}`
         } else if (error.request) {
-          // No se recibió respuesta del servidor
-          errorMessage += " No se recibió respuesta del servidor. Verifique su conexión a internet."
+          // La solicitud se realizó pero no se recibió respuesta
+          errorMessage = "No se pudo conectar con el servidor. Verifique su conexión a internet."
         } else {
-          // Error en la configuración de la solicitud
-          errorMessage += ` ${error.message}`
+          // Error al configurar la solicitud
+          errorMessage = `Error de configuración: ${error.message}`
+        }
+
+        // Reintentar si no hemos alcanzado el máximo de intentos
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Reintentando (${retryCount + 1}/${MAX_RETRIES})...`)
+          setTimeout(() => {
+            fetchPostulaciones(retryCount + 1)
+          }, 2000 * Math.pow(2, retryCount)) // Backoff exponencial
+          return
         }
 
         setError(errorMessage)
-
-        // Implementar reintentos automáticos
-        if (retryCount < MAX_RETRIES) {
-          console.log(`Reintentando obtener postulaciones (${retryCount + 1}/${MAX_RETRIES})...`)
-          setRetryCount((prevCount) => prevCount + 1)
-          // Esperar antes de reintentar (tiempo exponencial)
-          setTimeout(() => {
-            fetchPostulaciones()
-          }, 2000 * Math.pow(2, retryCount))
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: errorMessage,
-          })
-        }
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
+    },
+    [baseURL],
+  )
+
+  // Cargar postulaciones al montar el componente
+  useEffect(() => {
+    fetchPostulaciones()
+  }, [fetchPostulaciones])
+
+  // Filtrar postulaciones cuando cambia el término de búsqueda
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredPostulaciones(postulaciones)
+      return
     }
 
-    fetchPostulaciones()
-  }, [baseURL, retryCount])
+    const lowerSearchTerm = searchTerm.toLowerCase()
+    const filtered = postulaciones.filter((p) => {
+      return (
+        (p.nombre && p.nombre.toLowerCase().includes(lowerSearchTerm)) ||
+        (p.correo && p.correo.toLowerCase().includes(lowerSearchTerm)) ||
+        (p.ci && p.ci.toLowerCase().includes(lowerSearchTerm)) ||
+        (p.profesion && p.profesion.toLowerCase().includes(lowerSearchTerm))
+      )
+    })
+
+    setFilteredPostulaciones(filtered)
+  }, [searchTerm, postulaciones])
 
   // Función para parsear asignaturas (ya que pueden venir como cadena JSON)
-  const parseAsignaturas = (asignaturasRaw) => {
+  const parseAsignaturas = useCallback((asignaturasRaw) => {
     if (!asignaturasRaw) return []
     if (Array.isArray(asignaturasRaw)) return asignaturasRaw
     try {
@@ -221,81 +267,61 @@ function Postulaciones() {
       console.error("Error al parsear asignaturasSeleccionadas", err)
       return []
     }
-  }
-
-  // Filtrar postulaciones por término de búsqueda
-  const filteredPostulaciones = postulaciones.filter(
-    (postulacion) =>
-      postulacion.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      postulacion.correo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      postulacion.ci?.includes(searchTerm) ||
-      postulacion.carrera?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  }, [])
 
   // Alterna la visualización de la sección de documentos en cada fila
-  const toggleRowExpansion = (index) => {
+  const toggleRowExpansion = useCallback((index) => {
     setExpandedRows((prev) => ({ ...prev, [index]: !prev[index] }))
-  }
+  }, [])
+
+  // Alterna la visualización de contraseñas
+  const togglePasswordVisibility = useCallback((index) => {
+    setShowPassword((prev) => ({ ...prev, [index]: !prev[index] }))
+  }, [])
 
   // Función para eliminar una postulación
-  const handleDelete = (postulacionId) => {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "Esta acción eliminará la postulación de forma permanente.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await axios.delete(`${baseURL}/postulaciones/${postulacionId}`, {
-            timeout: 10000,
-            headers: {
-              Accept: "application/json",
-            },
-          })
-          setPostulaciones(postulaciones.filter((p) => p._id !== postulacionId))
-          Swal.fire({
-            icon: "success",
-            title: "Eliminado",
-            text: "Postulación eliminada exitosamente.",
-          })
-        } catch (error) {
-          console.error("Error al eliminar la postulación:", error)
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "No se pudo eliminar la postulación. Intente nuevamente.",
-          })
+  const handleDelete = useCallback(
+    (postulacionId) => {
+      swal({
+        title: "¿Estás seguro?",
+        text: "Esta acción eliminará la postulación de forma permanente.",
+        icon: "warning",
+        buttons: ["Cancelar", "Eliminar"],
+        dangerMode: true,
+      }).then(async (willDelete) => {
+        if (willDelete) {
+          try {
+            await axios.delete(`${baseURL}/postulaciones/${postulacionId}`)
+            setPostulaciones((prev) => prev.filter((p) => p._id !== postulacionId))
+            setFilteredPostulaciones((prev) => prev.filter((p) => p._id !== postulacionId))
+            swal("Postulación eliminada exitosamente.", { icon: "success" })
+          } catch (error) {
+            console.error("Error al eliminar la postulación:", error)
+            swal("Error al eliminar la postulación.", { icon: "error" })
+          }
         }
-      }
-    })
-  }
+      })
+    },
+    [baseURL],
+  )
 
   // Descargar registros en Excel
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = useCallback(() => {
     if (filteredPostulaciones.length === 0) {
-      Swal.fire({
-        icon: "info",
-        title: "Sin datos",
-        text: "No hay postulaciones para descargar.",
-      })
+      swal("No hay postulaciones para descargar.", { icon: "info" })
       return
     }
 
     const worksheet = XLSX.utils.json_to_sheet(
       filteredPostulaciones.map((postulacion) => ({
-        "Nombre Completo": postulacion.nombre,
-        "Correo Electrónico": postulacion.correo,
-        "Número de Celular": postulacion.celular,
-        "Carnet de Identidad": postulacion.ci,
-        "Universidad CEUB": postulacion.universidad,
-        "Año de Titulación": postulacion.anioTitulacion,
-        Profesión: postulacion.profesion,
-        "Tipo de Docente": postulacion.tipoDocente,
+        "Nombre Completo": postulacion.nombre || "",
+        "Correo Electrónico": postulacion.correo || "",
+        "Número de Celular": postulacion.celular || "",
+        "Carnet de Identidad": postulacion.ci || "",
+        "Universidad CEUB": postulacion.universidad || "",
+        "Año de Titulación": postulacion.anioTitulacion || "",
+        Profesión: postulacion.profesion || "",
+        "Tipo de Docente": postulacion.tipoDocente || "",
         Asignaturas: formatAsignaturas(postulacion.asignaturasSeleccionadas),
         Documentos: formatDocumentosForExcel(postulacion.documentos),
       })),
@@ -304,91 +330,72 @@ function Postulaciones() {
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Postulaciones")
     XLSX.writeFile(workbook, "Postulaciones.xlsx")
-  }
-
-  // Renderizar estado de carga
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl shadow-lg">
-        <FaSpinner className="h-12 w-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-lg text-gray-700">Cargando postulaciones...</p>
-      </div>
-    )
-  }
-
-  // Renderizar estado de error (si no hay reintentos pendientes)
-  if (error && retryCount >= MAX_RETRIES) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl shadow-lg">
-        <FaExclamationCircle className="h-12 w-12 text-red-600 mb-4" />
-        <h3 className="text-xl font-bold text-red-700 mb-2">Error al cargar datos</h3>
-        <p className="text-gray-700 mb-4">{error}</p>
-        <button
-          onClick={() => {
-            setRetryCount(0)
-            setError(null)
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-        >
-          Reintentar
-        </button>
-      </div>
-    )
-  }
+  }, [filteredPostulaciones])
 
   return (
-    <div className="p-4 sm:p-8 bg-gradient-to-b from-blue-50 to-white min-h-screen">
+    <div className="bg-white p-4 md:p-6 rounded-lg shadow-lg">
       {/* Encabezado */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-4 md:mb-0">Postulaciones Registradas</h2>
-        <div className="flex items-center space-x-4">
+        <h2 className="text-2xl font-bold text-blue-800 mb-4 md:mb-0">Postulaciones Registradas</h2>
+        <div className="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+          {/* Buscador */}
+          <div className="relative w-full md:w-64">
+            <input
+              type="text"
+              placeholder="Buscar por nombre, correo, CI..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
+
+          {/* Botón de Excel */}
           <button
             onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition flex items-center"
+            disabled={loading || filteredPostulaciones.length === 0}
+            className={`flex items-center px-4 py-2 rounded-md transition w-full md:w-auto justify-center
+              ${
+                loading || filteredPostulaciones.length === 0
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              }`}
           >
-            <FaDownload className="mr-2 h-5 w-5" />
-            Descargar Excel
+            <FaDownload className="mr-2" /> Descargar Excel
           </button>
         </div>
       </div>
 
-      {/* Buscador */}
-      <div className="mb-6">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar por nombre, correo, CI o carrera"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-          />
-        </div>
-      </div>
+      {/* Mensajes de estado */}
+      {loading && <LoadingSpinner />}
 
-      {filteredPostulaciones.length === 0 ? (
-        <div className="bg-white p-8 rounded-xl shadow-md text-center">
-          <p className="text-gray-600 text-lg">No hay postulaciones registradas que coincidan con la búsqueda.</p>
+      {error && <ErrorMessage message={error} onRetry={() => fetchPostulaciones()} />}
+
+      {!loading && !error && filteredPostulaciones.length === 0 && (
+        <div className="text-center py-8 bg-gray-50 rounded-md">
+          <p className="text-gray-600 text-lg">No hay postulaciones registradas.</p>
         </div>
-      ) : (
+      )}
+
+      {!loading && !error && filteredPostulaciones.length > 0 && (
         <>
           {/* Vista en tabla para pantallas medianas y superiores */}
-          <div className="hidden md:block overflow-x-auto bg-white rounded-xl shadow-lg">
-            <table className="min-w-full border-collapse">
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="min-w-full border-collapse border border-gray-300">
               <thead>
-                <tr className="bg-gradient-to-r from-blue-700 to-blue-800 text-white">
-                  <th className="border border-gray-300 px-4 py-3 text-left">Nombre Completo</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Correo</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Celular</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">C.I.</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Universidad</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Profesión</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Tipo Docente</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Materias Postuladas</th>
-                  <th className="border border-gray-300 px-4 py-3 text-left">Documentos</th>
-                  <th className="border border-gray-300 px-4 py-3 text-center">Acciones</th>
+                <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
+                  <th className="border border-gray-300 px-4 py-2">Nombre Completo</th>
+                  <th className="border border-gray-300 px-4 py-2">Correo</th>
+                  <th className="border border-gray-300 px-4 py-2">Celular</th>
+                  <th className="border border-gray-300 px-4 py-2">C.I.</th>
+                  <th className="border border-gray-300 px-4 py-2">Universidad CEUB</th>
+                  <th className="border border-gray-300 px-4 py-2">Año de Titulación</th>
+                  <th className="border border-gray-300 px-4 py-2">Profesión</th>
+                  <th className="border border-gray-300 px-4 py-2">Tipo de Docente</th>
+                  <th className="border border-gray-300 px-4 py-2">Materias Postuladas</th>
+                  <th className="border border-gray-300 px-4 py-2">Carrera de la Materia</th>
+                  <th className="border border-gray-300 px-4 py-2">Documentación</th>
+                  <th className="border border-gray-300 px-4 py-2">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -397,45 +404,57 @@ function Postulaciones() {
                   const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas)
                   return (
                     <React.Fragment key={postulacion._id || index}>
-                      <tr className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.nombre}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.correo}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.celular}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.ci}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.universidad}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.profesion}</td>
-                        <td className="border border-gray-300 px-4 py-3">{postulacion.tipoDocente}</td>
-                        <td className="border border-gray-300 px-4 py-3">
-                          {asignaturas.map((item) => (item.asignatura ? toTitleCase(item.asignatura) : "")).join(" | ")}
+                      <tr
+                        className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-colors`}
+                      >
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.nombre || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.correo || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.celular || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.ci || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.universidad || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.anioTitulacion || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.profesion || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">{postulacion.tipoDocente || "-"}</td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          {asignaturas && asignaturas.length > 0
+                            ? asignaturas
+                                .map((item) => (item.asignatura ? toTitleCase(item.asignatura) : ""))
+                                .join(" | ")
+                            : "-"}
                         </td>
-                        <td className="border border-gray-300 px-4 py-3">
+                        <td className="border border-gray-300 px-4 py-2">
+                          {asignaturas && asignaturas.length > 0
+                            ? asignaturas.map((item) => (item.carrera ? toTitleCase(item.carrera) : "")).join(" | ")
+                            : "-"}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2">
                           <button
                             onClick={() => toggleRowExpansion(index)}
-                            className="text-blue-600 hover:text-blue-800 flex items-center"
+                            className="text-blue-500 underline hover:text-blue-700 flex items-center justify-center"
                           >
                             {expandedRows[index] ? (
                               <>
-                                <FaEyeOff className="h-4 w-4 mr-1" /> Ocultar
+                                <FaEyeSlash className="mr-1" /> Ocultar
                               </>
                             ) : (
                               <>
-                                <FaEye className="h-4 w-4 mr-1" /> Ver
+                                <FaEye className="mr-1" /> Ver
                               </>
                             )}
                           </button>
                         </td>
-                        <td className="border border-gray-300 px-4 py-3 text-center">
+                        <td className="border border-gray-300 px-4 py-2">
                           <button
                             onClick={() => handleDelete(postulacion._id)}
-                            className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition flex items-center mx-auto"
+                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
                           >
-                            <FaTrashAlt className="h-4 w-4 mr-1" /> Eliminar
+                            Eliminar
                           </button>
                         </td>
                       </tr>
                       {expandedRows[index] && (
                         <tr>
-                          <td colSpan="10" className="border border-gray-300 p-0">
+                          <td colSpan="12" className="border border-gray-300 bg-gray-50">
                             <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
                           </td>
                         </tr>
@@ -448,74 +467,99 @@ function Postulaciones() {
           </div>
 
           {/* Vista en tarjetas para pantallas pequeñas */}
-          <div className="block md:hidden space-y-6">
+          <div className="block sm:hidden space-y-4">
             {filteredPostulaciones.map((postulacion, index) => {
               const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas)
               return (
-                <div key={postulacion._id || index} className="bg-white rounded-xl shadow-md overflow-hidden">
-                  <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
-                    <h3 className="text-xl font-bold text-gray-800">{postulacion.nombre}</h3>
-                    <p className="text-blue-600">{postulacion.correo}</p>
+                <div
+                  key={postulacion._id || index}
+                  className="border border-gray-300 rounded-lg overflow-hidden shadow-sm"
+                >
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-3 border-b border-gray-300">
+                    <h3 className="font-bold text-gray-800 text-lg">{postulacion.nombre || "Sin nombre"}</h3>
                   </div>
 
-                  <div className="p-5 space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <p className="text-sm text-gray-500">Celular</p>
-                        <p className="font-medium">{postulacion.celular}</p>
+                        <p className="text-sm text-gray-500">Correo:</p>
+                        <p className="font-medium">{postulacion.correo || "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">C.I.</p>
-                        <p className="font-medium">{postulacion.ci}</p>
+                        <p className="text-sm text-gray-500">Celular:</p>
+                        <p className="font-medium">{postulacion.celular || "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Universidad</p>
-                        <p className="font-medium">{postulacion.universidad}</p>
+                        <p className="text-sm text-gray-500">C.I.:</p>
+                        <p className="font-medium">{postulacion.ci || "-"}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">Tipo Docente</p>
-                        <p className="font-medium">{postulacion.tipoDocente}</p>
+                        <p className="text-sm text-gray-500">Universidad:</p>
+                        <p className="font-medium">{postulacion.universidad || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Año Titulación:</p>
+                        <p className="font-medium">{postulacion.anioTitulacion || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Profesión:</p>
+                        <p className="font-medium">{postulacion.profesion || "-"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Tipo Docente:</p>
+                        <p className="font-medium">{postulacion.tipoDocente || "-"}</p>
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-sm text-gray-500">Profesión</p>
-                      <p className="font-medium">{postulacion.profesion}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">Materias Postuladas</p>
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-500">Materias Postuladas:</p>
                       <p className="font-medium">
-                        {asignaturas.map((item) => (item.asignatura ? toTitleCase(item.asignatura) : "")).join(", ")}
+                        {asignaturas && asignaturas.length > 0
+                          ? asignaturas.map((item) => (item.asignatura ? toTitleCase(item.asignatura) : "")).join(" | ")
+                          : "-"}
                       </p>
                     </div>
 
-                    <div className="pt-3 flex justify-between items-center">
-                      <button onClick={() => toggleRowExpansion(index)} className="text-blue-600 flex items-center">
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-500">Carrera de la Materia:</p>
+                      <p className="font-medium">
+                        {asignaturas && asignaturas.length > 0
+                          ? asignaturas.map((item) => (item.carrera ? toTitleCase(item.carrera) : "")).join(" | ")
+                          : "-"}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => toggleRowExpansion(index)}
+                        className="flex items-center justify-center w-full py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition"
+                      >
                         {expandedRows[index] ? (
                           <>
-                            <FaEyeOff className="h-4 w-4 mr-1" /> Ocultar documentos
+                            <FaEyeSlash className="mr-2" /> Ocultar Documentos
                           </>
                         ) : (
                           <>
-                            <FaEye className="h-4 w-4 mr-1" /> Ver documentos
+                            <FaEye className="mr-2" /> Ver Documentos
                           </>
                         )}
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(postulacion._id)}
-                        className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition flex items-center"
-                      >
-                        <FaTrashAlt className="h-4 w-4 mr-1" /> Eliminar
                       </button>
                     </div>
 
                     {expandedRows[index] && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="mt-3 pt-3 border-t border-gray-200">
                         <DocumentosDetalle documentos={postulacion.documentos} baseURL={baseURL} />
                       </div>
                     )}
+
+                    <div className="mt-4">
+                      <button
+                        onClick={() => handleDelete(postulacion._id)}
+                        className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition flex items-center justify-center"
+                      >
+                        <FaTrash className="mr-2" /> Eliminar
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
