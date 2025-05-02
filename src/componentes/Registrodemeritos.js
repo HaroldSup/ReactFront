@@ -647,36 +647,38 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   const filledFields = Object.values(formData).filter((val) => val !== "").length
   const progressPercentage = Math.round((filledFields / totalFields) * 100)
 
+  // Función para manejar el clic en el botón flotante
+  const handleFloatingButtonClick = () => {
+    if (!isSubmitting && !isVerifying) {
+      document.getElementById("meritoForm").requestSubmit()
+    }
+  }
+
   return (
-    <div className="min-h-screen py-4 px-2 sm:py-6">
-      <div className="w-full mx-auto">
-        <div className="w-full p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gray-50 py-4 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8">
           {/* Encabezado */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
               <Award className="h-8 w-8 text-blue-700" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              {merito ? "Editar Nota" : "Registrar Nota"}
-            </h2>
-            <p className="text-gray-500 mt-2 text-sm sm:text-base">
+            <h2 className="text-2xl font-bold text-gray-800">{merito ? "Editar Nota" : "Registrar Nota"}</h2>
+            <p className="text-gray-500 mt-2 text-sm">
               Complete el formulario para {merito ? "actualizar" : "registrar"} la nota del concurso de méritos
             </p>
           </div>
-
-          {/* Indicador de Progreso mejorado */}
+          {/* Indicador de Progreso */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
-              <p className="text-sm font-medium text-blue-600">{progressPercentage}% completado</p>
+              <p className="text-sm font-medium text-blue-600">{progressPercentage}%</p>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
               <div
-                className="h-2.5 rounded-full transition-all duration-500 ease-out"
+                className="h-2.5 rounded-full transition-all duration-500 ease-out bg-yellow-400"
                 style={{
                   width: `${progressPercentage}%`,
-                  backgroundColor:
-                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
                 }}
               ></div>
             </div>
@@ -1189,11 +1191,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
       {/* Botón flotante para dispositivos móviles */}
       <button
         type="button"
-        onClick={() => {
-          if (!isSubmitting && !isVerifying) {
-            document.getElementById("meritoForm").requestSubmit()
-          }
-        }}
+        onClick={handleFloatingButtonClick}
         disabled={isSubmitting || isVerifying}
         className={`fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 z-50 ${
           isSubmitting || isVerifying
