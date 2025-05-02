@@ -655,24 +655,23 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
-      <div className="w-full mx-auto">
-        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
+    <div className="min-h-screen w-full bg-white">
+      <div className="w-full">
+        {/* Contenedor principal - sin márgenes laterales en móvil */}
+        <div className="w-full bg-white">
           {/* Encabezado */}
-          <div className="text-center mb-6">
+          <div className="text-center py-6">
             <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
               <Award className="h-8 w-8 text-blue-700" />
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              {merito ? "Editar Nota" : "Registrar Nota"}
-            </h2>
-            <p className="text-gray-500 mt-2 text-sm sm:text-base">
+            <h2 className="text-2xl font-bold text-gray-800">{merito ? "Editar Nota" : "Registrar Nota"}</h2>
+            <p className="text-gray-500 mt-2 text-sm px-4">
               Complete el formulario para {merito ? "actualizar" : "registrar"} la nota del concurso de méritos
             </p>
           </div>
 
           {/* Indicador de Progreso */}
-          <div className="mb-6">
+          <div className="mb-6 px-4">
             <div className="flex justify-between items-center mb-2">
               <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
               <p className="text-sm font-medium text-blue-600">{progressPercentage}%</p>
@@ -691,12 +690,12 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
           {/* Selector de modo (individual o múltiple) */}
           {!merito && (
-            <div className="mb-8">
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="mb-6 px-4">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setModoMultiple(false)}
-                  className={`w-full sm:w-auto px-6 py-3 rounded-lg transition-all ${
+                  className={`w-full px-3 py-3 rounded-lg transition-all ${
                     !modoMultiple
                       ? "bg-blue-600 text-white font-bold shadow-md"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -704,13 +703,13 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                 >
                   <div className="flex items-center justify-center">
                     <User className="mr-2 h-5 w-5" />
-                    Registro Individual
+                    <span className="text-sm">Individual</span>
                   </div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setModoMultiple(true)}
-                  className={`w-full sm:w-auto px-6 py-3 rounded-lg transition-all ${
+                  className={`w-full px-3 py-3 rounded-lg transition-all ${
                     modoMultiple
                       ? "bg-blue-600 text-white font-bold shadow-md"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -718,30 +717,30 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                 >
                   <div className="flex items-center justify-center">
                     <Plus className="mr-2 h-5 w-5" />
-                    Registro Múltiple
+                    <span className="text-sm">Múltiple</span>
                   </div>
                 </button>
               </div>
               {modoMultiple && (
-                <p className="mt-3 text-sm text-center text-gray-600">
+                <p className="mt-3 text-xs text-center text-gray-600">
                   Modo múltiple: Seleccione varias materias para registrarlas con la misma puntuación.
                 </p>
               )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} id="meritoForm" className="space-y-6">
+          <form onSubmit={handleSubmit} id="meritoForm" className="space-y-4 px-4">
             {/* Sección 1: Datos del Postulante */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <User className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-blue-600 px-4 py-3">
+                <h3 className="text-base font-semibold text-white flex items-center">
+                  <User className="h-4 w-4 mr-2" />
                   Datos del Postulante
                 </h3>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="p-4 space-y-4">
+                <div className="space-y-4">
                   {/* Campo CI */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -837,15 +836,15 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
 
             {/* Sección 2: Información Académica */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Book className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-blue-600 px-4 py-3">
+                <h3 className="text-base font-semibold text-white flex items-center">
+                  <Book className="h-4 w-4 mr-2" />
                   Información Académica
                 </h3>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="p-4 space-y-4">
                 {modoMultiple ? (
                   /* Vista de selección múltiple de materias */
                   <>
@@ -853,12 +852,12 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                       <button
                         type="button"
                         onClick={toggleSeleccionarTodasMaterias}
-                        className="px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition flex items-center"
+                        className="w-full px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition flex items-center justify-center"
                       >
                         <Check className="mr-2 h-5 w-5" />
                         {materiasSeleccionadas.length === materiasPostuladas.length
                           ? "Deseleccionar Todas"
-                          : "Seleccionar Todas las Materias"}
+                          : "Seleccionar Todas"}
                       </button>
                     </div>
 
@@ -888,11 +887,11 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
 
                     {/* Lista de materias con checkboxes */}
                     <div className="mt-4">
-                      <h4 className="text-lg font-semibold text-gray-700 mb-2">
+                      <h4 className="text-base font-semibold text-gray-700 mb-2">
                         Materias disponibles ({materiasFiltradas.length}):
                       </h4>
                       {materiasFiltradas.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2">
+                        <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto p-2">
                           {materiasFiltradas.map((materia, idx) => (
                             <div
                               key={idx}
@@ -932,7 +931,7 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                     {/* Resumen de materias seleccionadas */}
                     {materiasSeleccionadas.length > 0 && (
                       <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <h4 className="text-lg font-semibold text-green-800 mb-2 flex items-center">
+                        <h4 className="text-base font-semibold text-green-800 mb-2 flex items-center">
                           <Check className="mr-2 h-5 w-5 text-green-600" />
                           Materias seleccionadas ({materiasSeleccionadas.length}):
                         </h4>
@@ -1022,16 +1021,16 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
 
             {/* Sección 3: Datos de Evaluación */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Award className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-blue-600 px-4 py-3">
+                <h3 className="text-base font-semibold text-white flex items-center">
+                  <Award className="h-4 w-4 mr-2" />
                   Datos de Evaluación
                 </h3>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="p-4 space-y-4">
+                <div className="space-y-4">
                   {/* Campo Nombre de Evaluador */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1108,15 +1107,15 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
 
             {/* Sección 4: Observaciones */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-blue-600 px-4 py-3">
+                <h3 className="text-base font-semibold text-white flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
                   Observaciones
                 </h3>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="p-4 space-y-4">
                 <div className="relative">
                   <textarea
                     name="observaciones"
@@ -1132,34 +1131,21 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             </div>
 
             {/* Botones de Acción */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting || isVerifying}
-                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
-                  isSubmitting || isVerifying
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
-                }`}
-              >
-                Cancelar
-              </button>
-
+            <div className="flex flex-col gap-3 mt-6 mb-20">
               <button
                 type="submit"
                 disabled={isSubmitting || isVerifying}
-                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
                   isSubmitting || isVerifying
                     ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg"
                 }`}
               >
                 <span className="flex items-center justify-center">
                   {isSubmitting || isVerifying ? (
                     <>
                       <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1188,6 +1174,19 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
                   )}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting || isVerifying}
+                className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                  isSubmitting || isVerifying
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                }`}
+              >
+                Cancelar
+              </button>
             </div>
           </form>
         </div>
@@ -1199,10 +1198,8 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
         onClick={handleFloatingButtonClick}
         disabled={isSubmitting || isVerifying}
         className={`fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 z-50 ${
-          isSubmitting || isVerifying
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-        } md:hidden`}
+          isSubmitting || isVerifying ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+        }`}
         title={merito ? "Actualizar Nota" : "Registrar Nota"}
       >
         {isSubmitting || isVerifying ? (
