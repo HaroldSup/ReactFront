@@ -357,245 +357,363 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
   const progressPercentage = Math.round((filledFields / totalFields) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-100 py-4">
-      {/* Contenedor responsivo centrado con ancho máximo */}
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 max-w-screen-xl">
-        <div className="w-full bg-white p-6 sm:p-10 rounded-xl shadow-2xl">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-blue-800 mb-4">
-            {acefalia ? "Editar Acefalia" : "Registrar Acefalia"}
-          </h2>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
+      <div className="w-full mx-auto">
+        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
+          {/* Encabezado */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+              {acefalia ? (
+                <span className="text-blue-600 font-bold text-xl">📝</span>
+              ) : (
+                <span className="text-blue-600 font-bold text-xl">➕</span>
+              )}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {acefalia ? "Editar Acefalia" : "Registrar Acefalia"}
+            </h2>
+            <p className="text-gray-500 mt-2 text-sm sm:text-base">
+              {acefalia
+                ? "Actualiza la información de la materia acéfala"
+                : "Complete el formulario para registrar una nueva materia acéfala"}
+            </p>
+          </div>
+
           {/* Indicador de Progreso */}
           <div className="mb-6">
-            <p className="text-sm text-gray-600">Progreso: {progressPercentage}% completado</p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
+              <p className="text-sm font-medium text-blue-600">{progressPercentage}%</p>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-2.5 rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${progressPercentage}%`,
+                  backgroundColor:
+                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
+                }}
+              ></div>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} id="acefaliaForm" className="space-y-6">
             {/* Sección 1: Información de la Materia */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">Información de la Materia</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Asignatura */}
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Asignatura:</label>
-                  <input
-                    type="text"
-                    name="asignatura"
-                    value={formData.asignatura}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      // Permitir solo letras (incluyendo acentos y ñ) y espacios
-                      const allowed = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]$/
-                      if (!allowed.test(e.key)) {
-                        e.preventDefault()
-                      }
-                    }}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                {/* Semestre */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Semestre:</label>
-                  <select
-                    name="semestre"
-                    value={formData.semestre}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">--Seleccionar--</option>
-                    {[...Array(10)].map((_, i) => (
-                      <option key={i + 1} value={`SEMESTRE ${i + 1}`}>
-                        SEMESTRE {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {/* Gestión */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Gestión:</label>
-                  <input
-                    type="text"
-                    name="gestion"
-                    value={formData.gestion}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                {/* Nivel Académico */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nivel Académico:</label>
-                  <select
-                    name="nivelAcademico"
-                    value={formData.nivelAcademico}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="Grado">Grado</option>
-                  </select>
-                </div>
-                {/* Carrera */}
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Carrera:</label>
-                  <select
-                    name="carrera"
-                    value={formData.carrera}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="">--Seleccionar--</option>
-                    <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
-                    <option value="Ingeniería de Sistemas Electrónicos">Ingeniería de Sistemas Electrónicos</option>
-                    <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
-                    <option value="Ingeniería Civil">Ingeniería Civil</option>
-                    <option value="Ingeniería Comercial">Ingeniería Comercial</option>
-                  </select>
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <span className="mr-2">📚</span>
+                  Información de la Materia
+                </h3>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Asignatura */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Asignatura:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">📘</span>
+                      </div>
+                      <input
+                        type="text"
+                        name="asignatura"
+                        value={formData.asignatura}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          // Permitir solo letras (incluyendo acentos y ñ) y espacios
+                          const allowed = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]$/
+                          if (!allowed.test(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        required
+                        placeholder="Nombre de la asignatura"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  {/* Semestre */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Semestre:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">🗓️</span>
+                      </div>
+                      <select
+                        name="semestre"
+                        value={formData.semestre}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      >
+                        <option value="">--Seleccionar--</option>
+                        {[...Array(10)].map((_, i) => (
+                          <option key={i + 1} value={`SEMESTRE ${i + 1}`}>
+                            SEMESTRE {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Gestión */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gestión:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">📅</span>
+                      </div>
+                      <input
+                        type="text"
+                        name="gestion"
+                        value={formData.gestion}
+                        onChange={handleChange}
+                        required
+                        placeholder="Ej: I-2024"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  {/* Nivel Académico */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nivel Académico:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">🎓</span>
+                      </div>
+                      <select
+                        name="nivelAcademico"
+                        value={formData.nivelAcademico}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      >
+                        <option value="Grado">Grado</option>
+                      </select>
+                    </div>
+                  </div>
+                  {/* Carrera */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Carrera:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">🏫</span>
+                      </div>
+                      <select
+                        name="carrera"
+                        value={formData.carrera}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      >
+                        <option value="">--Seleccionar--</option>
+                        <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
+                        <option value="Ingeniería de Sistemas Electrónicos">Ingeniería de Sistemas Electrónicos</option>
+                        <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
+                        <option value="Ingeniería Civil">Ingeniería Civil</option>
+                        <option value="Ingeniería Comercial">Ingeniería Comercial</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Sección 2: Horas */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">Horas</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {/* Horas Teoría */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Horas Teoría:</label>
-                  <input
-                    type="number"
-                    name="horasTeoria"
-                    value={formData.horasTeoria}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      if (!/[0-9]/.test(e.key)) {
-                        e.preventDefault()
-                      }
-                    }}
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                {/* Horas Prácticas */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Horas Prácticas:</label>
-                  <input
-                    type="number"
-                    name="horasPracticas"
-                    value={formData.horasPracticas}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      if (!/[0-9]/.test(e.key)) {
-                        e.preventDefault()
-                      }
-                    }}
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                {/* Horas Laboratorio */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Horas Laboratorio:</label>
-                  <input
-                    type="number"
-                    name="horasLaboratorio"
-                    value={formData.horasLaboratorio}
-                    onChange={handleChange}
-                    onKeyPress={(e) => {
-                      if (!/[0-9]/.test(e.key)) {
-                        e.preventDefault()
-                      }
-                    }}
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <span className="mr-2">⏱️</span>
+                  Horas Académicas
+                </h3>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                  {/* Horas Teoría */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Horas Teoría:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">📖</span>
+                      </div>
+                      <input
+                        type="number"
+                        name="horasTeoria"
+                        value={formData.horasTeoria}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        min="0"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  {/* Horas Prácticas */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Horas Prácticas:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">✏️</span>
+                      </div>
+                      <input
+                        type="number"
+                        name="horasPracticas"
+                        value={formData.horasPracticas}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        min="0"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  {/* Horas Laboratorio */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Horas Laboratorio:</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400">🧪</span>
+                      </div>
+                      <input
+                        type="number"
+                        name="horasLaboratorio"
+                        value={formData.horasLaboratorio}
+                        onChange={handleChange}
+                        onKeyPress={(e) => {
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        min="0"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Sección 3: Detalles */}
-            <div className="p-6 bg-blue-50 rounded-lg border">
-              <h3 className="text-2xl font-bold text-gray-700 mb-4">Detalles</h3>
-              <div className="grid grid-cols-1 gap-6">
-                {/* Requisitos */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Requisitos:</label>
-                  <textarea
-                    name="requisitos"
-                    value={formData.requisitos}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                {/* Motivos de la Acefalia */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Motivos de la Acefalia:</label>
-                  <textarea
-                    name="motivosAcefalia"
-                    value={formData.motivosAcefalia}
-                    onChange={handleChange}
-                    required
-                    className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
-                  />
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
+                  <span className="mr-2">📋</span>
+                  Detalles Adicionales
+                </h3>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                  {/* Requisitos */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Requisitos:</label>
+                    <div className="relative">
+                      <div className="absolute top-3 left-3 pointer-events-none">
+                        <span className="text-gray-400">📝</span>
+                      </div>
+                      <textarea
+                        name="requisitos"
+                        value={formData.requisitos}
+                        onChange={handleChange}
+                        required
+                        placeholder="Requisitos para la materia"
+                        rows={3}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Ingrese los requisitos académicos necesarios para esta materia.
+                    </p>
+                  </div>
+                  {/* Motivos de la Acefalia */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Motivos de la Acefalia:</label>
+                    <div className="relative">
+                      <div className="absolute top-3 left-3 pointer-events-none">
+                        <span className="text-gray-400">❓</span>
+                      </div>
+                      <textarea
+                        name="motivosAcefalia"
+                        value={formData.motivosAcefalia}
+                        onChange={handleChange}
+                        required
+                        placeholder="Explique los motivos por los que la materia está acéfala"
+                        rows={4}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Detalle las razones por las que se requiere un docente para esta materia.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Botones de Aceptar/Actualizar y Cancelar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting || isVerifying}
-                className={`flex-1 py-2 px-4 ${
-                  isSubmitting || isVerifying ? "bg-gray-500" : "bg-green-600 hover:bg-green-700"
-                } text-white font-semibold rounded-lg shadow-md transition duration-200 flex justify-center items-center`}
-              >
-                {isSubmitting || isVerifying ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {isVerifying ? "Verificando..." : "Procesando..."}
-                  </>
-                ) : acefalia ? (
-                  "Actualizar"
-                ) : (
-                  "Aceptar"
-                )}
-              </button>
+            {/* Botones de Acción */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
               <button
                 type="button"
                 disabled={isSubmitting || isVerifying}
-                className={`flex-1 py-2 px-4 ${
-                  isSubmitting || isVerifying ? "bg-gray-500" : "bg-red-600 hover:bg-red-700"
-                } text-white font-semibold rounded-lg shadow-md transition duration-200`}
-                onClick={() => {
-                  if (!isSubmitting && !isVerifying) {
-                    showAlert("info", "Cancelado", "La operación fue cancelada")
-                  }
-                }}
+                onClick={onAcefaliaRegistered}
+                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                  isSubmitting || isVerifying
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                }`}
               >
                 Cancelar
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting || isVerifying}
+                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                  isSubmitting || isVerifying
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
+                }`}
+              >
+                <span className="flex items-center justify-center">
+                  {isSubmitting || isVerifying ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {isVerifying ? "Verificando..." : "Procesando..."}
+                    </>
+                  ) : (
+                    <>
+                      <span className="mr-2">💾</span>
+                      {acefalia ? "Actualizar Acefalia" : "Registrar Acefalia"}
+                    </>
+                  )}
+                </span>
               </button>
             </div>
           </form>
@@ -607,17 +725,19 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
         type="button"
         onClick={() => {
           if (!isSubmitting && !isVerifying) {
-            document.querySelector("form").requestSubmit()
+            document.getElementById("acefaliaForm").requestSubmit()
           }
         }}
         disabled={isSubmitting || isVerifying}
-        className={`fixed bottom-4 right-4 ${
-          isSubmitting || isVerifying ? "bg-gray-500" : "bg-blue-800 hover:bg-blue-900"
-        } text-white p-4 rounded-full shadow-lg transition md:hidden`}
-        title="Enviar Formulario"
+        className={`fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 z-50 ${
+          isSubmitting || isVerifying
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+        } md:hidden`}
+        title={acefalia ? "Actualizar Acefalia" : "Registrar Acefalia"}
       >
         {isSubmitting || isVerifying ? (
-          <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24">
+          <svg className="h-6 w-6 animate-spin text-white" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"
@@ -634,15 +754,7 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
             ></path>
           </svg>
         ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+          <span className="text-white">💾</span>
         )}
       </button>
     </div>
