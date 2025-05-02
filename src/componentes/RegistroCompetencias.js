@@ -56,9 +56,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   const [isVerifying, setIsVerifying] = useState(false)
   const [lastOperationId, setLastOperationId] = useState(null)
 
-  // Estado para controlar la vista en dispositivos móviles
-  const [activeTab, setActiveTab] = useState(0)
-
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
@@ -505,690 +502,638 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
   const materiasFiltradas =
     filtroCarrera.trim() !== "" ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera) : materiasPostuladas
 
-  // Definir las secciones para la navegación por pestañas en móvil
-  const tabs = [
-    { id: 0, name: "Datos", icon: <User className="w-5 h-5" /> },
-    { id: 1, name: "Evaluador", icon: <Award className="w-5 h-5" /> },
-    { id: 2, name: "Plan", icon: <BookOpen className="w-5 h-5" /> },
-    { id: 3, name: "Procesos", icon: <Layers className="w-5 h-5" /> },
-    { id: 4, name: "Resultados", icon: <Percent className="w-5 h-5" /> },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-4 px-2 sm:py-6">
-      <div className="w-full mx-auto">
-        <div className="w-full bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl border border-gray-100">
-          {/* Encabezado */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-              <Award className="h-8 w-8 text-blue-700" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              {competencia ? "Editar Registro de Competencias" : "Registro de Competencias"}
-            </h2>
-            <p className="text-gray-500 mt-2 text-sm sm:text-base">
-              Complete el formulario para {competencia ? "actualizar" : "registrar"} la evaluación de competencias
-            </p>
+    <div className="min-h-screen w-full bg-white">
+      <div className="w-full">
+        {/* Encabezado */}
+        <div className="text-center py-3">
+          <div className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-full mb-1">
+            <Award className="h-6 w-6 text-blue-700" />
           </div>
+          <h2 className="text-xl font-bold text-gray-800">
+            {competencia ? "Editar Registro de Competencias" : "Registro de Competencias"}
+          </h2>
+          <p className="text-gray-500 mt-1 text-sm">
+            Complete el formulario para {competencia ? "actualizar" : "registrar"} la evaluación
+          </p>
+        </div>
 
-          {/* Indicador de Progreso mejorado */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-sm font-medium text-gray-700">Progreso del formulario</p>
-              <p className="text-sm font-medium text-blue-600">{progressPercentage}% completado</p>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-2.5 rounded-full transition-all duration-500 ease-out"
-                style={{
-                  width: `${progressPercentage}%`,
-                  backgroundColor:
-                    progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
-                }}
-              ></div>
-            </div>
+        {/* Indicador de Progreso */}
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-1 px-1">
+            <p className="text-xs font-medium text-gray-700">Progreso del formulario</p>
+            <p className="text-xs font-medium text-blue-600">{progressPercentage}%</p>
           </div>
-
-          {/* Navegación por pestañas para móvil */}
-          <div className="md:hidden border-b border-gray-200 px-4 mt-4">
-            <div className="flex overflow-x-auto space-x-4 scrollbar-hide">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center py-3 px-1 border-b-2 whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "border-blue-600 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <span className="mr-2">{tab.icon}</span>
-                  <span className="font-medium">{tab.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} id="competenciaForm" className="space-y-6">
-            {/* Sección 0: Selección del tipo de evaluador */}
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 0 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Tipo de Evaluador
-                </h3>
-              </div>
+              className="h-2 rounded-full transition-all duration-500 ease-out"
+              style={{
+                width: `${progressPercentage}%`,
+                backgroundColor: progressPercentage < 30 ? "#f87171" : progressPercentage < 70 ? "#fbbf24" : "#34d399",
+              }}
+            ></div>
+          </div>
+        </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Seleccionar tipo de Evaluador <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Award className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <select
-                      name="tipoEvaluador"
-                      value={formData.tipoEvaluador}
-                      onChange={handleChange}
-                      required
-                      title="Seleccione el tipo de evaluador"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                    >
-                      <option value="">Seleccione</option>
-                      <option value="Evaluador 1">Evaluador 1</option>
-                      <option value="Evaluador 2">Evaluador 2</option>
-                      <option value="Presidente Tribunal">Presidente Tribunal</option>
-                    </select>
-                  </div>
-                  {formData.tipoEvaluador === "" && (
-                    <p className="mt-1 text-xs text-red-500">Debe seleccionar un tipo de evaluador.</p>
-                  )}
-                </div>
-              </div>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} id="competenciaForm" className="space-y-3">
+          {/* Sección 0: Selección del tipo de evaluador */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <User className="h-3 w-3 mr-1" />
+                Tipo de Evaluador
+              </h3>
             </div>
 
-            {/* Sección 1: Datos del Postulante */}
-            <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 0 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Datos del Postulante
-                </h3>
-              </div>
-
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Campo CI */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      CI <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="carnet"
-                        value={formData.carnet}
-                        onChange={handleChange}
-                        placeholder="Ingrese CI (máximo 10 dígitos)"
-                        maxLength="10"
-                        pattern="\d{1,10}"
-                        title="Solo se permiten números y máximo 10 dígitos"
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Ingrese el número de carnet de identidad</p>
+            <div className="p-2 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Seleccionar tipo de Evaluador <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Award className="h-4 w-4 text-gray-400" />
                   </div>
-
-                  {/* Campo Nombre del Postulante */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre del Postulante <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleChange}
-                        readOnly
-                        placeholder="Nombre autocompletado"
-                        title="El nombre se autocompleta al ingresar el CI"
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
-                  </div>
-
-                  {/* Filtro para materias por carrera */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Filtrar materias por Carrera:
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Briefcase className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        value={filtroCarrera}
-                        onChange={(e) => setFiltroCarrera(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Mostrar todas</option>
-                        {uniqueCarreras.map((carrera) => (
-                          <option key={carrera} value={carrera}>
-                            {carrera}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">Filtra las materias disponibles por carrera</p>
-                  </div>
-
-                  {/* Campo Fecha */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Calendar className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="date"
-                        name="fecha"
-                        value={formData.fecha}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                    </div>
-                  </div>
+                  <select
+                    name="tipoEvaluador"
+                    value={formData.tipoEvaluador}
+                    onChange={handleChange}
+                    required
+                    title="Seleccione el tipo de evaluador"
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="Evaluador 1">Evaluador 1</option>
+                    <option value="Evaluador 2">Evaluador 2</option>
+                    <option value="Presidente Tribunal">Presidente Tribunal</option>
+                  </select>
                 </div>
-
-                {/* Selección de Materia */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Materia <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Book className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <select
-                      name="materia"
-                      value={formData.materia}
-                      onChange={handleMateriaChange}
-                      required
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                    >
-                      <option value="">Seleccione la asignatura</option>
-                      {materiasFiltradas.length > 0 ? (
-                        materiasFiltradas.map((mat, idx) => (
-                          <option key={idx} value={mat.asignatura}>
-                            {mat.asignatura}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="" disabled>
-                          No se encontraron materias para la carrera seleccionada
-                        </option>
-                      )}
-                    </select>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">Seleccione la materia a evaluar</p>
-                </div>
-
-                {/* Mostrar la carrera seleccionada */}
-                {formData.carrera && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-medium text-blue-800">
-                      Carrera: <span className="font-bold">{formData.carrera}</span>
-                    </p>
-                  </div>
+                {formData.tipoEvaluador === "" && (
+                  <p className="mt-1 text-xs text-red-500">Debe seleccionar un tipo de evaluador.</p>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Sección 2: Nombre del Evaluador */}
-            <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 1 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Datos del Evaluador
-                </h3>
+          {/* Sección 1: Datos del Postulante */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <User className="h-3 w-3 mr-1" />
+                Datos del Postulante
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              {/* Campo CI */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  CI <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="carnet"
+                    value={formData.carnet}
+                    onChange={handleChange}
+                    placeholder="Ingrese CI (máximo 10 dígitos)"
+                    maxLength="10"
+                    pattern="\d{1,10}"
+                    title="Solo se permiten números y máximo 10 dígitos"
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Ingrese el número de carnet de identidad</p>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de Evaluador <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="nombreEvaluador"
-                      value={formData.nombreEvaluador}
-                      onChange={handleChange}
-                      placeholder="Ingrese el nombre del evaluador"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
+              {/* Campo Nombre del Postulante */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nombre del Postulante <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-gray-400" />
                   </div>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    readOnly
+                    placeholder="Nombre autocompletado"
+                    title="El nombre se autocompleta al ingresar el CI"
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Se autocompleta al ingresar el CI</p>
+              </div>
+
+              {/* Filtro para materias por carrera */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Filtrar materias por Carrera:</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Briefcase className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    value={filtroCarrera}
+                    onChange={(e) => setFiltroCarrera(e.target.value)}
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Mostrar todas</option>
+                    {uniqueCarreras.map((carrera) => (
+                      <option key={carrera} value={carrera}>
+                        {carrera}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Filtra las materias disponibles por carrera</p>
+              </div>
+
+              {/* Campo Fecha */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Fecha <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="date"
+                    name="fecha"
+                    value={formData.fecha}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Selección de Materia */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Materia <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Book className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="materia"
+                    value={formData.materia}
+                    onChange={handleMateriaChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione la asignatura</option>
+                    {materiasFiltradas.length > 0 ? (
+                      materiasFiltradas.map((mat, idx) => (
+                        <option key={idx} value={mat.asignatura}>
+                          {mat.asignatura}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No se encontraron materias para la carrera seleccionada
+                      </option>
+                    )}
+                  </select>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">Seleccione la materia a evaluar</p>
+              </div>
+
+              {/* Mostrar la carrera seleccionada */}
+              {formData.carrera && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs font-medium text-blue-800">
+                    Carrera: <span className="font-bold">{formData.carrera}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sección 2: Nombre del Evaluador */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <User className="h-3 w-3 mr-1" />
+                Datos del Evaluador
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nombre de Evaluador <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <User className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="nombreEvaluador"
+                    value={formData.nombreEvaluador}
+                    onChange={handleChange}
+                    placeholder="Ingrese el nombre del evaluador"
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Sección 3: Segunda Etapa - Exposición del Plan de Trabajo */}
-            <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 2 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" />
-                  Segunda Etapa: Exposición del Plan de Trabajo (30%)
-                </h3>
+          {/* Sección 3: Segunda Etapa - Exposición del Plan de Trabajo */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <BookOpen className="h-3 w-3 mr-1" />
+                Segunda Etapa: Plan de Trabajo (30%)
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              {/* Concordancia con el perfil profesional */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Concordancia con el perfil profesional <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Briefcase className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="planConcordancia"
+                    value={formData.planConcordancia}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Concordancia con el perfil profesional */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Concordancia con el perfil profesional <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Briefcase className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="planConcordancia"
-                        value={formData.planConcordancia}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="20">20 - Excelente</option>
-                      </select>
-                    </div>
+              {/* Competencia */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Competencia <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Award className="h-4 w-4 text-gray-400" />
                   </div>
-
-                  {/* Competencia */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Competencia <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Award className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="planCompetencia"
-                        value={formData.planCompetencia}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="20">20 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Contenidos */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contenidos <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="planContenidos"
-                        value={formData.planContenidos}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="20">20 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Estrategias de enseñanza */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estrategias de enseñanza <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <PenTool className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="planEstrategiasEnsenanza"
-                        value={formData.planEstrategiasEnsenanza}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="20">20 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Estrategias de evaluación */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estrategias de evaluación <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <ClipboardCheck className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="planEstrategiasEvaluacion"
-                        value={formData.planEstrategiasEvaluacion}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="20">20 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
+                  <select
+                    name="planCompetencia"
+                    value={formData.planCompetencia}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* Resultados de la segunda etapa */}
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-medium text-blue-800 mb-2 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-blue-600" />
-                    Resultados Segunda Etapa
-                  </h3>
-                  <div className="space-y-2">
-                    <p className={`text-sm ${stage2Color}`}>
-                      Sumatoria: <span className="font-semibold">{stage2Sum} / 100</span>
-                    </p>
-                    <p className="text-base font-bold text-blue-800">Promedio (30%): {stage2Promedio}</p>
+              {/* Contenidos */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Contenidos <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <FileText className="h-4 w-4 text-gray-400" />
                   </div>
+                  <select
+                    name="planContenidos"
+                    value={formData.planContenidos}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Estrategias de enseñanza */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Estrategias de enseñanza <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <PenTool className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="planEstrategiasEnsenanza"
+                    value={formData.planEstrategiasEnsenanza}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Estrategias de evaluación */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Estrategias de evaluación <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <ClipboardCheck className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="planEstrategiasEvaluacion"
+                    value={formData.planEstrategiasEvaluacion}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="20">20 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Resultados de la segunda etapa */}
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-800 mb-1 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-1 text-blue-600" />
+                  Resultados Segunda Etapa
+                </h3>
+                <div className="space-y-1">
+                  <p className={`text-xs ${stage2Color}`}>
+                    Sumatoria: <span className="font-semibold">{stage2Sum} / 100</span>
+                  </p>
+                  <p className="text-sm font-bold text-blue-800">Promedio (30%): {stage2Promedio}</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Sección 4: Tercera Etapa - Evaluación de Procesos Pedagógicos */}
-            <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 3 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Layers className="h-5 w-5 mr-2" />
-                  Tercera Etapa: Evaluación de Procesos Pedagógicos y Didácticos (30%)
-                </h3>
+          {/* Sección 4: Tercera Etapa - Evaluación de Procesos Pedagógicos */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <Layers className="h-3 w-3 mr-1" />
+                Tercera Etapa: Procesos Pedagógicos (30%)
+              </h3>
+            </div>
+
+            <div className="p-2 space-y-3">
+              {/* Motivación a los estudiantes */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Motivación a los estudiantes <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Lightbulb className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="procesoMotivacion"
+                    value={formData.procesoMotivacion}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Motivación a los estudiantes */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Motivación a los estudiantes <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lightbulb className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="procesoMotivacion"
-                        value={formData.procesoMotivacion}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="25">25 - Excelente</option>
-                      </select>
-                    </div>
+              {/* Dominio y Conocimiento */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Dominio y Conocimiento <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <BookOpen className="h-4 w-4 text-gray-400" />
                   </div>
-
-                  {/* Dominio y Conocimiento */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Dominio y Conocimiento <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <BookOpen className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="procesoDominio"
-                        value={formData.procesoDominio}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="25">25 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Uso de las TICs */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Uso de las TICs <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Monitor className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="procesoTICs"
-                        value={formData.procesoTICs}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="25">25 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Explicación de la unidad temática */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Explicación de la unidad temática <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <select
-                        name="procesoExplicacion"
-                        value={formData.procesoExplicacion}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-                      >
-                        <option value="">Seleccione</option>
-                        <option value="10">10 - Regular</option>
-                        <option value="15">15 - Bueno</option>
-                        <option value="25">25 - Excelente</option>
-                      </select>
-                    </div>
-                  </div>
+                  <select
+                    name="procesoDominio"
+                    value={formData.procesoDominio}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* Resultados de la tercera etapa */}
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-medium text-blue-800 mb-2 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-blue-600" />
-                    Resultados Tercera Etapa
-                  </h3>
-                  <div className="space-y-2">
-                    <p className={`text-sm ${stage3Color}`}>
-                      Sumatoria: <span className="font-semibold">{stage3Sum} / 100</span>
-                    </p>
-                    <p className="text-base font-bold text-blue-800">Promedio (30%): {stage3Promedio}</p>
+              {/* Uso de las TICs */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Uso de las TICs <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Monitor className="h-4 w-4 text-gray-400" />
                   </div>
+                  <select
+                    name="procesoTICs"
+                    value={formData.procesoTICs}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Explicación de la unidad temática */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Explicación de la unidad temática <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <select
+                    name="procesoExplicacion"
+                    value={formData.procesoExplicacion}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="10">10 - Regular</option>
+                    <option value="15">15 - Bueno</option>
+                    <option value="25">25 - Excelente</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Resultados de la tercera etapa */}
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-800 mb-1 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-1 text-blue-600" />
+                  Resultados Tercera Etapa
+                </h3>
+                <div className="space-y-1">
+                  <p className={`text-xs ${stage3Color}`}>
+                    Sumatoria: <span className="font-semibold">{stage3Sum} / 100</span>
+                  </p>
+                  <p className="text-sm font-bold text-blue-800">Promedio (30%): {stage3Promedio}</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Sección 5: Resultados Finales */}
-            <div
-              className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${activeTab !== 4 && "hidden md:block"}`}
-            >
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 sm:px-6 sm:py-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center">
-                  <Percent className="h-5 w-5 mr-2" />
-                  Resultados Finales
-                </h3>
-              </div>
+          {/* Sección 5: Resultados Finales */}
+          <div className="bg-blue-50 w-full">
+            <div className="bg-blue-600 py-2">
+              <h3 className="text-sm font-semibold text-white flex items-center justify-center">
+                <Percent className="h-3 w-3 mr-1" />
+                Resultados Finales
+              </h3>
+            </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="text-lg font-medium text-blue-800 mb-4">Resumen de Evaluación</h3>
-                  <div className="space-y-3">
+            <div className="p-2 space-y-3">
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">Resumen de Evaluación</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs font-medium text-gray-700">Plan de Trabajo (30%):</p>
+                    <p className="text-xs font-bold text-blue-700">{stage2Promedio}</p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${(stage2Sum / 100) * 100}%`,
+                        backgroundColor: stage2Sum <= 60 ? "#f87171" : stage2Sum > 80 ? "#34d399" : "#fbbf24",
+                      }}
+                    ></div>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs font-medium text-gray-700">Procesos Pedagógicos (30%):</p>
+                    <p className="text-xs font-bold text-blue-700">{stage3Promedio}</p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{
+                        width: `${(stage3Sum / 100) * 100}%`,
+                        backgroundColor: stage3Sum <= 60 ? "#f87171" : stage3Sum > 80 ? "#34d399" : "#fbbf24",
+                      }}
+                    ></div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-gray-200">
                     <div className="flex justify-between items-center">
-                      <p className="text-sm font-medium text-gray-700">Plan de Trabajo (30%):</p>
-                      <p className="text-sm font-bold text-blue-700">{stage2Promedio}</p>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full"
-                        style={{
-                          width: `${(stage2Sum / 100) * 100}%`,
-                          backgroundColor: stage2Sum <= 60 ? "#f87171" : stage2Sum > 80 ? "#34d399" : "#fbbf24",
-                        }}
-                      ></div>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-4">
-                      <p className="text-sm font-medium text-gray-700">Procesos Pedagógicos (30%):</p>
-                      <p className="text-sm font-bold text-blue-700">{stage3Promedio}</p>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full"
-                        style={{
-                          width: `${(stage3Sum / 100) * 100}%`,
-                          backgroundColor: stage3Sum <= 60 ? "#f87171" : stage3Sum > 80 ? "#34d399" : "#fbbf24",
-                        }}
-                      ></div>
-                    </div>
-
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <p className="text-base font-semibold text-gray-800">Nota Final:</p>
-                        <p className="text-lg font-bold text-blue-800">
-                          {(Number.parseFloat(stage2Promedio) + Number.parseFloat(stage3Promedio)).toFixed(2)}
-                        </p>
-                      </div>
+                      <p className="text-sm font-semibold text-gray-800">Nota Final:</p>
+                      <p className="text-sm font-bold text-blue-800">
+                        {(Number.parseFloat(stage2Promedio) + Number.parseFloat(stage3Promedio)).toFixed(2)}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Botones de Acción */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6 sm:mt-8">
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting || isVerifying}
-                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
-                  isSubmitting || isVerifying
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
-                }`}
-              >
-                Cancelar
-              </button>
+          {/* Botones de Acción */}
+          <div className="flex flex-col gap-2 mt-4 mb-20">
+            <button
+              type="submit"
+              disabled={isSubmitting || isVerifying}
+              className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                isSubmitting || isVerifying
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+              }`}
+            >
+              <span className="flex items-center justify-center">
+                {isSubmitting || isVerifying ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    {isVerifying ? "Verificando..." : "Procesando..."}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    {competencia ? "Guardar Cambios" : "Registrar"}
+                  </>
+                )}
+              </span>
+            </button>
 
-              <button
-                type="submit"
-                disabled={isSubmitting || isVerifying}
-                className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-medium text-center transition-all duration-200 ${
-                  isSubmitting || isVerifying
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
-                }`}
-              >
-                <span className="flex items-center justify-center">
-                  {isSubmitting || isVerifying ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 sm:h-5 sm:w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      {isVerifying ? "Verificando..." : "Procesando..."}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      {competencia ? "Guardar Cambios" : "Registrar"}
-                    </>
-                  )}
-                </span>
-              </button>
-            </div>
-          </form>
-        </div>
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting || isVerifying}
+              className={`w-full px-4 py-3 rounded-lg font-medium text-center transition-all duration-200 ${
+                isSubmitting || isVerifying
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Botón flotante para dispositivos móviles */}
@@ -1201,10 +1146,8 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         }}
         disabled={isSubmitting || isVerifying}
         className={`fixed bottom-6 right-6 w-14 h-14 flex items-center justify-center rounded-full shadow-lg transition-all duration-200 z-50 ${
-          isSubmitting || isVerifying
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-        } md:hidden`}
+          isSubmitting || isVerifying ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+        }`}
         title={competencia ? "Actualizar Registro" : "Registrar Competencia"}
       >
         {isSubmitting || isVerifying ? (
