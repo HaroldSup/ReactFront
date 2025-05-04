@@ -10,9 +10,15 @@ import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma 
 
 function Examendeconocimientos() {
   const [registros, setRegistros] = useState([])
+  const [registrosFiltrados, setRegistrosFiltrados] = useState([])
   const [registrosMeritos, setRegistrosMeritos] = useState([]) // Para almacenar los registros de méritos
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [conocimientoEdit, setConocimientoEdit] = useState(null)
+  const [filtros, setFiltros] = useState({
+    busqueda: "",
+    campo: "todos", // Opciones: todos, nombre, carnet, profesion, carrera
+  })
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
@@ -35,6 +41,7 @@ function Examendeconocimientos() {
       // Ordenar la lista de registros de forma descendente según la Nota Final
       registrosData.sort((a, b) => Number(b.notaFinal) - Number(a.notaFinal))
       setRegistros(registrosData)
+      setRegistrosFiltrados(registrosData) // Inicialmente, mostrar todos los registros
     } catch (error) {
       console.error("Error al obtener los registros:", error)
       Swal.fire({
@@ -61,6 +68,75 @@ function Examendeconocimientos() {
     fetchRegistros()
     fetchRegistrosMeritos() // Cargar también los registros de méritos
   }, [baseURL])
+
+  // Aplicar filtros cuando cambian los criterios de búsqueda
+  useEffect(() => {
+    aplicarFiltros()
+  }, [filtros, registros])
+
+  // Función para aplicar los filtros a los registros
+  const aplicarFiltros = () => {
+    const { busqueda, campo } = filtros
+
+    if (!busqueda.trim()) {
+      setRegistrosFiltrados(registros)
+      return
+    }
+
+    const busquedaLower = busqueda.toLowerCase().trim()
+
+    const resultadosFiltrados = registros.filter((registro) => {
+      // Si el campo es "todos", buscar en todos los campos
+      if (campo === "todos") {
+        return (
+          (registro.nombre?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.carnet?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.profesion?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+        )
+      }
+
+      // Buscar en el campo específico
+      switch (campo) {
+        case "nombre":
+          return (registro.nombre?.toLowerCase() || "").includes(busquedaLower)
+        case "carnet":
+          return (registro.carnet?.toLowerCase() || "").includes(busquedaLower)
+        case "profesion":
+          return (registro.profesion?.toLowerCase() || "").includes(busquedaLower)
+        case "carrera":
+          return (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+        default:
+          return false
+      }
+    })
+
+    setRegistrosFiltrados(resultadosFiltrados)
+  }
+
+  // Manejar cambios en el campo de búsqueda
+  const handleBusquedaChange = (e) => {
+    setFiltros({
+      ...filtros,
+      busqueda: e.target.value,
+    })
+  }
+
+  // Manejar cambios en el campo de filtro
+  const handleCampoChange = (e) => {
+    setFiltros({
+      ...filtros,
+      campo: e.target.value,
+    })
+  }
+
+  // Limpiar todos los filtros
+  const limpiarFiltros = () => {
+    setFiltros({
+      busqueda: "",
+      campo: "todos",
+    })
+  }
 
   // Manejo de eliminación de un registro
   const handleDelete = async (id) => {
@@ -100,6 +176,7 @@ function Examendeconocimientos() {
     if (user && !user.administrador) {
       if (nuevoRegistro) {
         setRegistros([nuevoRegistro])
+        setRegistrosFiltrados([nuevoRegistro])
       } else {
         fetchRegistros()
       }
@@ -621,6 +698,90 @@ function Examendeconocimientos() {
         </div>
       </div>
 
+      {/* Sección de filtros */}
+      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center w-full md:w-auto">
+            <div className="relative flex-grow">
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={filtros.busqueda}
+                onChange={handleBusquedaChange}
+                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="absolute left-3 top-2.5 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className="ml-2 p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              title="Mostrar filtros avanzados"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {mostrarFiltros && (
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="flex items-center">
+                <label htmlFor="campo" className="mr-2 text-sm font-medium text-gray-700">
+                  Filtrar por:
+                </label>
+                <select
+                  id="campo"
+                  value={filtros.campo}
+                  onChange={handleCampoChange}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="todos">Todos los campos</option>
+                  <option value="nombre">Nombre</option>
+                  <option value="carnet">Carnet</option>
+                  <option value="profesion">Profesión</option>
+                  <option value="carrera">Carrera</option>
+                </select>
+              </div>
+              <button
+                onClick={limpiarFiltros}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Contador de resultados */}
+        <div className="mt-4 text-sm text-gray-600">
+          Mostrando {registrosFiltrados.length} de {registros.length} registros
+        </div>
+      </div>
+
       {mostrarFormulario ? (
         <div className="bg-white p-6 rounded-lg shadow-lg">
           <Registrodeconocimientos
@@ -650,97 +811,111 @@ function Examendeconocimientos() {
               </tr>
             </thead>
             <tbody className="text-gray-700 text-sm font-light">
-              {registros.map((registro, index) => (
-                <tr key={registro._id} className="border-b border-gray-200 hover:bg-gray-100">
-                  <td className="py-3 px-2 text-left whitespace-nowrap">{index + 1}</td>
-                  <td className="py-3 px-2 text-left">{registro.nombre}</td>
-                  <td className="py-3 px-2 text-left">{registro.carnet}</td>
-                  <td className="py-3 px-2 text-left">{registro.nombreEvaluador || ""}</td>
-                  <td className="py-3 px-2 text-left">{registro.profesion || ""}</td>
-                  <td className="py-3 px-2 text-left">{registro.carrera || ""}</td>
-                  <td className="py-3 px-2 text-left">{registro.materia || ""}</td>
-                  <td className="py-3 px-2 text-left">{registro.habilitado || ""}</td>
-                  <td className="py-3 px-2 text-left">{registro.observaciones || ""}</td>
-                  <td className="py-3 px-2 text-left">{new Date(registro.fecha).toLocaleDateString()}</td>
-                  <td className="py-3 px-2 text-left">{registro.notaFinal}</td>
-                  <td className="py-3 px-2 text-center">
-                    <div className="flex justify-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setConocimientoEdit(registro)
-                          setMostrarFormulario(true)
-                        }}
-                        className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700"
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(registro._id)}
-                        className="bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-700"
-                      >
-                        🗑️ Eliminar
-                      </button>
-                    </div>
+              {registrosFiltrados.length > 0 ? (
+                registrosFiltrados.map((registro, index) => (
+                  <tr key={registro._id} className="border-b border-gray-200 hover:bg-gray-100">
+                    <td className="py-3 px-2 text-left whitespace-nowrap">{index + 1}</td>
+                    <td className="py-3 px-2 text-left">{registro.nombre}</td>
+                    <td className="py-3 px-2 text-left">{registro.carnet}</td>
+                    <td className="py-3 px-2 text-left">{registro.nombreEvaluador || ""}</td>
+                    <td className="py-3 px-2 text-left">{registro.profesion || ""}</td>
+                    <td className="py-3 px-2 text-left">{registro.carrera || ""}</td>
+                    <td className="py-3 px-2 text-left">{registro.materia || ""}</td>
+                    <td className="py-3 px-2 text-left">{registro.habilitado || ""}</td>
+                    <td className="py-3 px-2 text-left">{registro.observaciones || ""}</td>
+                    <td className="py-3 px-2 text-left">{new Date(registro.fecha).toLocaleDateString()}</td>
+                    <td className="py-3 px-2 text-left">{registro.notaFinal}</td>
+                    <td className="py-3 px-2 text-center">
+                      <div className="flex justify-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setConocimientoEdit(registro)
+                            setMostrarFormulario(true)
+                          }}
+                          className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700"
+                        >
+                          ✏️ Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(registro._id)}
+                          className="bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-700"
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="12" className="py-6 text-center text-gray-500">
+                    No se encontraron registros que coincidan con los criterios de búsqueda
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
 
           {/* Vista en tarjetas para pantallas pequeñas */}
           <div className="block sm:hidden w-full">
-            {registros.map((registro, index) => (
-              <div key={registro._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
-                <div>
-                  <span className="font-bold text-gray-800">
-                    {index + 1}. {registro.nombre} - {registro.carnet}
-                  </span>
+            {registrosFiltrados.length > 0 ? (
+              registrosFiltrados.map((registro, index) => (
+                <div key={registro._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
+                  <div>
+                    <span className="font-bold text-gray-800">
+                      {index + 1}. {registro.nombre} - {registro.carnet}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-gray-600">
+                      <strong>Evaluador:</strong> {registro.nombreEvaluador || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Profesión:</strong> {registro.profesion || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Carrera:</strong> {registro.carrera || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Materia:</strong> {registro.materia || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Estado:</strong> {registro.habilitado || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Observaciones:</strong> {registro.observaciones || ""}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Nota Final (40%):</strong> {registro.notaFinal}
+                    </p>
+                  </div>
+                  <div className="mt-4 flex justify-center space-x-4">
+                    <button
+                      onClick={() => {
+                        setConocimientoEdit(registro)
+                        setMostrarFormulario(true)
+                      }}
+                      className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(registro._id)}
+                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition"
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <p className="text-gray-600">
-                    <strong>Evaluador:</strong> {registro.nombreEvaluador || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Profesión:</strong> {registro.profesion || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Carrera:</strong> {registro.carrera || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Materia:</strong> {registro.materia || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Estado:</strong> {registro.habilitado || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Observaciones:</strong> {registro.observaciones || ""}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
-                  </p>
-                  <p className="text-gray-600">
-                    <strong>Nota Final (40%):</strong> {registro.notaFinal}
-                  </p>
-                </div>
-                <div className="mt-4 flex justify-center space-x-4">
-                  <button
-                    onClick={() => {
-                      setConocimientoEdit(registro)
-                      setMostrarFormulario(true)
-                    }}
-                    className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(registro._id)}
-                    className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition"
-                  >
-                    🗑️ Eliminar
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-gray-500">
+                No se encontraron registros que coincidan con los criterios de búsqueda
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

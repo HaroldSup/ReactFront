@@ -10,8 +10,13 @@ import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma 
 
 function Reportes() {
   const [reportData, setReportData] = useState([])
-  const [filterCareer, setFilterCareer] = useState("")
-  const [filterCI, setFilterCI] = useState("")
+  const [registrosFiltrados, setRegistrosFiltrados] = useState([])
+  const [filtros, setFiltros] = useState({
+    busqueda: "",
+    campo: "todos", // Opciones: todos, nombre, carnet, profesion, materia, carrera
+  })
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
@@ -203,6 +208,7 @@ function Reportes() {
         })
 
         setReportData(reportArray)
+        setRegistrosFiltrados(reportArray) // Inicialmente, mostrar todos los registros
       } catch (error) {
         console.error("Error al obtener datos para el reporte:", error)
         Swal.fire({
@@ -216,16 +222,81 @@ function Reportes() {
     fetchData()
   }, [baseURL])
 
-  // Filtrar los datos según "carrera" y "carnet"
-  const filteredData = reportData.filter(
-    (record) =>
-      record.carrera.toLowerCase().includes(filterCareer.toLowerCase()) &&
-      (record.carnet?.toLowerCase() || "").includes(filterCI.toLowerCase()),
-  )
+  // Aplicar filtros cuando cambian los criterios de búsqueda
+  useEffect(() => {
+    aplicarFiltros()
+  }, [filtros, reportData])
+
+  // Función para aplicar los filtros a los registros
+  const aplicarFiltros = () => {
+    const { busqueda, campo } = filtros
+
+    if (!busqueda.trim()) {
+      setRegistrosFiltrados(reportData)
+      return
+    }
+
+    const busquedaLower = busqueda.toLowerCase().trim()
+
+    const resultadosFiltrados = reportData.filter((registro) => {
+      // Si el campo es "todos", buscar en todos los campos
+      if (campo === "todos") {
+        return (
+          (registro.nombre?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.carnet?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.profesion?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.materia?.toLowerCase() || "").includes(busquedaLower) ||
+          (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+        )
+      }
+
+      // Buscar en el campo específico
+      switch (campo) {
+        case "nombre":
+          return (registro.nombre?.toLowerCase() || "").includes(busquedaLower)
+        case "carnet":
+          return (registro.carnet?.toLowerCase() || "").includes(busquedaLower)
+        case "profesion":
+          return (registro.profesion?.toLowerCase() || "").includes(busquedaLower)
+        case "materia":
+          return (registro.materia?.toLowerCase() || "").includes(busquedaLower)
+        case "carrera":
+          return (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+        default:
+          return false
+      }
+    })
+
+    setRegistrosFiltrados(resultadosFiltrados)
+  }
+
+  // Manejar cambios en el campo de búsqueda
+  const handleBusquedaChange = (e) => {
+    setFiltros({
+      ...filtros,
+      busqueda: e.target.value,
+    })
+  }
+
+  // Manejar cambios en el campo de filtro
+  const handleCampoChange = (e) => {
+    setFiltros({
+      ...filtros,
+      campo: e.target.value,
+    })
+  }
+
+  // Limpiar todos los filtros
+  const limpiarFiltros = () => {
+    setFiltros({
+      busqueda: "",
+      campo: "todos",
+    })
+  }
 
   // Exportar a Excel usando los datos filtrados
   const handleDownloadExcel = () => {
-    if (filteredData.length === 0) {
+    if (registrosFiltrados.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
@@ -235,7 +306,7 @@ function Reportes() {
     }
 
     const worksheet = XLSX.utils.json_to_sheet(
-      filteredData.map((record) => ({
+      registrosFiltrados.map((record) => ({
         Nro: record.nro,
         Carnet: record.carnet,
         Nombre: record.nombre,
@@ -260,7 +331,7 @@ function Reportes() {
 
   // Exportar a PDF usando los datos filtrados
   const handleDownloadPDF = () => {
-    if (filteredData.length === 0) {
+    if (registrosFiltrados.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
@@ -272,7 +343,7 @@ function Reportes() {
     // Agrupar registros por carrera y materia
     const registrosPorCarrera = {}
 
-    filteredData.forEach((registro) => {
+    registrosFiltrados.forEach((registro) => {
       const carrera = registro.carrera || "Sin Carrera"
       const materia = registro.materia || "Sin Materia"
 
@@ -767,33 +838,7 @@ function Reportes() {
       {/* Encabezado: título, filtros y botones de descarga */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Reporte General de Notas</h2>
-        <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-          <div>
-            <label htmlFor="filterCareer" className="block text-gray-700 mb-1">
-              Filtrar por Carrera:
-            </label>
-            <input
-              id="filterCareer"
-              type="text"
-              value={filterCareer}
-              onChange={(e) => setFilterCareer(e.target.value)}
-              placeholder="Ingrese la carrera..."
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-            />
-          </div>
-          <div>
-            <label htmlFor="filterCI" className="block text-gray-700 mb-1">
-              Filtrar por CI:
-            </label>
-            <input
-              id="filterCI"
-              type="text"
-              value={filterCI}
-              onChange={(e) => setFilterCI(e.target.value)}
-              placeholder="Ingrese el CI..."
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-300"
-            />
-          </div>
+        <div className="flex space-x-4 mt-4 sm:mt-0">
           <button
             onClick={handleDownloadExcel}
             className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
@@ -806,6 +851,91 @@ function Reportes() {
           >
             Descargar PDF
           </button>
+        </div>
+      </div>
+
+      {/* Sección de filtros mejorada */}
+      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center w-full md:w-auto">
+            <div className="relative flex-grow">
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={filtros.busqueda}
+                onChange={handleBusquedaChange}
+                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <div className="absolute left-3 top-2.5 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+            <button
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+              className="ml-2 p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              title="Mostrar filtros avanzados"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {mostrarFiltros && (
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+              <div className="flex items-center">
+                <label htmlFor="campo" className="mr-2 text-sm font-medium text-gray-700">
+                  Filtrar por:
+                </label>
+                <select
+                  id="campo"
+                  value={filtros.campo}
+                  onChange={handleCampoChange}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="todos">Todos los campos</option>
+                  <option value="nombre">Nombre</option>
+                  <option value="carnet">Carnet</option>
+                  <option value="profesion">Profesión</option>
+                  <option value="materia">Materia</option>
+                  <option value="carrera">Carrera</option>
+                </select>
+              </div>
+              <button
+                onClick={limpiarFiltros}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Contador de resultados */}
+        <div className="mt-4 text-sm text-gray-600">
+          Mostrando {registrosFiltrados.length} de {reportData.length} registros
         </div>
       </div>
 
@@ -831,71 +961,85 @@ function Reportes() {
             </tr>
           </thead>
           <tbody className="text-gray-700 text-sm font-light">
-            {filteredData.map((record) => (
-              <tr
-                key={`${record.carnet}-${record.materia}-${record.carrera}`}
-                className="border-b border-gray-200 hover:bg-gray-100"
-              >
-                <td className="py-2 px-4">{record.nro}</td>
-                <td className="py-2 px-4">{record.carnet}</td>
-                <td className="py-2 px-4">{record.nombre}</td>
-                <td className="py-2 px-4">{record.profesion}</td>
-                <td className="py-2 px-4">{record.materia}</td>
-                <td className="py-2 px-4">{record.carrera}</td>
-                <td className="py-2 px-4">{record.meritos}</td>
-                <td className="py-2 px-4">{record.meritosHabilitado}</td>
-                <td className="py-2 px-4">{record.conocimientos}</td>
-                <td className="py-2 px-4">{record.conocimientosHabilitado}</td>
-                <td className="py-2 px-4">{record.resultadoFases2y3.toFixed(2)}</td>
-                <td className="py-2 px-4">{record.totalExamenCompetencia.toFixed(2)}</td>
-                <td className="py-2 px-4">{record.resultadoFinal.toFixed(2)}</td>
+            {registrosFiltrados.length > 0 ? (
+              registrosFiltrados.map((record) => (
+                <tr
+                  key={`${record.carnet}-${record.materia}-${record.carrera}`}
+                  className="border-b border-gray-200 hover:bg-gray-100"
+                >
+                  <td className="py-2 px-4">{record.nro}</td>
+                  <td className="py-2 px-4">{record.carnet}</td>
+                  <td className="py-2 px-4">{record.nombre}</td>
+                  <td className="py-2 px-4">{record.profesion}</td>
+                  <td className="py-2 px-4">{record.materia}</td>
+                  <td className="py-2 px-4">{record.carrera}</td>
+                  <td className="py-2 px-4">{record.meritos}</td>
+                  <td className="py-2 px-4">{record.meritosHabilitado}</td>
+                  <td className="py-2 px-4">{record.conocimientos}</td>
+                  <td className="py-2 px-4">{record.conocimientosHabilitado}</td>
+                  <td className="py-2 px-4">{record.resultadoFases2y3.toFixed(2)}</td>
+                  <td className="py-2 px-4">{record.totalExamenCompetencia.toFixed(2)}</td>
+                  <td className="py-2 px-4">{record.resultadoFinal.toFixed(2)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="13" className="py-6 text-center text-gray-500">
+                  No se encontraron registros que coincidan con los criterios de búsqueda
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Vista en tarjetas para pantallas pequeñas */}
       <div className="bg-white rounded-xl shadow-lg block sm:hidden mt-4">
-        {filteredData.map((record) => (
-          <div
-            key={`${record.carnet}-${record.materia}-${record.carrera}`}
-            className="border-b border-gray-200 hover:bg-gray-100 p-4"
-          >
-            <div className="mb-1">
-              <span className="font-bold text-gray-800">
-                {record.nro}. {record.nombre}
-              </span>
+        {registrosFiltrados.length > 0 ? (
+          registrosFiltrados.map((record) => (
+            <div
+              key={`${record.carnet}-${record.materia}-${record.carrera}`}
+              className="border-b border-gray-200 hover:bg-gray-100 p-4"
+            >
+              <div className="mb-1">
+                <span className="font-bold text-gray-800">
+                  {record.nro}. {record.nombre}
+                </span>
+              </div>
+              <p className="text-gray-600">
+                <strong>Carnet:</strong> {record.carnet}
+              </p>
+              <p className="text-gray-600">
+                <strong>Profesión:</strong> {record.profesion}
+              </p>
+              <p className="text-gray-600">
+                <strong>Materia:</strong> {record.materia}
+              </p>
+              <p className="text-gray-600">
+                <strong>Carrera:</strong> {record.carrera}
+              </p>
+              <p className="text-gray-600">
+                <strong>Méritos:</strong> {record.meritos} ({record.meritosHabilitado})
+              </p>
+              <p className="text-gray-600">
+                <strong>Conocimientos:</strong> {record.conocimientos} ({record.conocimientosHabilitado})
+              </p>
+              <p className="text-gray-600">
+                <strong>Fases 2 y 3:</strong> {record.resultadoFases2y3.toFixed(2)}
+              </p>
+              <p className="text-gray-600">
+                <strong>Total Competencia:</strong> {record.totalExamenCompetencia.toFixed(2)}
+              </p>
+              <p className="text-gray-600">
+                <strong>Resultado Final:</strong> {record.resultadoFinal.toFixed(2)}
+              </p>
             </div>
-            <p className="text-gray-600">
-              <strong>Carnet:</strong> {record.carnet}
-            </p>
-            <p className="text-gray-600">
-              <strong>Profesión:</strong> {record.profesion}
-            </p>
-            <p className="text-gray-600">
-              <strong>Materia:</strong> {record.materia}
-            </p>
-            <p className="text-gray-600">
-              <strong>Carrera:</strong> {record.carrera}
-            </p>
-            <p className="text-gray-600">
-              <strong>Méritos:</strong> {record.meritos} ({record.meritosHabilitado})
-            </p>
-            <p className="text-gray-600">
-              <strong>Conocimientos:</strong> {record.conocimientos} ({record.conocimientosHabilitado})
-            </p>
-            <p className="text-gray-600">
-              <strong>Fases 2 y 3:</strong> {record.resultadoFases2y3.toFixed(2)}
-            </p>
-            <p className="text-gray-600">
-              <strong>Total Competencia:</strong> {record.totalExamenCompetencia.toFixed(2)}
-            </p>
-            <p className="text-gray-600">
-              <strong>Resultado Final:</strong> {record.resultadoFinal.toFixed(2)}
-            </p>
+          ))
+        ) : (
+          <div className="p-6 text-center text-gray-500">
+            No se encontraron registros que coincidan con los criterios de búsqueda
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
