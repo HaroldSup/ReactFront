@@ -129,12 +129,12 @@ function Dashboard() {
 
   const workflowMapping = {
     dashboard: ["Inicio"],
-    ListaAcefalia: ["Unidad de Evaluación y Acreditación", "Gestión de la documentación"],
-    AcefaliaForm: ["Unidad de Evaluación y Acreditación", "Gestión de la documentación"],
-    ListaUsuarios: ["Asignar roles y permisos"],
-    UserForm: ["Asignar roles y permisos"],
-    postulaciones: ["Postulante", "Subir Documentación"],
-    porCarrera: ["Postulante", "Subir Documentación"],
+    ListaAcefalia: ["Lista de materias acefalas", "Añadir materia acefala"],
+    AcefaliaForm: ["Lista de materias acefalas", "Añadir materia acefala"],
+    ListaUsuarios: ["Lista Usuarios", "Añadir Usuario", "Asignar roles y permisos"],
+    UserForm: ["Lista Usuarios", "Añadir Usuario", "Asignar roles y permisos"],
+    postulaciones: ["Postulaciones", "Visualizar historial de registro y documentacion"],
+    porCarrera: ["Postulaciones", "Visualizar historial de registro y documentacion"],
     ConcursoDeMeritos: [
       "Comité de Evaluación",
       "Gestión de la documentación concurso de méritos",
@@ -160,12 +160,8 @@ function Dashboard() {
       "Gestión de la documentación examen de competencias",
       "Registrar puntos de evaluación",
     ],
-    propuestaDocente: [
-      "Director de la unidad académica",
-      "Subir documentación",
-      "Descargar documentación con Firma Digital",
-      "Fin",
-    ],
+    ReporteGeneralDeNotas: ["Módulo de Reportes", "Reporte General de Notas"],
+    propuestaDocente: ["Firma Digital", "Subir documentación", "Descargar documentación con Firma Digital", "Fin"],
   }
 
   const toggleMenu = (section) => {
@@ -373,7 +369,7 @@ function Dashboard() {
                     isSubItem
                   />
                 )}
-                {hasPermission("Registrar Acefalia") && (
+                {hasPermission("Registrar Acefalía") && (
                   <NavItem
                     icon={<FolderIcon className="w-6 h-6" />}
                     label="Registrar Acefalía"

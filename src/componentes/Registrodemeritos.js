@@ -353,6 +353,9 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
       const resultados = []
       const errores = []
 
+      // Almacenar los registros creados exitosamente
+      const registrosCreados = []
+
       // Procesar cada materia seleccionada
       for (const materia of materiasSeleccionadas) {
         const registroData = {
@@ -377,6 +380,11 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             timeout: 15000, // 15 segundos de timeout
           })
           resultados.push(`${materia.asignatura} (${materia.carrera}) - Registrado correctamente.`)
+
+          // Guardar el registro creado
+          if (response.data) {
+            registrosCreados.push(response.data)
+          }
         } catch (error) {
           console.error(`Error al registrar materia ${materia.asignatura}:`, error)
           errores.push(`${materia.asignatura} (${materia.carrera}) - Error: ${error.message || "Error desconocido"}`)
@@ -401,11 +409,17 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
           title: "Proceso completado",
           html: mensaje,
           confirmButtonText: "Aceptar",
-        }).then(() => {
-          // Limpiar selecciones y notificar al componente padre
-          setMateriasSeleccionadas([])
-          if (onMeritoRegistered) {
-            onMeritoRegistered()
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          allowEnterKey: false,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Limpiar selecciones y notificar al componente padre con los registros creados
+            setMateriasSeleccionadas([])
+            if (onMeritoRegistered) {
+              console.log("Registros múltiples creados:", registrosCreados)
+              onMeritoRegistered(registrosCreados)
+            }
           }
         })
       } else if (errores.length > 0) {
@@ -519,15 +533,17 @@ function RegistroDeMeritos({ merito, onMeritoRegistered, onCancel }) {
             title: merito ? "¡Actualizado!" : "¡Registrado!",
             text: merito ? "Registro actualizado correctamente." : "Registro creado correctamente.",
             confirmButtonText: "Aceptar",
-          }).then(() => {
-            // Solo notificar al componente padre si esta es la operación más reciente
-            if (operationId === lastOperationId) {
-              if (onMeritoRegistered) {
-                if (merito) {
-                  onMeritoRegistered()
-                } else {
-                  onMeritoRegistered(response.data)
-                }
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+          }).then((result) => {
+            console.log("SweetAlert confirmado:", result)
+            // Siempre notificar al componente padre cuando se cierra el diálogo
+            if (onMeritoRegistered) {
+              if (merito) {
+                onMeritoRegistered()
+              } else {
+                onMeritoRegistered(response.data)
               }
             }
           })

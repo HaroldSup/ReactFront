@@ -614,16 +614,46 @@ function ConcursoDeMeritos() {
 
   // Actualiza la lista luego de registrar o editar
   const onMeritoRegistered = (nuevoRegistro) => {
+    console.log("onMeritoRegistered llamado con:", nuevoRegistro)
+
+    // Primero, ocultar el formulario inmediatamente
     setMostrarFormulario(false)
+
     const user = JSON.parse(localStorage.getItem("user"))
-    if (user && !user.administrador) {
-      if (nuevoRegistro) {
+
+    if (user && !user.administrador && nuevoRegistro) {
+      // Verificar si es un array (registros múltiples) o un objeto (registro individual)
+      if (Array.isArray(nuevoRegistro)) {
+        if (nuevoRegistro.length > 0) {
+          console.log("Mostrando registros múltiples recién creados:", nuevoRegistro)
+          // Mostrar solo los registros recién creados
+          setRegistros(nuevoRegistro)
+          setRegistrosFiltrados(nuevoRegistro)
+
+          // Después de 10 segundos, cargar todos los registros del usuario
+          setTimeout(() => {
+            console.log("Cargando todos los registros después del tiempo de espera")
+            fetchRegistros()
+          }, 10000) // 10 segundos
+        } else {
+          // Si el array está vacío, cargar todos los registros
+          fetchRegistros()
+        }
+      } else {
+        console.log("Mostrando solo el nuevo registro individual:", nuevoRegistro)
+        // Si es un registro individual, mostrar solo ese registro
         setRegistros([nuevoRegistro])
         setRegistrosFiltrados([nuevoRegistro])
-      } else {
-        fetchRegistros()
+
+        // Después de 10 segundos, cargar todos los registros del usuario
+        setTimeout(() => {
+          console.log("Cargando todos los registros después del tiempo de espera")
+          fetchRegistros()
+        }, 10000) // 10 segundos
       }
     } else {
+      console.log("Cargando todos los registros inmediatamente")
+      // Si es administrador o es una edición, cargar todos los registros
       fetchRegistros()
     }
   }
