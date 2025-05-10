@@ -33,7 +33,7 @@ Por defecto, el sistema estará disponible en:
 🔗 `http://localhost:3000`
 
 > Si está desplegado en producción, acceder mediante:  
-🔗 [https://reactfront-production-e186.up.railway.app/](https://selecciondocenteemi.up.railway.app)
+🔗 [https://reactfront-production-e186.up.railway.app/](https://reactfront-production-e186.up.railway.app/)
 
 ## 🔒 Firma Digital
 
