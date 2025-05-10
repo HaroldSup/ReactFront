@@ -55,6 +55,153 @@ README.md          → Documento actual
 - Variables de entorno configuradas (.env)
 - Camunda accesible desde la instancia backend
 
+# Guía de Despliegue en VPS – Sistema de Selección Docente (EMI)
+
+Este documento detalla los pasos básicos para desplegar el sistema de selección docente en un VPS utilizando Node.js, React, MongoDB y Camunda.
+
+---
+
+## 🚀 Pasos para el Despliegue en VPS (Ubuntu 22.04 o similar)
+
+### 1. Conexión al VPS
+
+Asegúrese de tener:
+- Un VPS activo (Google Cloud, Contabo, DigitalOcean, etc.)
+- IP pública y credenciales de acceso SSH
+
+Conéctese al servidor:
+
+```bash
+ssh usuario@IP-del-servidor
+```
+
+---
+
+### 2. Actualizar el sistema
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+---
+
+### 3. Instalar Node.js y npm (v22.11.0)
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v
+npm -v
+```
+
+---
+
+### 4. Instalar MongoDB (si no se usa Atlas)
+
+```bash
+sudo apt install -y mongodb
+sudo systemctl start mongodb
+sudo systemctl enable mongodb
+```
+
+---
+
+### 5. Clonar repositorios del proyecto
+
+```bash
+git clone https://github.com/usuario/tu-backend.git
+git clone https://github.com/usuario/tu-frontend.git
+```
+
+---
+
+### 6. Configurar e instalar backend
+
+```bash
+cd tu-backend
+npm install
+```
+
+Cree y configure el archivo `.env`:
+
+```env
+PORT=5000
+MONGO_URI=mongodb://localhost:27017/seleccion_docente_db
+FRONTEND_URL=http://localhost:3000
+```
+
+---
+
+### 7. Instalar dependencias del frontend
+
+```bash
+cd ../tu-frontend
+npm install
+```
+
+---
+
+### 8. Instalar y ejecutar Camunda Zeebe (con Docker)
+
+Instalar Docker y Docker Compose:
+
+```bash
+sudo apt install -y docker.io docker-compose
+```
+
+Crear archivo `docker-compose.yml`:
+
+```yaml
+version: '3.7'
+services:
+  zeebe:
+    image: camunda/zeebe:8.4.1
+    ports:
+      - "26500:26500"
+      - "9600:9600"
+```
+
+Levantar servicio:
+
+```bash
+sudo docker-compose up -d
+```
+
+---
+
+### 9. Ejecutar backend
+
+```bash
+cd tu-backend
+node index.js
+```
+
+(O bien usar `pm2` para mantenerlo en ejecución).
+
+---
+
+### 10. Construir y ejecutar frontend
+
+```bash
+cd ../tu-frontend
+npm run build
+npm install -g serve
+serve -s build
+```
+
+---
+
+### 11. (Opcional) Configurar Nginx para dominio y HTTPS
+
+(Agregar configuración según se requiera).
+
+---
+
+## ✅ ¡Despliegue completo!
+
+El sistema estará activo en los puertos definidos o accesible desde el dominio configurado si se usa Nginx.
+
+
 ## 👤 Autor
 
 **Rodrigo Harold Mendez Prado**  
