@@ -1202,7 +1202,7 @@ const FlowWithProvider = ({ visitedModules }) => {
   )
 }
 
-// Componente Workflow que envuelve FlowWithProvider con ReactFlowProvider
+// Componente Workflow FlowWithProvider con ReactFlowProvider
 const Workflow = ({ visitedModules }) => {
   return (
     <ReactFlowProvider>
