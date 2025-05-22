@@ -6,15 +6,29 @@ import Swal from "sweetalert2"
 import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
-import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma ruta
+import { Search, FileSpreadsheet, FileIcon as FilePdf, Plus, ChevronDown, ChevronUp, Filter } from "lucide-react"
+import logoEMI from "../images/emiemi.png"
 
 function Usuarios({ onAddUser, onEditUser }) {
   const [usuarios, setUsuarios] = useState([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [expandedRows, setExpandedRows] = useState({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [filters, setFilters] = useState({
+    carrera: "",
+    administrador: "",
+    activo: "",
+  })
+  const [showFilters, setShowFilters] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
   useEffect(() => {
     const fetchUsuarios = async () => {
+      setIsLoading(true)
       try {
         const response = await axios.get(`${baseURL}/usuarios`)
         setUsuarios(response.data)
@@ -25,11 +39,52 @@ function Usuarios({ onAddUser, onEditUser }) {
           title: "Error",
           text: "No se pudieron obtener los usuarios. Por favor, inténtalo más tarde.",
         })
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchUsuarios()
   }, [baseURL])
+
+  // Extraer valores únicos para los filtros
+  const uniqueCarreras = [...new Set(usuarios.map((u) => u.carrera))].sort()
+
+  // Filtrar usuarios
+  const filteredUsuarios = usuarios.filter((usuario) => {
+    const matchesSearch =
+      usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.nombreUsuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.carrera.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesCarrera = filters.carrera ? usuario.carrera === filters.carrera : true
+    const matchesAdmin =
+      filters.administrador === ""
+        ? true
+        : filters.administrador === "true"
+          ? usuario.administrador
+          : !usuario.administrador
+    const matchesActivo = filters.activo === "" ? true : filters.activo === "true" ? usuario.activo : !usuario.activo
+
+    return matchesSearch && matchesCarrera && matchesAdmin && matchesActivo
+  })
+
+  // Calcular elementos para la página actual
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredUsuarios.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredUsuarios.length / itemsPerPage)
+
+  // Función para cambiar de página
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
+  // Añadir justo antes del return para asegurar que la página actual es válida
+  useEffect(() => {
+    if (currentPage > Math.ceil(filteredUsuarios.length / itemsPerPage) && currentPage > 1) {
+      setCurrentPage(1)
+    }
+  }, [filteredUsuarios.length, currentPage, itemsPerPage])
 
   const handleDeleteUser = async (userId) => {
     const confirm = await Swal.fire({
@@ -62,17 +117,17 @@ function Usuarios({ onAddUser, onEditUser }) {
   }
 
   const handleDownloadExcel = () => {
-    if (usuarios.length === 0) {
+    if (filteredUsuarios.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
-        text: "No hay usuarios para descargar.",
+        text: "No hay usuarios para descargar con el filtro aplicado.",
       })
       return
     }
 
     const worksheet = XLSX.utils.json_to_sheet(
-      usuarios.map((usuario) => ({
+      filteredUsuarios.map((usuario) => ({
         Nombre: usuario.nombre,
         "Nombre de Usuario": usuario.nombreUsuario,
         Email: usuario.email,
@@ -88,11 +143,11 @@ function Usuarios({ onAddUser, onEditUser }) {
   }
 
   const handleDownloadPDF = () => {
-    if (usuarios.length === 0) {
+    if (filteredUsuarios.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
-        text: "No hay usuarios para descargar.",
+        text: "No hay usuarios para descargar con el filtro aplicado.",
       })
       return
     }
@@ -106,7 +161,7 @@ function Usuarios({ onAddUser, onEditUser }) {
     const pageHeight = doc.internal.pageSize.getHeight()
 
     // Calcular el número total de páginas para la numeración
-    const totalItems = usuarios.length
+    const totalItems = filteredUsuarios.length
     const itemsPerPage = 15 // Estimación aproximada de cuántas filas caben en una página
     const totalPages = Math.ceil(totalItems / itemsPerPage)
 
@@ -148,6 +203,7 @@ function Usuarios({ onAddUser, onEditUser }) {
         // Intentar cargar el logo - manteniendo la proporción correcta
         const img = new Image()
         img.src = logoEMI
+        img.crossOrigin = "anonymous"
         // Calcular dimensiones para mantener la proporción original del logo
         const logoMaxHeight = altoEncabezado - 4
         const logoMaxWidth = anchoLogo - 10
@@ -327,7 +383,7 @@ function Usuarios({ onAddUser, onEditUser }) {
       let currentY = headerInfo.yPos + headerHeight
 
       // Dibujar cada fila de datos con paginación automática y altura dinámica
-      usuarios.forEach((usuario, index) => {
+      filteredUsuarios.forEach((usuario, index) => {
         // Calcular la altura necesaria para esta fila basada en el contenido
         const nombreHeight = calculateRowHeight(usuario.nombre, colWidths[1] - 6, 8)
         const nombreUsuarioHeight = calculateRowHeight(usuario.nombreUsuario, colWidths[2] - 6, 8)
@@ -472,149 +528,446 @@ function Usuarios({ onAddUser, onEditUser }) {
     doc.save("Usuarios.pdf")
   }
 
+  const toggleRowExpansion = (index) => {
+    setExpandedRows((prev) => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  const resetFilters = () => {
+    setFilters({
+      carrera: "",
+      administrador: "",
+      activo: "",
+    })
+    setSearchTerm("")
+  }
+
   return (
-    <div className="w-full p-4 sm:p-8 bg-gray-100 min-h-screen">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Lista de Usuarios</h2>
-        <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
-          >
-            Descargar Excel
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"
-          >
-            Descargar PDF
-          </button>
-          <button
-            onClick={onAddUser}
-            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
-          >
-            + Añadir Usuario
-          </button>
+    <div className="p-2 sm:p-4 bg-gray-50 min-h-screen">
+      <div className="w-full">
+        {/* Encabezado con título y botones de acción */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Lista de Usuarios</h2>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              onClick={handleDownloadExcel}
+              className="px-3 py-2 bg-green-600 text-white font-medium rounded-md shadow hover:bg-green-700 transition flex items-center gap-1"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3 py-2 bg-red-600 text-white font-medium rounded-md shadow hover:bg-red-700 transition flex items-center gap-1"
+            >
+              <FilePdf className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+            <button
+              onClick={onAddUser}
+              className="px-3 py-2 bg-blue-600 text-white font-medium rounded-md shadow hover:bg-blue-700 transition flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Añadir</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Vista en tabla para pantallas medianas y superiores */}
-      <div className="w-full bg-white rounded-xl shadow-lg overflow-hidden hidden sm:block">
-        <table className="w-full bg-white border border-gray-200">
-          <thead>
-            <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
-              <th className="py-3 px-6 text-left">Nro</th>
-              <th className="py-3 px-6 text-left">Nombre</th>
-              <th className="py-3 px-6 text-left">Nombre de Usuario</th>
-              <th className="py-3 px-6 text-left">Email</th>
-              <th className="py-3 px-6 text-left">Carrera</th>
-              <th className="py-3 px-6 text-center">Administrador</th>
-              <th className="py-3 px-6 text-center">Activo</th>
-              <th className="py-3 px-6 text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-700 text-sm font-light">
-            {usuarios.map((usuario, index) => (
-              <tr key={usuario._id} className="border-b border-gray-200 hover:bg-gray-100">
-                <td className="py-3 px-6 text-left whitespace-nowrap">{index + 1}</td>
-                <td className="py-3 px-6 text-left">{usuario.nombre}</td>
-                <td className="py-3 px-6 text-left">{usuario.nombreUsuario}</td>
-                <td className="py-3 px-6 text-left">{usuario.email}</td>
-                <td className="py-3 px-6 text-left">{usuario.carrera}</td>
-                <td className="py-3 px-6 text-center">
-                  <span
-                    className={`py-1 px-3 rounded-full text-xs ${
-                      usuario.administrador ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
-                    }`}
-                  >
-                    {usuario.administrador ? "Sí" : "No"}
-                  </span>
-                </td>
-                <td className="py-3 px-6 text-center">
-                  <span
-                    className={`py-1 px-3 rounded-full text-xs ${
-                      usuario.activo ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
-                    }`}
-                  >
-                    {usuario.activo ? "Sí" : "No"}
-                  </span>
-                </td>
-                <td className="py-3 px-6 text-center flex justify-center space-x-2">
-                  <button
-                    onClick={() => onEditUser(usuario)}
-                    className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700"
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(usuario._id)}
-                    className="bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-700"
-                  >
-                    🗑️ Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Vista en tarjetas para pantallas pequeñas */}
-      <div className="w-full bg-white rounded-xl shadow-lg overflow-hidden block sm:hidden">
-        {usuarios.map((usuario, index) => (
-          <div key={usuario._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
-            <div>
-              <span className="font-bold text-gray-800">
-                {index + 1}. {usuario.nombre}
-              </span>
-            </div>
-            <div className="mt-2">
-              <p className="text-gray-600">
-                <strong>Nombre de Usuario:</strong> {usuario.nombreUsuario}
-              </p>
-              <p className="text-gray-600">
-                <strong>Email:</strong> {usuario.email}
-              </p>
-              <p className="text-gray-600">
-                <strong>Carrera:</strong> {usuario.carrera}
-              </p>
-              <p className="text-gray-600">
-                <strong>Administrador:</strong>{" "}
-                <span
-                  className={`py-1 px-2 rounded-full text-xs ${
-                    usuario.administrador ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
-                  }`}
-                >
-                  {usuario.administrador ? "Sí" : "No"}
-                </span>
-              </p>
-              <p className="text-gray-600">
-                <strong>Activo:</strong>{" "}
-                <span
-                  className={`py-1 px-2 rounded-full text-xs ${
-                    usuario.activo ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
-                  }`}
-                >
-                  {usuario.activo ? "Sí" : "No"}
-                </span>
-              </p>
-            </div>
-            <div className="mt-4 flex justify-center space-x-4">
+        {/* Barra de búsqueda y filtros */}
+        <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-grow w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, usuario, email o carrera..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+              {/* Información de resultados */}
+              <div className="mt-2 text-sm text-gray-600">
+                Mostrando {filteredUsuarios.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+                {Math.min(indexOfLastItem, filteredUsuarios.length)} de {filteredUsuarios.length} resultados
+              </div>
               <button
-                onClick={() => onEditUser(usuario)}
-                className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-1 whitespace-nowrap"
               >
-                ✏️ Editar
+                <Filter className="w-4 h-4" />
+                <span>Filtros</span>
+                {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
-              <button
-                onClick={() => handleDeleteUser(usuario._id)}
-                className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition"
-              >
-                🗑️ Eliminar
-              </button>
+              {(filters.carrera || filters.administrador || filters.activo) && (
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition text-sm"
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
           </div>
-        ))}
+
+          {/* Panel de filtros desplegable */}
+          {showFilters && (
+            <div className="p-4 bg-gray-50 border-b">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="carrera-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Carrera
+                  </label>
+                  <select
+                    id="carrera-filter"
+                    value={filters.carrera}
+                    onChange={(e) => setFilters({ ...filters, carrera: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las carreras</option>
+                    {uniqueCarreras.map((carrera) => (
+                      <option key={carrera} value={carrera}>
+                        {carrera}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="admin-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Administrador
+                  </label>
+                  <select
+                    id="admin-filter"
+                    value={filters.administrador}
+                    onChange={(e) => setFilters({ ...filters, administrador: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="activo-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Activo
+                  </label>
+                  <select
+                    id="activo-filter"
+                    value={filters.activo}
+                    onChange={(e) => setFilters({ ...filters, activo: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todos</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Información de resultados y paginación */}
+          <div className="px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center">
+            <div>
+              Mostrando {filteredUsuarios.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+              {Math.min(indexOfLastItem, filteredUsuarios.length)} de {filteredUsuarios.length} resultados
+            </div>
+            <div className="flex items-center">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="mr-2 border border-gray-300 rounded p-1 text-sm"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="mr-2">por página</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Estado de carga */}
+        {isLoading ? (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando usuarios...</p>
+          </div>
+        ) : filteredUsuarios.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <p className="text-gray-600">No se encontraron usuarios con los filtros aplicados.</p>
+            {(searchTerm || filters.carrera || filters.administrador || filters.activo) && (
+              <button
+                onClick={resetFilters}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Vista en tabla para pantallas medianas y superiores */}
+            <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto hidden sm:block">
+              <table className="min-w-full bg-white border border-gray-200">
+                <thead>
+                  <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
+                    <th className="py-3 px-6 text-left">Nro</th>
+                    <th className="py-3 px-6 text-left">Nombre</th>
+                    <th className="py-3 px-6 text-left">Nombre de Usuario</th>
+                    <th className="py-3 px-6 text-left">Email</th>
+                    <th className="py-3 px-6 text-left">Carrera</th>
+                    <th className="py-3 px-6 text-center">Administrador</th>
+                    <th className="py-3 px-6 text-center">Activo</th>
+                    <th className="py-3 px-6 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700 text-sm font-light">
+                  {currentItems.map((usuario, index) => (
+                    <tr
+                      key={usuario._id}
+                      className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100`}
+                    >
+                      <td className="py-3 px-6 text-left whitespace-nowrap">{indexOfFirstItem + index + 1}</td>
+                      <td className="py-3 px-6 text-left">{usuario.nombre}</td>
+                      <td className="py-3 px-6 text-left">{usuario.nombreUsuario}</td>
+                      <td className="py-3 px-6 text-left">{usuario.email}</td>
+                      <td className="py-3 px-6 text-left">{usuario.carrera}</td>
+                      <td className="py-3 px-6 text-center">
+                        <span
+                          className={`py-1 px-3 rounded-full text-xs ${
+                            usuario.administrador ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
+                          }`}
+                        >
+                          {usuario.administrador ? "Sí" : "No"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6 text-center">
+                        <span
+                          className={`py-1 px-3 rounded-full text-xs ${
+                            usuario.activo ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
+                          }`}
+                        >
+                          {usuario.activo ? "Sí" : "No"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6 text-center flex justify-center space-x-2">
+                        <button
+                          onClick={() => onEditUser(usuario)}
+                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                          title="Editar usuario"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(usuario._id)}
+                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition flex items-center gap-1"
+                          title="Eliminar usuario"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          <span>Eliminar</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Vista en tarjetas para pantallas pequeñas */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden block sm:hidden">
+              {currentItems.map((usuario, index) => (
+                <div
+                  key={usuario._id}
+                  className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100 p-4`}
+                >
+                  <div>
+                    <span className="font-bold text-gray-800">
+                      {indexOfFirstItem + index + 1}. {usuario.nombre}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-gray-600">
+                      <strong>Nombre de Usuario:</strong> {usuario.nombreUsuario}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Email:</strong> {usuario.email}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Carrera:</strong> {usuario.carrera}
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Administrador:</strong>{" "}
+                      <span
+                        className={`py-1 px-2 rounded-full text-xs ${
+                          usuario.administrador ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
+                        }`}
+                      >
+                        {usuario.administrador ? "Sí" : "No"}
+                      </span>
+                    </p>
+                    <p className="text-gray-600">
+                      <strong>Activo:</strong>{" "}
+                      <span
+                        className={`py-1 px-2 rounded-full text-xs ${
+                          usuario.activo ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
+                        }`}
+                      >
+                        {usuario.activo ? "Sí" : "No"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="mt-4 flex justify-center space-x-4">
+                    <button
+                      onClick={() => onEditUser(usuario)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUser(usuario._id)}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex justify-center">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => paginate(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="sr-only">Anterior</span>
+                    &laquo;
+                  </button>
+
+                  {/* Mostrar números de página */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                    // Mostrar siempre la primera página, la última, la actual y las adyacentes
+                    if (
+                      number === 1 ||
+                      number === totalPages ||
+                      (number >= currentPage - 1 && number <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={number}
+                          onClick={() => paginate(number)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === number
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          }`}
+                        >
+                          {number}
+                        </button>
+                      )
+                    }
+
+                    // Mostrar puntos suspensivos para páginas omitidas
+                    if (
+                      (number === 2 && currentPage > 3) ||
+                      (number === totalPages - 1 && currentPage < totalPages - 2)
+                    ) {
+                      return (
+                        <span
+                          key={number}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                        >
+                          ...
+                        </span>
+                      )
+                    }
+
+                    return null
+                  })}
+
+                  <button
+                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === totalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="sr-only">Siguiente</span>
+                    &raquo;
+                  </button>
+                </nav>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
