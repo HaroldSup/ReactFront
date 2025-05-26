@@ -7,24 +7,32 @@ import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import Registrodeconocimientos from "./Registrodeconocimientos"
 import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma ruta
+import { Search, FileSpreadsheet, FileIcon as FilePdf, Plus, ChevronDown, ChevronUp, Filter, Calendar } from 'lucide-react'
+import * as XLSX from "xlsx"
 
 function Examendeconocimientos() {
   const [registros, setRegistros] = useState([])
-  const [registrosFiltrados, setRegistrosFiltrados] = useState([])
   const [registrosMeritos, setRegistrosMeritos] = useState([]) // Para almacenar los registros de méritos
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [conocimientoEdit, setConocimientoEdit] = useState(null)
-  const [filtros, setFiltros] = useState({
-    busqueda: "",
-    campo: "todos", // Opciones: todos, nombre, carnet, profesion, carrera
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [filters, setFilters] = useState({
+    carrera: "",
+    profesion: "",
+    gestion: "",
+    estado: "",
   })
-  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
   // Obtener los registros desde el backend, filtrarlos según el usuario y ordenarlos por Nota Final (descendente)
   const fetchRegistros = async () => {
+    setIsLoading(true)
     try {
       const response = await axios.get(`${baseURL}/api/examen-conocimientos`)
       console.log("Registros obtenidos:", response.data)
@@ -41,7 +49,6 @@ function Examendeconocimientos() {
       // Ordenar la lista de registros de forma descendente según la Nota Final
       registrosData.sort((a, b) => Number(b.notaFinal) - Number(a.notaFinal))
       setRegistros(registrosData)
-      setRegistrosFiltrados(registrosData) // Inicialmente, mostrar todos los registros
     } catch (error) {
       console.error("Error al obtener los registros:", error)
       Swal.fire({
@@ -49,6 +56,8 @@ function Examendeconocimientos() {
         title: "Error",
         text: "Hubo un problema al cargar los registros.",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -70,72 +79,165 @@ function Examendeconocimientos() {
   }, [baseURL])
 
   // Aplicar filtros cuando cambian los criterios de búsqueda
-  useEffect(() => {
-    aplicarFiltros()
-  }, [filtros, registros])
+  // useEffect(() => {
+  //   aplicarFiltros()
+  // }, [filtros, registros])
 
   // Función para aplicar los filtros a los registros
-  const aplicarFiltros = () => {
-    const { busqueda, campo } = filtros
+  // const aplicarFiltros = () => {
+  //   const { busqueda, campo } = filtros
 
-    if (!busqueda.trim()) {
-      setRegistrosFiltrados(registros)
+  //   if (!busqueda.trim()) {
+  //     setRegistrosFiltrados(registros)
+  //     return
+  //   }
+
+  //   const busquedaLower = busqueda.toLowerCase().trim()
+
+  //   const resultadosFiltrados = registros.filter((registro) => {
+  //     // Si el campo es "todos", buscar en todos los campos
+  //     if (campo === "todos") {
+  //       return (
+  //         (registro.nombre?.toLowerCase() || "").includes(busquedaLower) ||
+  //         (registro.carnet?.toLowerCase() || "").includes(busquedaLower) ||
+  //         (registro.profesion?.toLowerCase() || "").includes(busquedaLower) ||
+  //         (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+  //       )
+  //     }
+
+  //     // Buscar en el campo específico
+  //     switch (campo) {
+  //       case "nombre":
+  //         return (registro.nombre?.toLowerCase() || "").includes(busquedaLower)
+  //       case "carnet":
+  //         return (registro.carnet?.toLowerCase() || "").includes(busquedaLower)
+  //       case "profesion":
+  //         return (registro.profesion?.toLowerCase() || "").includes(busquedaLower)
+  //       case "carrera":
+  //         return (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
+  //       default:
+  //         return false
+  //     }
+  //   })
+
+  //   setRegistrosFiltrados(resultadosFiltrados)
+  // }
+
+  // Manejar cambios en el campo de búsqueda
+  // const handleBusquedaChange = (e) => {
+  //   setFiltros({
+  //     ...filtros,
+  //     busqueda: e.target.value,
+  //   })
+  // }
+
+  // Manejar cambios en el campo de filtro
+  // const handleCampoChange = (e) => {
+  //   setFiltros({
+  //     ...filtros,
+  //     campo: e.target.value,
+  //   })
+  // }
+
+  // Limpiar todos los filtros
+  // const limpiarFiltros = () => {
+  //   setFiltros({
+  //     busqueda: "",
+  //     campo: "todos",
+  //   })
+  // }
+
+  // Extraer valores únicos para los filtros
+  const uniqueCarreras = [...new Set(registros.map((r) => r.carrera).filter(Boolean))].sort()
+  const uniqueProfesiones = [...new Set(registros.map((r) => r.profesion).filter(Boolean))].sort()
+  const uniqueGestiones = [
+    ...new Set(
+      registros
+        .map((r) => {
+          if (r.fecha) {
+            return new Date(r.fecha).getFullYear().toString()
+          }
+          return null
+        })
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => b - a)
+  const uniqueEstados = [...new Set(registros.map((r) => r.habilitado).filter(Boolean))].sort()
+
+  // Filtrar registros
+  const filteredRegistros = registros.filter((registro) => {
+    const matchesSearch =
+      registro.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.carnet?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.profesion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.carrera?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.materia?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesCarrera = filters.carrera ? registro.carrera === filters.carrera : true
+    const matchesProfesion = filters.profesion ? registro.profesion === filters.profesion : true
+    const matchesEstado = filters.estado ? registro.habilitado === filters.estado : true
+
+    const matchesGestion = filters.gestion
+      ? new Date(registro.fecha).getFullYear().toString() === filters.gestion
+      : true
+
+    return matchesSearch && matchesCarrera && matchesProfesion && matchesGestion && matchesEstado
+  })
+
+  // Calcular elementos para la página actual
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredRegistros.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage)
+
+  // Función para cambiar de página
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
+  // Asegurar que la página actual es válida
+  useEffect(() => {
+    if (currentPage > Math.ceil(filteredRegistros.length / itemsPerPage) && currentPage > 1) {
+      setCurrentPage(1)
+    }
+  }, [filteredRegistros.length, currentPage, itemsPerPage])
+
+  const resetFilters = () => {
+    setFilters({
+      carrera: "",
+      profesion: "",
+      gestion: "",
+      estado: "",
+    })
+    setSearchTerm("")
+  }
+
+  const handleDownloadExcel = () => {
+    if (filteredRegistros.length === 0) {
+      Swal.fire({
+        icon: "info",
+        title: "Sin registros",
+        text: "No hay registros para descargar con el filtro aplicado.",
+      })
       return
     }
 
-    const busquedaLower = busqueda.toLowerCase().trim()
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredRegistros.map((registro) => ({
+        Nombre: registro.nombre,
+        Carnet: registro.carnet,
+        Evaluador: registro.nombreEvaluador,
+        Profesión: registro.profesion,
+        Carrera: registro.carrera,
+        Materia: registro.materia,
+        Estado: registro.habilitado,
+        Observaciones: registro.observaciones,
+        Fecha: new Date(registro.fecha).toLocaleDateString(),
+        "Nota Final": registro.notaFinal,
+      })),
+    )
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Examen_Conocimientos")
 
-    const resultadosFiltrados = registros.filter((registro) => {
-      // Si el campo es "todos", buscar en todos los campos
-      if (campo === "todos") {
-        return (
-          (registro.nombre?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.carnet?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.profesion?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
-        )
-      }
-
-      // Buscar en el campo específico
-      switch (campo) {
-        case "nombre":
-          return (registro.nombre?.toLowerCase() || "").includes(busquedaLower)
-        case "carnet":
-          return (registro.carnet?.toLowerCase() || "").includes(busquedaLower)
-        case "profesion":
-          return (registro.profesion?.toLowerCase() || "").includes(busquedaLower)
-        case "carrera":
-          return (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
-        default:
-          return false
-      }
-    })
-
-    setRegistrosFiltrados(resultadosFiltrados)
-  }
-
-  // Manejar cambios en el campo de búsqueda
-  const handleBusquedaChange = (e) => {
-    setFiltros({
-      ...filtros,
-      busqueda: e.target.value,
-    })
-  }
-
-  // Manejar cambios en el campo de filtro
-  const handleCampoChange = (e) => {
-    setFiltros({
-      ...filtros,
-      campo: e.target.value,
-    })
-  }
-
-  // Limpiar todos los filtros
-  const limpiarFiltros = () => {
-    setFiltros({
-      busqueda: "",
-      campo: "todos",
-    })
+    XLSX.writeFile(workbook, "Examen_Conocimientos.xlsx")
   }
 
   // Manejo de eliminación de un registro
@@ -152,12 +254,12 @@ function Examendeconocimientos() {
     if (confirm.isConfirmed) {
       try {
         await axios.delete(`${baseURL}/api/examen-conocimientos/${id}`)
+        setRegistros((prev) => prev.filter((registro) => registro._id !== id))
         Swal.fire({
           icon: "success",
           title: "¡Eliminado!",
           text: "Registro eliminado exitosamente.",
         })
-        fetchRegistros()
       } catch (error) {
         console.error("Error al eliminar el registro:", error)
         Swal.fire({
@@ -176,7 +278,6 @@ function Examendeconocimientos() {
     if (user && !user.administrador) {
       if (nuevoRegistro) {
         setRegistros([nuevoRegistro])
-        setRegistrosFiltrados([nuevoRegistro])
       } else {
         fetchRegistros()
       }
@@ -675,250 +776,484 @@ function Examendeconocimientos() {
   }
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen w-full">
-      {/* Encabezado y botones */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Examen de Conocimientos</h2>
-        <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadPDF}
-            className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"
-          >
-            Descargar PDF
-          </button>
-          <button
-            onClick={() => {
-              setConocimientoEdit(null)
-              setMostrarFormulario(true)
-            }}
-            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
-          >
-            + Añadir Registro
-          </button>
-        </div>
-      </div>
-
-      {/* Sección de filtros */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center w-full md:w-auto">
-            <div className="relative flex-grow">
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={filtros.busqueda}
-                onChange={handleBusquedaChange}
-                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="absolute left-3 top-2.5 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
+    <div className="p-2 sm:p-4 bg-gray-50 min-h-screen">
+      <div className="w-full">
+        {/* Encabezado con título y botones de acción */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Examen de Conocimientos</h2>
+          <div className="flex flex-wrap gap-2 justify-center">
             <button
-              onClick={() => setMostrarFiltros(!mostrarFiltros)}
-              className="ml-2 p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              title="Mostrar filtros avanzados"
+              onClick={handleDownloadExcel}
+              className="px-3 py-2 bg-green-600 text-white font-medium rounded-md shadow hover:bg-green-700 transition flex items-center gap-1"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3 py-2 bg-red-600 text-white font-medium rounded-md shadow hover:bg-red-700 transition flex items-center gap-1"
+            >
+              <FilePdf className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+            <button
+              onClick={() => {
+                setConocimientoEdit(null)
+                setMostrarFormulario(true)
+              }}
+              className="px-3 py-2 bg-blue-600 text-white font-medium rounded-md shadow hover:bg-blue-700 transition flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Añadir</span>
             </button>
           </div>
+        </div>
 
-          {mostrarFiltros && (
-            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-              <div className="flex items-center">
-                <label htmlFor="campo" className="mr-2 text-sm font-medium text-gray-700">
-                  Filtrar por:
-                </label>
-                <select
-                  id="campo"
-                  value={filtros.campo}
-                  onChange={handleCampoChange}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="todos">Todos los campos</option>
-                  <option value="nombre">Nombre</option>
-                  <option value="carnet">Carnet</option>
-                  <option value="profesion">Profesión</option>
-                  <option value="carrera">Carrera</option>
-                </select>
+        {/* Barra de búsqueda y filtros */}
+        <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-grow w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, carnet, profesión, carrera o materia..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                Mostrando {filteredRegistros.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+                {Math.min(indexOfLastItem, filteredRegistros.length)} de {filteredRegistros.length} resultados
               </div>
               <button
-                onClick={limpiarFiltros}
-                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-1 whitespace-nowrap"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Limpiar filtros
+                <Filter className="w-4 h-4" />
+                <span>Filtros</span>
+                {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+              {(filters.carrera || filters.profesion || filters.gestion || filters.estado) && (
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition text-sm"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Panel de filtros desplegable */}
+          {showFilters && (
+            <div className="p-4 bg-gray-50 border-b">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label htmlFor="carrera-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Carrera
+                  </label>
+                  <select
+                    id="carrera-filter"
+                    value={filters.carrera}
+                    onChange={(e) => setFilters({ ...filters, carrera: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las carreras</option>
+                    {uniqueCarreras.map((carrera) => (
+                      <option key={carrera} value={carrera}>
+                        {carrera}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="profesion-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Profesión
+                  </label>
+                  <select
+                    id="profesion-filter"
+                    value={filters.profesion}
+                    onChange={(e) => setFilters({ ...filters, profesion: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las profesiones</option>
+                    {uniqueProfesiones.map((profesion) => (
+                      <option key={profesion} value={profesion}>
+                        {profesion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="gestion-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Gestión (Año)
+                  </label>
+                  <select
+                    id="gestion-filter"
+                    value={filters.gestion}
+                    onChange={(e) => setFilters({ ...filters, gestion: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las gestiones</option>
+                    {uniqueGestiones.map((gestion) => (
+                      <option key={gestion} value={gestion}>
+                        {gestion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="estado-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Estado
+                  </label>
+                  <select
+                    id="estado-filter"
+                    value={filters.estado}
+                    onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todos los estados</option>
+                    {uniqueEstados.map((estado) => (
+                      <option key={estado} value={estado}>
+                        {estado}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Información de resultados y paginación */}
+          <div className="px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center">
+            <div>
+              Mostrando {filteredRegistros.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+              {Math.min(indexOfLastItem, filteredRegistros.length)} de {filteredRegistros.length} resultados
+            </div>
+            <div className="flex items-center">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="mr-2 border border-gray-300 rounded p-1 text-sm"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="mr-2">por página</span>
+            </div>
+          </div>
         </div>
 
-        {/* Contador de resultados */}
-        <div className="mt-4 text-sm text-gray-600">
-          Mostrando {registrosFiltrados.length} de {registros.length} registros
-        </div>
-      </div>
+        {/* Formulario o Lista */}
+        {mostrarFormulario ? (
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <Registrodeconocimientos
+              conocimiento={conocimientoEdit}
+              onConocimientoRegistered={onConocimientoRegistered}
+              onCancel={() => setMostrarFormulario(false)}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Estado de carga */}
+            {isLoading ? (
+              <div className="bg-white rounded-xl shadow-md p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando registros...</p>
+              </div>
+            ) : filteredRegistros.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-md p-8 text-center">
+                <p className="text-gray-600">No se encontraron registros con los filtros aplicados.</p>
+                {(searchTerm || filters.carrera || filters.profesion || filters.gestion || filters.estado) && (
+                  <button
+                    onClick={resetFilters}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Contenedor responsivo para la tabla */}
+                <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto hidden sm:block">
+                  <table className="min-w-full bg-white border border-gray-200">
+                    <thead>
+                      <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
+                        <th className="py-3 px-6 text-left">Nro</th>
+                        <th className="py-3 px-6 text-left">Nombre</th>
+                        <th className="py-3 px-6 text-left">Carnet</th>
+                        <th className="py-3 px-6 text-left">Evaluador</th>
+                        <th className="py-3 px-6 text-left">Profesión</th>
+                        <th className="py-3 px-6 text-left">Carrera</th>
+                        <th className="py-3 px-6 text-left">Materia</th>
+                        <th className="py-3 px-6 text-left">Estado</th>
+                        <th className="py-3 px-6 text-left">Fecha</th>
+                        <th className="py-3 px-6 text-left">Nota Final</th>
+                        <th className="py-3 px-6 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-700 text-sm font-light">
+                      {currentItems.map((registro, index) => (
+                        <tr
+                          key={registro._id}
+                          className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100`}
+                        >
+                          <td className="py-3 px-6 text-left whitespace-nowrap">{indexOfFirstItem + index + 1}</td>
+                          <td className="py-3 px-6 text-left font-medium text-gray-800">{registro.nombre}</td>
+                          <td className="py-3 px-6 text-left">{registro.carnet}</td>
+                          <td className="py-3 px-6 text-left">{registro.nombreEvaluador || ""}</td>
+                          <td className="py-3 px-6 text-left">{registro.profesion || ""}</td>
+                          <td className="py-3 px-6 text-left">{registro.carrera || ""}</td>
+                          <td className="py-3 px-6 text-left">{registro.materia || ""}</td>
+                          <td className="py-3 px-6 text-left">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs ${
+                                registro.habilitado === "HABILITADO"
+                                  ? "bg-green-100 text-green-800"
+                                  : registro.habilitado === "NO HABILITADO"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {registro.habilitado || ""}
+                            </span>
+                          </td>
+                          <td className="py-3 px-6 text-left">{new Date(registro.fecha).toLocaleDateString()}</td>
+                          <td className="py-3 px-6 text-left font-semibold">{registro.notaFinal}</td>
+                          <td className="py-3 px-6 text-center flex justify-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setConocimientoEdit(registro)
+                                setMostrarFormulario(true)
+                              }}
+                              className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                              title="Editar registro"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                              <span>Editar</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(registro._id)}
+                              className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition flex items-center gap-1"
+                              title="Eliminar registro"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              <span>Eliminar</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-      {mostrarFormulario ? (
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <Registrodeconocimientos
-            conocimiento={conocimientoEdit}
-            onConocimientoRegistered={onConocimientoRegistered}
-            onCancel={() => setMostrarFormulario(false)}
-          />
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden w-full">
-          {/* Vista en tabla para pantallas medianas y superiores */}
-          <table className="hidden sm:table w-full bg-white border border-gray-200">
-            <thead>
-              <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
-                <th className="py-3 px-2 text-left">Nro</th>
-                <th className="py-3 px-2 text-left">Nombre</th>
-                <th className="py-3 px-2 text-left">Carnet</th>
-                <th className="py-3 px-2 text-left">Evaluador</th>
-                <th className="py-3 px-2 text-left">Profesión</th>
-                <th className="py-3 px-2 text-left">Carrera</th>
-                <th className="py-3 px-2 text-left">Materia</th>
-                <th className="py-3 px-2 text-left">Estado</th>
-                <th className="py-3 px-2 text-left">Observaciones</th>
-                <th className="py-3 px-2 text-left">Fecha</th>
-                <th className="py-3 px-2 text-left">Nota Final (40%)</th>
-                <th className="py-3 px-2 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="text-gray-700 text-sm font-light">
-              {registrosFiltrados.length > 0 ? (
-                registrosFiltrados.map((registro, index) => (
-                  <tr key={registro._id} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="py-3 px-2 text-left whitespace-nowrap">{index + 1}</td>
-                    <td className="py-3 px-2 text-left">{registro.nombre}</td>
-                    <td className="py-3 px-2 text-left">{registro.carnet}</td>
-                    <td className="py-3 px-2 text-left">{registro.nombreEvaluador || ""}</td>
-                    <td className="py-3 px-2 text-left">{registro.profesion || ""}</td>
-                    <td className="py-3 px-2 text-left">{registro.carrera || ""}</td>
-                    <td className="py-3 px-2 text-left">{registro.materia || ""}</td>
-                    <td className="py-3 px-2 text-left">{registro.habilitado || ""}</td>
-                    <td className="py-3 px-2 text-left">{registro.observaciones || ""}</td>
-                    <td className="py-3 px-2 text-left">{new Date(registro.fecha).toLocaleDateString()}</td>
-                    <td className="py-3 px-2 text-left">{registro.notaFinal}</td>
-                    <td className="py-3 px-2 text-center">
-                      <div className="flex justify-center space-x-2">
+                {/* Vista en tarjetas para pantallas pequeñas */}
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden block sm:hidden">
+                  {currentItems.map((registro, index) => (
+                    <div
+                      key={registro._id}
+                      className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100 p-4`}
+                    >
+                      <div>
+                        <span className="font-bold text-gray-800">
+                          {indexOfFirstItem + index + 1}. {registro.nombre} - {registro.carnet}
+                        </span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 gap-2">
+                        <p className="text-gray-600">
+                          <strong>Evaluador:</strong> {registro.nombreEvaluador || ""}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Profesión:</strong> {registro.profesion || ""}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Carrera:</strong> {registro.carrera || ""}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Materia:</strong> {registro.materia || ""}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Estado:</strong>
+                          <span
+                            className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                              registro.habilitado === "HABILITADO"
+                                ? "bg-green-100 text-green-800"
+                                : registro.habilitado === "NO HABILITADO"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-800"
+                            }`}
+                          >
+                            {registro.habilitado || ""}
+                          </span>
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Nota Final:</strong> <span className="font-semibold">{registro.notaFinal}</span>
+                        </p>
+                      </div>
+                      <div className="mt-4 flex justify-center space-x-4">
                         <button
                           onClick={() => {
                             setConocimientoEdit(registro)
                             setMostrarFormulario(true)
                           }}
-                          className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700"
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                         >
-                          ✏️ Editar
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          <span>Editar</span>
                         </button>
                         <button
                           onClick={() => handleDelete(registro._id)}
-                          className="bg-red-600 text-white px-2 py-1 rounded-lg hover:bg-red-700"
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2"
                         >
-                          🗑️ Eliminar
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          <span>Eliminar</span>
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="12" className="py-6 text-center text-gray-500">
-                    No se encontraron registros que coincidan con los criterios de búsqueda
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* Vista en tarjetas para pantallas pequeñas */}
-          <div className="block sm:hidden w-full">
-            {registrosFiltrados.length > 0 ? (
-              registrosFiltrados.map((registro, index) => (
-                <div key={registro._id} className="border-b border-gray-200 hover:bg-gray-100 p-4">
-                  <div>
-                    <span className="font-bold text-gray-800">
-                      {index + 1}. {registro.nombre} - {registro.carnet}
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-gray-600">
-                      <strong>Evaluador:</strong> {registro.nombreEvaluador || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Profesión:</strong> {registro.profesion || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Carrera:</strong> {registro.carrera || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Materia:</strong> {registro.materia || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Estado:</strong> {registro.habilitado || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Observaciones:</strong> {registro.observaciones || ""}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Fecha:</strong> {new Date(registro.fecha).toLocaleDateString()}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Nota Final (40%):</strong> {registro.notaFinal}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex justify-center space-x-4">
-                    <button
-                      onClick={() => {
-                        setConocimientoEdit(registro)
-                        setMostrarFormulario(true)
-                      }}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
-                    >
-                      ✏️ Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(registro._id)}
-                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition"
-                    >
-                      🗑️ Eliminar
-                    </button>
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              ))
-            ) : (
-              <div className="p-6 text-center text-gray-500">
-                No se encontraron registros que coincidan con los criterios de búsqueda
-              </div>
+
+                {/* Paginación */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex justify-center">
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => paginate(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                          currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="sr-only">Anterior</span>
+                        &laquo;
+                      </button>
+
+                      {/* Mostrar números de página */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                        if (
+                          number === 1 ||
+                          number === totalPages ||
+                          (number >= currentPage - 1 && number <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={number}
+                              onClick={() => paginate(number)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                currentPage === number
+                                  ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                  : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              }`}
+                            >
+                              {number}
+                            </button>
+                          )
+                        }
+
+                        if (
+                          (number === 2 && currentPage > 3) ||
+                          (number === totalPages - 1 && currentPage < totalPages - 2)
+                        ) {
+                          return (
+                            <span
+                              key={number}
+                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                            >
+                              ...
+                            </span>
+                          )
+                        }
+
+                        return null
+                      })}
+
+                      <button
+                        onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                          currentPage === totalPages
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="sr-only">Siguiente</span>
+                        &raquo;
+                      </button>
+                    </nav>
+                  </div>
+                )}
+              </>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

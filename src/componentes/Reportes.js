@@ -7,21 +7,28 @@ import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma ruta
+import { Search, FileSpreadsheet, FileIcon as FilePdf, ChevronDown, ChevronUp, Filter, Calendar } from "lucide-react"
 
 function Reportes() {
   const [reportData, setReportData] = useState([])
-  const [registrosFiltrados, setRegistrosFiltrados] = useState([])
-  const [filtros, setFiltros] = useState({
-    busqueda: "",
-    campo: "todos", // Opciones: todos, nombre, carnet, profesion, materia, carrera
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filters, setFilters] = useState({
+    carrera: "",
+    profesion: "",
+    gestion: "",
+    materia: "",
   })
-  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true)
       try {
         // Realizar las tres peticiones simultáneas
         const [meritosRes, conocimientosRes, competenciasRes] = await Promise.all([
@@ -34,7 +41,7 @@ function Reportes() {
         const conocimientos = conocimientosRes.data
         const competencias = competenciasRes.data
 
-        // Map para méritos (usa "carnet" o "ci")
+        // Map para méritos (usa "carnet" o "ci") - ✅ AGREGANDO CAMPO FECHA
         const meritosMap = new Map()
         meritos.forEach((record) => {
           const id = record.carnet || record.ci
@@ -47,12 +54,13 @@ function Reportes() {
                 materia: record.materia || "",
                 carrera: record.carrera || "",
                 habilitado: record.habilitado || "No Habilitado",
+                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
               })
             }
           }
         })
 
-        // Map para conocimientos (usa "carnet" o "ci")
+        // Map para conocimientos (usa "carnet" o "ci") - ✅ AGREGANDO CAMPO FECHA
         const conocimientosMap = new Map()
         conocimientos.forEach((record) => {
           const id = record.carnet || record.ci
@@ -65,6 +73,7 @@ function Reportes() {
                 materia: record.materia || "",
                 carrera: record.carrera || "",
                 habilitado: record.habilitado || "No Habilitado",
+                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
               })
             }
           }
@@ -85,8 +94,17 @@ function Reportes() {
                 materia: record.materia,
                 carrera: record.carrera,
                 profesion: record.profesion || "",
+                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
                 evaluadores: {},
               }
+            }
+
+            // ✅ ACTUALIZAR FECHA SI VIENE UNA MÁS RECIENTE
+            if (
+              record.fecha &&
+              (!competenciasAgrupadas[key].fecha || new Date(record.fecha) > new Date(competenciasAgrupadas[key].fecha))
+            ) {
+              competenciasAgrupadas[key].fecha = record.fecha
             }
 
             // Agrupar por tipo de evaluador
@@ -135,23 +153,32 @@ function Reportes() {
             )
 
             registrosMateria.forEach((data) => {
-              const { carnet, nombre, profesion } = data
+              const { carnet, nombre, profesion, fecha: fechaCompetencias } = data
               const meritoData = meritosMap.get(carnet) || {
                 puntosEvaluacion: 0,
                 nombre: "",
                 habilitado: "No Habilitado",
                 profesion: "",
+                fecha: null,
               }
               const conocimientoData = conocimientosMap.get(carnet) || {
                 notaFinal: 0,
                 nombre: "",
                 habilitado: "No Habilitado",
                 profesion: "",
+                fecha: null,
               }
 
               // Usar datos de cualquier fuente disponible
               const nombreFinal = nombre || meritoData.nombre || conocimientoData.nombre
               const profesionFinal = profesion || meritoData.profesion || conocimientoData.profesion
+
+              // ✅ DETERMINAR LA FECHA MÁS RECIENTE DE LAS TRES FUENTES
+              const fechas = [fechaCompetencias, meritoData.fecha, conocimientoData.fecha].filter(Boolean)
+              const fechaFinal =
+                fechas.length > 0
+                  ? fechas.reduce((latest, current) => (new Date(current) > new Date(latest) ? current : latest))
+                  : new Date().toISOString().split("T")[0] // Fecha actual como fallback
 
               // Calcular el promedio de las notas de los 3 tipos de evaluadores
               let sumaNotas = 0
@@ -195,6 +222,11 @@ function Reportes() {
                 resultadoFinal,
                 ganador: nombreFinal, // Mismo nombre del postulante
                 observaciones: "",
+                fechaCreacion: fechaFinal, // ✅ USANDO FECHA REAL EN LUGAR DE FECHA ACTUAL
+                // ✅ AGREGANDO CAMPOS ADICIONALES PARA DEBUG
+                fechaCompetencias: fechaCompetencias,
+                fechaMeritos: meritoData.fecha,
+                fechaConocimientos: conocimientoData.fecha,
               })
             })
           })
@@ -207,8 +239,9 @@ function Reportes() {
           return b.resultadoFinal - a.resultadoFinal
         })
 
+        console.log("📊 Datos del reporte con fechas reales:", reportArray.slice(0, 3)) // Debug: mostrar primeros 3 registros
+
         setReportData(reportArray)
-        setRegistrosFiltrados(reportArray) // Inicialmente, mostrar todos los registros
       } catch (error) {
         console.error("Error al obtener datos para el reporte:", error)
         Swal.fire({
@@ -216,87 +249,98 @@ function Reportes() {
           title: "Error",
           text: "Hubo un problema al cargar los datos del reporte.",
         })
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchData()
   }, [baseURL])
 
-  // Aplicar filtros cuando cambian los criterios de búsqueda
+  // ✅ EXTRAER VALORES ÚNICOS PARA LOS FILTROS - MEJORADO PARA FECHAS REALES
+  const uniqueCarreras = [...new Set(reportData.map((r) => r.carrera).filter(Boolean))].sort()
+  const uniqueProfesiones = [...new Set(reportData.map((r) => r.profesion).filter(Boolean))].sort()
+
+  // ✅ MEJORADO: Extraer años de las fechas reales
+  const uniqueGestiones = [
+    ...new Set(
+      reportData
+        .map((r) => {
+          if (r.fechaCreacion) {
+            try {
+              const fecha = new Date(r.fechaCreacion)
+              return fecha.getFullYear().toString()
+            } catch (error) {
+              console.warn("Error al parsear fecha:", r.fechaCreacion)
+              return null
+            }
+          }
+          return null
+        })
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => b - a) // Ordenar de más reciente a más antiguo
+
+  const uniqueMaterias = [...new Set(reportData.map((r) => r.materia).filter(Boolean))].sort()
+
+  // ✅ FILTRAR REGISTROS - MEJORADO PARA FECHAS REALES
+  const filteredRegistros = reportData.filter((registro) => {
+    const matchesSearch =
+      registro.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.carnet?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.profesion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.materia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      registro.carrera?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesCarrera = filters.carrera ? registro.carrera === filters.carrera : true
+    const matchesProfesion = filters.profesion ? registro.profesion === filters.profesion : true
+    const matchesMateria = filters.materia ? registro.materia === filters.materia : true
+
+    // ✅ MEJORADO: Filtro de gestión usando fechas reales
+    const matchesGestion = filters.gestion
+      ? (() => {
+          try {
+            const fechaRegistro = new Date(registro.fechaCreacion)
+            return fechaRegistro.getFullYear().toString() === filters.gestion
+          } catch (error) {
+            console.warn("Error al filtrar por gestión:", registro.fechaCreacion)
+            return false
+          }
+        })()
+      : true
+
+    return matchesSearch && matchesCarrera && matchesProfesion && matchesGestion && matchesMateria
+  })
+
+  // Calcular elementos para la página actual
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredRegistros.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage)
+
+  // Función para cambiar de página
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
+  // Asegurar que la página actual es válida
   useEffect(() => {
-    aplicarFiltros()
-  }, [filtros, reportData])
-
-  // Función para aplicar los filtros a los registros
-  const aplicarFiltros = () => {
-    const { busqueda, campo } = filtros
-
-    if (!busqueda.trim()) {
-      setRegistrosFiltrados(reportData)
-      return
+    if (currentPage > Math.ceil(filteredRegistros.length / itemsPerPage) && currentPage > 1) {
+      setCurrentPage(1)
     }
+  }, [filteredRegistros.length, currentPage, itemsPerPage])
 
-    const busquedaLower = busqueda.toLowerCase().trim()
-
-    const resultadosFiltrados = reportData.filter((registro) => {
-      // Si el campo es "todos", buscar en todos los campos
-      if (campo === "todos") {
-        return (
-          (registro.nombre?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.carnet?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.profesion?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.materia?.toLowerCase() || "").includes(busquedaLower) ||
-          (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
-        )
-      }
-
-      // Buscar en el campo específico
-      switch (campo) {
-        case "nombre":
-          return (registro.nombre?.toLowerCase() || "").includes(busquedaLower)
-        case "carnet":
-          return (registro.carnet?.toLowerCase() || "").includes(busquedaLower)
-        case "profesion":
-          return (registro.profesion?.toLowerCase() || "").includes(busquedaLower)
-        case "materia":
-          return (registro.materia?.toLowerCase() || "").includes(busquedaLower)
-        case "carrera":
-          return (registro.carrera?.toLowerCase() || "").includes(busquedaLower)
-        default:
-          return false
-      }
+  const resetFilters = () => {
+    setFilters({
+      carrera: "",
+      profesion: "",
+      gestion: "",
+      materia: "",
     })
-
-    setRegistrosFiltrados(resultadosFiltrados)
-  }
-
-  // Manejar cambios en el campo de búsqueda
-  const handleBusquedaChange = (e) => {
-    setFiltros({
-      ...filtros,
-      busqueda: e.target.value,
-    })
-  }
-
-  // Manejar cambios en el campo de filtro
-  const handleCampoChange = (e) => {
-    setFiltros({
-      ...filtros,
-      campo: e.target.value,
-    })
-  }
-
-  // Limpiar todos los filtros
-  const limpiarFiltros = () => {
-    setFiltros({
-      busqueda: "",
-      campo: "todos",
-    })
+    setSearchTerm("")
   }
 
   // Exportar a Excel usando los datos filtrados
   const handleDownloadExcel = () => {
-    if (registrosFiltrados.length === 0) {
+    if (filteredRegistros.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
@@ -306,7 +350,7 @@ function Reportes() {
     }
 
     const worksheet = XLSX.utils.json_to_sheet(
-      registrosFiltrados.map((record) => ({
+      filteredRegistros.map((record) => ({
         Nro: record.nro,
         Carnet: record.carnet,
         Nombre: record.nombre,
@@ -322,6 +366,7 @@ function Reportes() {
         "Resultado Final": record.resultadoFinal.toFixed(2),
         Ganador: record.ganador,
         Observaciones: record.observaciones,
+        "Fecha de Registro": record.fechaCreacion, // ✅ AGREGANDO FECHA AL EXCEL
       })),
     )
     const workbook = XLSX.utils.book_new()
@@ -331,7 +376,7 @@ function Reportes() {
 
   // Exportar a PDF usando los datos filtrados
   const handleDownloadPDF = () => {
-    if (registrosFiltrados.length === 0) {
+    if (filteredRegistros.length === 0) {
       Swal.fire({
         icon: "info",
         title: "Sin registros",
@@ -343,7 +388,7 @@ function Reportes() {
     // Agrupar registros por carrera y materia
     const registrosPorCarrera = {}
 
-    registrosFiltrados.forEach((registro) => {
+    filteredRegistros.forEach((registro) => {
       const carrera = registro.carrera || "Sin Carrera"
       const materia = registro.materia || "Sin Materia"
 
@@ -834,211 +879,396 @@ function Reportes() {
   }
 
   return (
-    <div className="p-4 sm:p-8 bg-gray-100 min-h-screen w-full">
-      {/* Encabezado: título, filtros y botones de descarga */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Reporte General de Notas</h2>
-        <div className="flex space-x-4 mt-4 sm:mt-0">
-          <button
-            onClick={handleDownloadExcel}
-            className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition"
-          >
-            Descargar Excel
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md shadow-md hover:bg-red-700 transition"
-          >
-            Descargar PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Sección de filtros mejorada */}
-      <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center w-full md:w-auto">
-            <div className="relative flex-grow">
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={filtros.busqueda}
-                onChange={handleBusquedaChange}
-                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <div className="absolute left-3 top-2.5 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
+    <div className="p-2 sm:p-4 bg-gray-50 min-h-screen">
+      <div className="w-full">
+        {/* Encabezado con título y botones de acción */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Reporte General de Notas</h2>
+          <div className="flex flex-wrap gap-2 justify-center">
             <button
-              onClick={() => setMostrarFiltros(!mostrarFiltros)}
-              className="ml-2 p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              title="Mostrar filtros avanzados"
+              onClick={handleDownloadExcel}
+              className="px-3 py-2 bg-green-600 text-white font-medium rounded-md shadow hover:bg-green-700 transition flex items-center gap-1"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3 py-2 bg-red-600 text-white font-medium rounded-md shadow hover:bg-red-700 transition flex items-center gap-1"
+            >
+              <FilePdf className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
             </button>
           </div>
+        </div>
 
-          {mostrarFiltros && (
-            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-              <div className="flex items-center">
-                <label htmlFor="campo" className="mr-2 text-sm font-medium text-gray-700">
-                  Filtrar por:
-                </label>
-                <select
-                  id="campo"
-                  value={filtros.campo}
-                  onChange={handleCampoChange}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="todos">Todos los campos</option>
-                  <option value="nombre">Nombre</option>
-                  <option value="carnet">Carnet</option>
-                  <option value="profesion">Profesión</option>
-                  <option value="materia">Materia</option>
-                  <option value="carrera">Carrera</option>
-                </select>
+        {/* Barra de búsqueda y filtros */}
+        <div className="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-grow w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, carnet, profesión, materia o carrera..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                Mostrando {filteredRegistros.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+                {Math.min(indexOfLastItem, filteredRegistros.length)} de {filteredRegistros.length} resultados
               </div>
               <button
-                onClick={limpiarFiltros}
-                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center"
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition flex items-center gap-1 whitespace-nowrap"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Limpiar filtros
+                <Filter className="w-4 h-4" />
+                <span>Filtros</span>
+                {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
+              {(filters.carrera || filters.profesion || filters.gestion || filters.materia) && (
+                <button
+                  onClick={resetFilters}
+                  className="px-3 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition text-sm"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Panel de filtros desplegable */}
+          {showFilters && (
+            <div className="p-4 bg-gray-50 border-b">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label htmlFor="carrera-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Carrera
+                  </label>
+                  <select
+                    id="carrera-filter"
+                    value={filters.carrera}
+                    onChange={(e) => setFilters({ ...filters, carrera: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las carreras</option>
+                    {uniqueCarreras.map((carrera) => (
+                      <option key={carrera} value={carrera}>
+                        {carrera}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="profesion-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Profesión
+                  </label>
+                  <select
+                    id="profesion-filter"
+                    value={filters.profesion}
+                    onChange={(e) => setFilters({ ...filters, profesion: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las profesiones</option>
+                    {uniqueProfesiones.map((profesion) => (
+                      <option key={profesion} value={profesion}>
+                        {profesion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="gestion-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Gestión (Año) ✅
+                  </label>
+                  <select
+                    id="gestion-filter"
+                    value={filters.gestion}
+                    onChange={(e) => setFilters({ ...filters, gestion: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las gestiones</option>
+                    {uniqueGestiones.map((gestion) => (
+                      <option key={gestion} value={gestion}>
+                        {gestion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="materia-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Materia
+                  </label>
+                  <select
+                    id="materia-filter"
+                    value={filters.materia}
+                    onChange={(e) => setFilters({ ...filters, materia: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las materias</option>
+                    {uniqueMaterias.map((materia) => (
+                      <option key={materia} value={materia}>
+                        {materia}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* ✅ INFORMACIÓN DE DEBUG PARA VERIFICAR FECHAS */}
+              {reportData.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs text-blue-800">
+                    <strong>📊 Debug:</strong> Se encontraron {uniqueGestiones.length} gestiones únicas:{" "}
+                    {uniqueGestiones.join(", ")}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Total de registros con fechas válidas: {reportData.filter((r) => r.fechaCreacion).length} de{" "}
+                    {reportData.length}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Información de resultados y paginación */}
+          <div className="px-4 py-2 bg-gray-50 text-sm text-gray-500 flex justify-between items-center">
+            <div>
+              Mostrando {filteredRegistros.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
+              {Math.min(indexOfLastItem, filteredRegistros.length)} de {filteredRegistros.length} resultados
+            </div>
+            <div className="flex items-center">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="mr-2 border border-gray-300 rounded p-1 text-sm"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span className="mr-2">por página</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenedor a pantalla completa y con scroll horizontal si la tabla es muy ancha */}
+        <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto">
+          {/* Vista en tabla para pantallas medianas y superiores */}
+          <table className="min-w-full bg-white border border-gray-200 hidden sm:table">
+            <thead className="bg-blue-800 text-white uppercase text-sm leading-normal">
+              <tr>
+                <th className="py-3 px-4 text-left">Nro</th>
+                <th className="py-3 px-4 text-left">Carnet</th>
+                <th className="py-3 px-4 text-left">Nombre</th>
+                <th className="py-3 px-4 text-left">Profesión</th>
+                <th className="py-3 px-4 text-left">Materia</th>
+                <th className="py-3 px-4 text-left">Carrera</th>
+                <th className="py-3 px-4 text-left">Méritos</th>
+                <th className="py-3 px-4 text-left">Habilitado</th>
+                <th className="py-3 px-4 text-left">Conocimientos</th>
+                <th className="py-3 px-4 text-left">Habilitado</th>
+                <th className="py-3 px-4 text-left">Fases 2 y 3</th>
+                <th className="py-3 px-4 text-left">Total Competencia</th>
+                <th className="py-3 px-4 text-left">Resultado Final</th>
+                <th className="py-3 px-4 text-left">📅 Fecha</th> {/* ✅ COLUMNA ADICIONAL PARA DEBUG */}
+              </tr>
+            </thead>
+            <tbody className="text-gray-700 text-sm font-light">
+              {isLoading ? (
+                <tr>
+                  <td colSpan="14" className="py-6 text-center text-gray-500">
+                    Cargando registros...
+                  </td>
+                </tr>
+              ) : currentItems.length > 0 ? (
+                currentItems.map((record, index) => (
+                  <tr
+                    key={`${record.carnet}-${record.materia}-${record.carrera}`}
+                    className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100`}
+                  >
+                    <td className="py-2 px-4">{record.nro}</td>
+                    <td className="py-2 px-4">{record.carnet}</td>
+                    <td className="py-2 px-4">{record.nombre}</td>
+                    <td className="py-2 px-4">{record.profesion}</td>
+                    <td className="py-2 px-4">{record.materia}</td>
+                    <td className="py-2 px-4">{record.carrera}</td>
+                    <td className="py-2 px-4">{record.meritos}</td>
+                    <td className="py-2 px-4">{record.meritosHabilitado}</td>
+                    <td className="py-2 px-4">{record.conocimientos}</td>
+                    <td className="py-2 px-4">{record.conocimientosHabilitado}</td>
+                    <td className="py-2 px-4">{record.resultadoFases2y3.toFixed(2)}</td>
+                    <td className="py-2 px-4">{record.totalExamenCompetencia.toFixed(2)}</td>
+                    <td className="py-2 px-4">{record.resultadoFinal.toFixed(2)}</td>
+                    <td className="py-2 px-4 text-xs text-gray-500">
+                      {" "}
+                      {/* ✅ COLUMNA DE DEBUG */}
+                      {record.fechaCreacion ? new Date(record.fechaCreacion).toLocaleDateString() : "Sin fecha"}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="14" className="py-6 text-center text-gray-500">
+                    No se encontraron registros que coincidan con los criterios de búsqueda
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Vista en tarjetas para pantallas pequeñas */}
+        <div className="bg-white rounded-xl shadow-lg block sm:hidden mt-4">
+          {currentItems.length > 0 ? (
+            currentItems.map((record) => (
+              <div
+                key={`${record.carnet}-${record.materia}-${record.carrera}`}
+                className="border-b border-gray-200 hover:bg-gray-100 p-4"
+              >
+                <div className="mb-1">
+                  <span className="font-bold text-gray-800">
+                    {record.nro}. {record.nombre}
+                  </span>
+                </div>
+                <p className="text-gray-600">
+                  <strong>Carnet:</strong> {record.carnet}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Profesión:</strong> {record.profesion}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Materia:</strong> {record.materia}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Carrera:</strong> {record.carrera}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Méritos:</strong> {record.meritos} ({record.meritosHabilitado})
+                </p>
+                <p className="text-gray-600">
+                  <strong>Conocimientos:</strong> {record.conocimientos} ({record.conocimientosHabilitado})
+                </p>
+                <p className="text-gray-600">
+                  <strong>Fases 2 y 3:</strong> {record.resultadoFases2y3.toFixed(2)}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Total Competencia:</strong> {record.totalExamenCompetencia.toFixed(2)}
+                </p>
+                <p className="text-gray-600">
+                  <strong>Resultado Final:</strong> {record.resultadoFinal.toFixed(2)}
+                </p>
+                {/* ✅ FECHA EN VISTA MÓVIL */}
+                <p className="text-gray-500 text-xs">
+                  <strong>📅 Fecha:</strong>{" "}
+                  {record.fechaCreacion ? new Date(record.fechaCreacion).toLocaleDateString() : "Sin fecha"}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              No se encontraron registros que coincidan con los criterios de búsqueda
             </div>
           )}
         </div>
-
-        {/* Contador de resultados */}
-        <div className="mt-4 text-sm text-gray-600">
-          Mostrando {registrosFiltrados.length} de {reportData.length} registros
-        </div>
-      </div>
-
-      {/* Contenedor a pantalla completa y con scroll horizontal si la tabla es muy ancha */}
-      <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto">
-        {/* Vista en tabla para pantallas medianas y superiores */}
-        <table className="min-w-full bg-white border border-gray-200 hidden sm:table">
-          <thead className="bg-blue-800 text-white uppercase text-sm leading-normal">
-            <tr>
-              <th className="py-3 px-4 text-left">Nro</th>
-              <th className="py-3 px-4 text-left">Carnet</th>
-              <th className="py-3 px-4 text-left">Nombre</th>
-              <th className="py-3 px-4 text-left">Profesión</th>
-              <th className="py-3 px-4 text-left">Materia</th>
-              <th className="py-3 px-4 text-left">Carrera</th>
-              <th className="py-3 px-4 text-left">Méritos</th>
-              <th className="py-3 px-4 text-left">Habilitado</th>
-              <th className="py-3 px-4 text-left">Conocimientos</th>
-              <th className="py-3 px-4 text-left">Habilitado</th>
-              <th className="py-3 px-4 text-left">Fases 2 y 3</th>
-              <th className="py-3 px-4 text-left">Total Competencia</th>
-              <th className="py-3 px-4 text-left">Resultado Final</th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-700 text-sm font-light">
-            {registrosFiltrados.length > 0 ? (
-              registrosFiltrados.map((record) => (
-                <tr
-                  key={`${record.carnet}-${record.materia}-${record.carrera}`}
-                  className="border-b border-gray-200 hover:bg-gray-100"
-                >
-                  <td className="py-2 px-4">{record.nro}</td>
-                  <td className="py-2 px-4">{record.carnet}</td>
-                  <td className="py-2 px-4">{record.nombre}</td>
-                  <td className="py-2 px-4">{record.profesion}</td>
-                  <td className="py-2 px-4">{record.materia}</td>
-                  <td className="py-2 px-4">{record.carrera}</td>
-                  <td className="py-2 px-4">{record.meritos}</td>
-                  <td className="py-2 px-4">{record.meritosHabilitado}</td>
-                  <td className="py-2 px-4">{record.conocimientos}</td>
-                  <td className="py-2 px-4">{record.conocimientosHabilitado}</td>
-                  <td className="py-2 px-4">{record.resultadoFases2y3.toFixed(2)}</td>
-                  <td className="py-2 px-4">{record.totalExamenCompetencia.toFixed(2)}</td>
-                  <td className="py-2 px-4">{record.resultadoFinal.toFixed(2)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="13" className="py-6 text-center text-gray-500">
-                  No se encontraron registros que coincidan con los criterios de búsqueda
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Vista en tarjetas para pantallas pequeñas */}
-      <div className="bg-white rounded-xl shadow-lg block sm:hidden mt-4">
-        {registrosFiltrados.length > 0 ? (
-          registrosFiltrados.map((record) => (
-            <div
-              key={`${record.carnet}-${record.materia}-${record.carrera}`}
-              className="border-b border-gray-200 hover:bg-gray-100 p-4"
-            >
-              <div className="mb-1">
-                <span className="font-bold text-gray-800">
-                  {record.nro}. {record.nombre}
-                </span>
-              </div>
-              <p className="text-gray-600">
-                <strong>Carnet:</strong> {record.carnet}
-              </p>
-              <p className="text-gray-600">
-                <strong>Profesión:</strong> {record.profesion}
-              </p>
-              <p className="text-gray-600">
-                <strong>Materia:</strong> {record.materia}
-              </p>
-              <p className="text-gray-600">
-                <strong>Carrera:</strong> {record.carrera}
-              </p>
-              <p className="text-gray-600">
-                <strong>Méritos:</strong> {record.meritos} ({record.meritosHabilitado})
-              </p>
-              <p className="text-gray-600">
-                <strong>Conocimientos:</strong> {record.conocimientos} ({record.conocimientosHabilitado})
-              </p>
-              <p className="text-gray-600">
-                <strong>Fases 2 y 3:</strong> {record.resultadoFases2y3.toFixed(2)}
-              </p>
-              <p className="text-gray-600">
-                <strong>Total Competencia:</strong> {record.totalExamenCompetencia.toFixed(2)}
-              </p>
-              <p className="text-gray-600">
-                <strong>Resultado Final:</strong> {record.resultadoFinal.toFixed(2)}
-              </p>
-            </div>
-          ))
-        ) : (
-          <div className="p-6 text-center text-gray-500">
-            No se encontraron registros que coincidan con los criterios de búsqueda
+        {/* Estado de carga */}
+        {isLoading ? (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando registros...</p>
           </div>
+        ) : filteredRegistros.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <p className="text-gray-600">No se encontraron registros con los filtros aplicados.</p>
+            {(searchTerm || filters.carrera || filters.profesion || filters.gestion || filters.materia) && (
+              <button
+                onClick={resetFilters}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Contenido de la tabla existente */}
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex justify-center">
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => paginate(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="sr-only">Anterior</span>
+                    &laquo;
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                    if (
+                      number === 1 ||
+                      number === totalPages ||
+                      (number >= currentPage - 1 && number <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={number}
+                          onClick={() => paginate(number)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === number
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                          }`}
+                        >
+                          {number}
+                        </button>
+                      )
+                    }
+
+                    if (
+                      (number === 2 && currentPage > 3) ||
+                      (number === totalPages - 1 && currentPage < totalPages - 2)
+                    ) {
+                      return (
+                        <span
+                          key={number}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                        >
+                          ...
+                        </span>
+                      )
+                    }
+
+                    return null
+                  })}
+
+                  <button
+                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === totalPages ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="sr-only">Siguiente</span>
+                    &raquo;
+                  </button>
+                </nav>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

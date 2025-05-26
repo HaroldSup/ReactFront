@@ -209,20 +209,21 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     return Date.now().toString() + Math.random().toString(36).substr(2, 5)
   }, [])
 
-  // Función para verificar si ya existe un registro con los mismos datos
+  // ✅ FUNCIÓN CORREGIDA: Validación Opción 2 - Solo carnet + tipoEvaluador
   const verificarRegistroExistente = useCallback(
     async (dataToVerify) => {
       try {
         setIsVerifying(true)
 
-        // Datos mínimos necesarios para verificar
+        // ✅ VALIDACIÓN OPCIÓN 2: Solo carnet + tipoEvaluador
+        // Esto evita que el mismo tipo de evaluador evalúe al mismo estudiante más de una vez
+        // Pero permite que el mismo estudiante sea evaluado por los 3 tipos de evaluadores
         const verificacionData = {
-          tipoEvaluador: dataToVerify.tipoEvaluador,
-          materia: dataToVerify.materia,
-          carrera: dataToVerify.carrera,
+          carnet: dataToVerify.carnet, // ← Mismo estudiante (CI)
+          tipoEvaluador: dataToVerify.tipoEvaluador, // ← Mismo tipo de evaluador
         }
 
-        console.log("Verificando registro existente:", verificacionData)
+        console.log("Verificando registro existente (Opción 2):", verificacionData)
 
         // Intentar verificar directamente con un endpoint específico
         try {
@@ -243,16 +244,15 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             const allRegistrosResponse = await axios.get(`${baseURL}/api/examen-competencias`)
             const allRegistros = allRegistrosResponse.data
 
-            // Buscar coincidencia manual por tipoEvaluador, materia y carrera
+            // ✅ BÚSQUEDA CORREGIDA: Solo validar por carnet + tipoEvaluador
             const found = allRegistros.some(
               (registro) =>
-                registro.tipoEvaluador === dataToVerify.tipoEvaluador &&
-                registro.materia === dataToVerify.materia &&
-                registro.carrera === dataToVerify.carrera &&
+                registro.carnet === dataToVerify.carnet && // ← Mismo estudiante (CI)
+                registro.tipoEvaluador === dataToVerify.tipoEvaluador && // ← Mismo tipo de evaluador
                 (!competencia || registro._id !== competencia._id), // Excluir el registro actual si estamos editando
             )
 
-            console.log("Verificación alternativa:", found)
+            console.log("Verificación alternativa (Opción 2):", found)
             return found
           } catch (secondError) {
             console.error("Error en verificación alternativa:", secondError)
@@ -288,10 +288,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     // Verificar si ya existe un registro con los mismos datos
     const registroExistente = await verificarRegistroExistente(formData)
     if (registroExistente && !competencia) {
+      // ✅ MENSAJE ACTUALIZADO: Explica la nueva validación (Opción 2)
       return showAlert(
         "warning",
         "Registro duplicado",
-        "Ya existe un registro para este tipo de evaluador con la misma materia y carrera.",
+        `El ${formData.tipoEvaluador} ya ha evaluado al estudiante ${formData.carnet} (${formData.nombre}). Cada tipo de evaluador solo puede evaluar una vez al mismo estudiante.`,
       )
     }
 
@@ -516,6 +517,13 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           <p className="text-gray-500 mt-1 text-sm">
             Complete el formulario para {competencia ? "actualizar" : "registrar"} la evaluación
           </p>
+          {/* ✅ INFORMACIÓN ADICIONAL: Explicar el proceso de evaluación */}
+          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg max-w-md mx-auto">
+            <p className="text-xs text-blue-800">
+              <strong>Proceso:</strong> Cada estudiante debe ser evaluado por los 3 tipos de evaluadores. Cada evaluador
+              solo puede evaluar una vez al mismo estudiante.
+            </p>
+          </div>
         </div>
 
         {/* Indicador de Progreso */}
