@@ -24,6 +24,7 @@ import {
   Trash2,
   Info,
   X,
+  List,
 } from "lucide-react"
 
 function toTitleCase(str) {
@@ -165,6 +166,9 @@ function RegistroPostulacion() {
   const [isLoadingMaterias, setIsLoadingMaterias] = useState(true)
   const [retryCount, setRetryCount] = useState(0)
   const MAX_RETRIES = 3
+
+  // Estado para mostrar los requisitos de la asignatura seleccionada
+  const [requisitosActuales, setRequisitosActuales] = useState("")
 
   // Estados para controlar el proceso de envío y verificación
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -369,6 +373,28 @@ function RegistroPostulacion() {
     fetchMaterias()
   }, [baseURL, retryCount])
 
+  // Función para obtener los requisitos de una asignatura
+  const obtenerRequisitos = useCallback(
+    (asignatura, carrera) => {
+      if (!asignatura || !carrera || materias.length === 0) {
+        return ""
+      }
+
+      const materiaEncontrada = materias.find(
+        (materia) => materia.asignatura === asignatura && materia.carrera === carrera,
+      )
+
+      return materiaEncontrada?.requisitos || ""
+    },
+    [materias],
+  )
+
+  // Actualizar requisitos cuando cambia la asignatura seleccionada
+  useEffect(() => {
+    const requisitos = obtenerRequisitos(nuevaAsignatura.asignatura, formData.carrera)
+    setRequisitosActuales(requisitos)
+  }, [nuevaAsignatura.asignatura, formData.carrera, obtenerRequisitos])
+
   // Validar campo individual
   const validateField = useCallback(
     (name, value) => {
@@ -486,6 +512,7 @@ function RegistroPostulacion() {
         asignatura: "",
         nivel: "Grado",
       })
+      setRequisitosActuales("")
     }
   }
 
@@ -542,21 +569,34 @@ function RegistroPostulacion() {
         text: "Solo se pueden registrar máximo 3 materias.",
       })
     }
-    // Se crea un nuevo objeto que incluye la carrera actual
-    const nuevaAsignaturaConCarrera = { ...nuevaAsignatura, carrera: formData.carrera }
+
+    // Obtener los requisitos de la asignatura seleccionada
+    const requisitos = obtenerRequisitos(nuevaAsignatura.asignatura, formData.carrera)
+
+    // Se crea un nuevo objeto que incluye la carrera actual y los requisitos
+    const nuevaAsignaturaConCarrera = {
+      ...nuevaAsignatura,
+      carrera: formData.carrera,
+      requisitos: requisitos,
+    }
+
     setFormData((prev) => ({
       ...prev,
       asignaturasSeleccionadas: [...prev.asignaturasSeleccionadas, nuevaAsignaturaConCarrera],
     }))
+
     Swal.fire({
       icon: "success",
       title: "Asignatura agregada",
       text: "La materia fue agregada correctamente.",
     })
+
     setNuevaAsignatura({
       asignatura: "",
       nivel: "Grado",
     })
+
+    setRequisitosActuales("")
   }
 
   // Eliminar asignatura de la lista
@@ -750,6 +790,7 @@ function RegistroPostulacion() {
               asignatura: "",
               nivel: "Grado",
             })
+            setRequisitosActuales("")
             // Eliminar borrador si existe
             if (hasSavedDraft) {
               localStorage.removeItem("postulacionDraft")
@@ -821,6 +862,7 @@ function RegistroPostulacion() {
                     asignatura: "",
                     nivel: "Grado",
                   })
+                  setRequisitosActuales("")
                   // Eliminar borrador si existe
                   if (hasSavedDraft) {
                     localStorage.removeItem("postulacionDraft")
@@ -848,6 +890,7 @@ function RegistroPostulacion() {
                       asignatura: "",
                       nivel: "Grado",
                     })
+                    setRequisitosActuales("")
                     // Eliminar borrador si existe
                     if (hasSavedDraft) {
                       localStorage.removeItem("postulacionDraft")
@@ -905,6 +948,15 @@ function RegistroPostulacion() {
   const documentosFilled = Object.keys(formData.documentos).length > 0 ? 1 : 0
   const totalFields = personalFields.length + 2
   const progressPercentage = Math.round(((filledPersonal + asignaturaFilled + documentosFilled) / totalFields) * 100)
+
+  // Función para formatear requisitos como lista
+  const formatRequisitos = (requisitos) => {
+    if (!requisitos) return []
+    return requisitos
+      .split(".")
+      .filter((req) => req.trim())
+      .map((req) => req.trim())
+  }
 
   // Componente de vista previa
   const FormPreview = () => {
@@ -968,13 +1020,25 @@ function RegistroPostulacion() {
             <div>
               <h4 className="text-lg font-semibold text-blue-800 mb-2">Materias Postuladas</h4>
               {formData.asignaturasSeleccionadas.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {formData.asignaturasSeleccionadas.map((item, index) => (
-                    <div key={index} className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="font-medium">{item.asignatura}</p>
-                      <p className="text-sm text-gray-600">
+                    <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="font-medium text-lg">{item.asignatura}</p>
+                      <p className="text-sm text-gray-600 mb-2">
                         {item.nivel} - {item.carrera}
                       </p>
+                      {item.requisitos && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">Requisitos:</p>
+                          <div className="text-sm text-gray-600">
+                            {formatRequisitos(item.requisitos).map((req, reqIndex) => (
+                              <p key={reqIndex} className="ml-2">
+                                • {req}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1451,6 +1515,33 @@ function RegistroPostulacion() {
                     </div>
                   </div>
 
+                  {/* Campo de Requisitos - Solo lectura */}
+                  {nuevaAsignatura.asignatura && requisitosActuales && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Requisitos de la Asignatura
+                        <InfoTooltip text="Estos son los requisitos necesarios para la asignatura seleccionada. Esta información es solo de consulta." />
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
+                          <List className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <div className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 min-h-[80px]">
+                          <div className="text-sm text-gray-700">
+                            {formatRequisitos(requisitosActuales).map((req, index) => (
+                              <p key={index} className="mb-1">
+                                • {req}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Los requisitos se muestran automáticamente según la asignatura seleccionada
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex justify-center">
                     <button
                       type="button"
@@ -1470,26 +1561,42 @@ function RegistroPostulacion() {
                   {formData.asignaturasSeleccionadas.length > 0 && (
                     <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
                       <h4 className="text-lg font-semibold text-gray-800 mb-3">Asignaturas Agregadas:</h4>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {formData.asignaturasSeleccionadas.map((item, index) => (
-                          <div
-                            key={index}
-                            className="p-3 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between"
-                          >
-                            <div className="flex items-center">
-                              <BookOpen className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
-                              <span className="text-gray-800">
-                                <span className="font-medium">{item.asignatura}</span> - {item.nivel} - {item.carrera}
-                              </span>
+                          <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center mb-2">
+                                  <BookOpen className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
+                                  <span className="text-gray-800">
+                                    <span className="font-medium text-lg">{item.asignatura}</span>
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-2">
+                                  {item.nivel} - {item.carrera}
+                                </p>
+                                {item.requisitos && (
+                                  <div className="mt-2">
+                                    <p className="text-sm font-medium text-gray-700 mb-1">Requisitos:</p>
+                                    <div className="text-sm text-gray-600 bg-white p-2 rounded border">
+                                      {formatRequisitos(item.requisitos).map((req, reqIndex) => (
+                                        <p key={reqIndex} className="mb-1">
+                                          • {req}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeAsignatura(index)}
+                                className="text-red-500 hover:text-red-700 p-1 ml-2"
+                                aria-label={`Eliminar asignatura ${item.asignatura}`}
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removeAsignatura(index)}
-                              className="text-red-500 hover:text-red-700 p-1"
-                              aria-label={`Eliminar asignatura ${item.asignatura}`}
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
                           </div>
                         ))}
                       </div>

@@ -8,7 +8,7 @@ root.render(
   <App />
 );
 
-// Verifica que el navegador soporte Service Workers
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
