@@ -25,6 +25,8 @@ import {
   Info,
   X,
   List,
+  Download,
+  FolderOpen,
 } from "lucide-react"
 
 function toTitleCase(str) {
@@ -62,6 +64,45 @@ const documentosList = [
   { key: "miembroTribunalTrabajoGrado", label: "Miembro de Tribunal Trabajo de Grado" },
   { key: "actividadProfesional", label: "Actividad profesional (Respaldada)" },
   { key: "participacionVidaUniversitaria", label: "Participación en vida universitaria (Evidencias)" },
+]
+
+// Lista de guías de postulación disponibles para descarga
+const guiasPostulacion = [
+  {
+    nombre: "Carta Docente Nuevo - Licenciatura",
+    archivo: "1. CARTA DOCENTE NUEVO - LICENCIATURA.docx",
+    descripcion: "Carta de postulación para docente nuevo en carreras de Licenciatura",
+  },
+  {
+    nombre: "Carta Docente Nuevo - Tecnológico",
+    archivo: "2. CARTA DOCENTE NUEVO - TECNOLÓGICO.docx",
+    descripcion: "Carta de postulación para docente nuevo en carreras Tecnológicas",
+  },
+  {
+    nombre: "Carta Docente Nuevo - Materia Militar",
+    archivo: "3. CARTA DOCENTE NUEVO - MATERIA MILITAR.docx",
+    descripcion: "Carta de postulación para docente nuevo en Materia Militar",
+  },
+  {
+    nombre: "Carta Docente Antiguo - Licenciatura",
+    archivo: "4. CARTA DOCENTE ANTIGUO - LICENCIATURA.docx",
+    descripcion: "Carta de postulación para docente antiguo en carreras de Licenciatura",
+  },
+  {
+    nombre: "Carta Docente Antiguo - Tecnológico",
+    archivo: "5. CARTA DOCENTE ANTIGUO - TECNOLÓGICO.docx",
+    descripcion: "Carta de postulación para docente antiguo en carreras Tecnológicas",
+  },
+  {
+    nombre: "Carta Docente Antiguo - Materia Militar",
+    archivo: "6. CARTA DOCENTE ANTIGUO - MATERIA MILITAR.docx",
+    descripcion: "Carta de postulación para docente antiguo en Materia Militar",
+  },
+  {
+    nombre: "Modelo de Hoja de Vida - Docente Nuevo",
+    archivo: "MODELO DE HOJA DE VIDA - DOCENTE NUEVO.xlsx",
+    descripcion: "Formato oficial en Excel para la hoja de vida de docentes nuevos",
+  },
 ]
 
 const allowedTypes = [
@@ -131,6 +172,76 @@ const InfoTooltip = ({ text }) => {
           {text}
         </div>
       )}
+    </div>
+  )
+}
+
+// Componente para las guías de postulación
+const GuiasPostulacion = () => {
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  return (
+    <div className="mb-6">
+      <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg shadow-sm">
+        <div className="p-4">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <div className="flex items-center">
+              <FolderOpen className="h-5 w-5 text-green-700 mr-2" />
+              <h3 className="text-lg font-semibold text-green-800">Guías de Postulación</h3>
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm text-green-600 mr-2">{isExpanded ? "Ocultar" : "Ver guías"}</span>
+              <div className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </button>
+
+          {isExpanded && (
+            <div className="mt-4 space-y-3">
+              <p className="text-sm text-green-700 mb-3">
+                Descarga las guías oficiales para completar tu postulación correctamente:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {guiasPostulacion.map((guia, index) => (
+                  <div
+                    key={index}
+                    className="bg-white p-3 rounded-lg border border-green-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium text-gray-800 truncate">{guia.nombre}</h4>
+                        <p className="text-xs text-gray-600 mt-1">{guia.descripcion}</p>
+                      </div>
+                      <a
+                        href={`/guias/${guia.archivo}`}
+                        download={guia.archivo}
+                        className="ml-2 flex-shrink-0 inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                        title={`Descargar ${guia.nombre}`}
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        Descargar
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                <p className="text-xs text-green-700">
+                  <Info className="h-3 w-3 inline mr-1" />
+                  Recomendamos revisar todas las guías antes de completar el formulario de postulación.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -1091,6 +1202,9 @@ function RegistroPostulacion() {
       {/* Contenedor principal - ocupa todo el ancho disponible */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="w-full bg-white p-6 sm:p-10 rounded-xl shadow-xl border border-blue-100">
+          {/* Sección de Guías de Postulación */}
+          <GuiasPostulacion />
+
           {/* Indicador de Progreso mejorado */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
