@@ -6,7 +6,17 @@ import Swal from "sweetalert2"
 import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
-import { Search, FileSpreadsheet, FileIcon as FilePdf, Plus, ChevronDown, ChevronUp, Filter } from "lucide-react"
+import {
+  Search,
+  FileSpreadsheet,
+  FileIcon as FilePdf,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Eye,
+  EyeOff,
+} from "lucide-react"
 import logoEMI from "../images/emiemi.png"
 
 function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
@@ -19,9 +29,13 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     carrera: "",
     semestre: "",
     nivelAcademico: "",
+    gestion: "",
   })
   const [showFilters, setShowFilters] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [showAllColumns, setShowAllColumns] = useState(false)
+  const [selectedItems, setSelectedItems] = useState([])
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const baseURL =
     process.env.NODE_ENV === "development" ? process.env.REACT_APP_urlbacklocalhost : process.env.REACT_APP_urlback
@@ -46,22 +60,40 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     fetchAcefalias()
   }, [baseURL])
 
+  // Definir todas las opciones disponibles
+  const allCarreras = [
+    "Ciencias Básicas",
+    "Materia Militar",
+    "Ingeniería de Sistemas",
+    "Ingeniería en Sistemas Electrónicos",
+    "Ingeniería Agroindustrial",
+    "Ingeniería Civil",
+    "Ingeniería Comercial",
+  ]
+
+  const allNiveles = ["Grado", "Licenciatura", "Tecnologico"]
+
+  // Combinar opciones predefinidas con datos existentes y eliminar duplicados
+  const uniqueCarreras = [...new Set([...allCarreras, ...acefalias.map((a) => a.carrera)])].filter(Boolean).sort()
+  const uniqueNiveles = [...new Set([...allNiveles, ...acefalias.map((a) => a.nivelAcademico)])].filter(Boolean).sort()
+
   // Extraer valores únicos para los filtros
-  const uniqueCarreras = [...new Set(acefalias.map((a) => a.carrera))].sort()
   const uniqueSemestres = [...new Set(acefalias.map((a) => a.semestre))].sort((a, b) => a - b)
-  const uniqueNiveles = [...new Set(acefalias.map((a) => a.nivelAcademico))].sort()
+  const uniqueGestiones = [...new Set(acefalias.map((a) => a.gestion))].filter(Boolean).sort()
 
   // Filtrar acefalias
   const filteredAcefalias = acefalias.filter((acefalia) => {
     const matchesSearch =
-      acefalia.asignatura.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      acefalia.carrera.toLowerCase().includes(searchTerm.toLowerCase())
+      acefalia.asignatura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      acefalia.carrera?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      acefalia.motivosAcefalia?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesCarrera = filters.carrera ? acefalia.carrera === filters.carrera : true
     const matchesSemestre = filters.semestre ? acefalia.semestre === filters.semestre : true
     const matchesNivel = filters.nivelAcademico ? acefalia.nivelAcademico === filters.nivelAcademico : true
+    const matchesGestion = filters.gestion ? acefalia.gestion === filters.gestion : true
 
-    return matchesSearch && matchesCarrera && matchesSemestre && matchesNivel
+    return matchesSearch && matchesCarrera && matchesSemestre && matchesNivel && matchesGestion
   })
 
   // Calcular elementos para la página actual
@@ -122,11 +154,16 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
 
     const worksheet = XLSX.utils.json_to_sheet(
       filteredAcefalias.map((acefalia) => ({
-        Asignatura: acefalia.asignatura,
-        Requisitos: acefalia.requisitos,
-        Semestre: acefalia.semestre,
-        "Nivel Académico": acefalia.nivelAcademico,
-        Carrera: acefalia.carrera,
+        Asignatura: acefalia.asignatura || "",
+        Requisitos: acefalia.requisitos || "",
+        Semestre: acefalia.semestre || "",
+        "Nivel Académico": acefalia.nivelAcademico || "",
+        Carrera: acefalia.carrera || "",
+        Gestión: acefalia.gestion || "",
+        "Horas Teoría": acefalia.horasTeoria || 0,
+        "Horas Prácticas": acefalia.horasPracticas || 0,
+        "Horas Laboratorio": acefalia.horasLaboratorio || 0,
+        "Motivos Acefalia": acefalia.motivosAcefalia || "",
       })),
     )
     const workbook = XLSX.utils.book_new()
@@ -155,7 +192,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
 
     // Calcular el número total de páginas para la numeración
     const totalItems = filteredAcefalias.length
-    const itemsPerPage = 15 // Estimación aproximada de cuántas filas caben en una página
+    const itemsPerPage = 4 // Reducido para dar más espacio vertical
     const totalPages = Math.ceil(totalItems / itemsPerPage)
 
     try {
@@ -194,18 +231,22 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         )
 
         // Intentar cargar el logo - manteniendo la proporción correcta
-        const img = new Image()
-        img.src = logoEMI
-        img.crossOrigin = "anonymous"
-        // Calcular dimensiones para mantener la proporción original del logo
-        const logoMaxHeight = altoEncabezado - 4
-        const logoMaxWidth = anchoLogo - 10
-        // Usar un tamaño que mantenga la proporción pero sin estirar
-        const logoHeight = logoMaxHeight
-        const logoWidth = logoMaxHeight * 1.5 // Proporción aproximada del logo (ancho:alto = 1.5:1)
-        // Centrar el logo en su celda
-        const logoX = margenIzquierdo + (anchoLogo - logoWidth) / 2
-        doc.addImage(img, "PNG", logoX, margenSuperior + 2, logoWidth, logoHeight)
+        try {
+          const img = new Image()
+          img.src = logoEMI
+          img.crossOrigin = "anonymous"
+          // Calcular dimensiones para mantener la proporción original del logo
+          const logoMaxHeight = altoEncabezado - 4
+          const logoMaxWidth = anchoLogo - 10
+          // Usar un tamaño que mantenga la proporción pero sin estirar
+          const logoHeight = logoMaxHeight
+          const logoWidth = logoMaxHeight * 1.5 // Proporción aproximada del logo (ancho:alto = 1.5:1)
+          // Centrar el logo en su celda
+          const logoX = margenIzquierdo + (anchoLogo - logoWidth) / 2
+          doc.addImage(img, "PNG", logoX, margenSuperior + 2, logoWidth, logoHeight)
+        } catch (error) {
+          console.warn("No se pudo cargar el logo:", error)
+        }
 
         // Título en el centro - ahora con más espacio
         doc.setFontSize(10)
@@ -241,10 +282,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         doc.setFont("helvetica", "normal")
 
         doc.text("Código:", seccionDerecha + 5, margenSuperior + altoFila / 2 + 2)
-        // Se eliminó el valor del código "CR-UCA-FA-R-18"
-
         doc.text("Versión:", seccionDerecha + 5, margenSuperior + altoFila + altoFila / 2 + 2)
-        // Se eliminó el valor de la versión "1.0"
 
         doc.text(
           `Página ${pageNum} de ${totalPages}`,
@@ -255,16 +293,20 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
           },
         )
 
-        // NUEVO FORMATO: Crear un solo bloque para Periodo Académico
+        // PERIODO ACADÉMICO - CORREGIDO Y CENTRADO
         const yInfoBloque = margenSuperior + altoEncabezado
-        const altoInfoBloque = 15 // Altura total del bloque de información
+        const altoInfoBloque = 12 // Aumentado ligeramente para mejor visualización
 
         // Dibujar el rectángulo exterior para todo el bloque
+        doc.setDrawColor(0)
+        doc.setLineWidth(0.5)
         doc.rect(margenIzquierdo, yInfoBloque, anchoUtil, altoInfoBloque)
 
-        // Sección de Periodo Académico - solo texto, sin rectángulo separado
-        doc.setFontSize(8)
-        doc.text("PERIODO ACADÉMICO:", margenIzquierdo + 5, yInfoBloque + 10)
+        // Texto de Periodo Académico - centrado verticalmente
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(0, 0, 0)
+        doc.text("PERIODO ACADÉMICO:", margenIzquierdo + 5, yInfoBloque + altoInfoBloque / 2 + 2)
 
         return {
           yPos: yInfoBloque + altoInfoBloque + 5, // Retorna la posición Y donde debe comenzar la tabla
@@ -275,31 +317,34 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
 
       // Función para dibujar el encabezado de la tabla
       const drawTableHeader = (yPos, anchoUtil, margenIzquierdo) => {
-        const headerHeight = 12
+        const headerHeight = 15
 
-        // Definir los anchos de columna para que se ajusten al ancho total disponible
-        const totalCols = 6
+        // AJUSTE OPTIMIZADO PARA COLUMNA REQUISITOS
         const colWidths = [
-          anchoUtil * 0.05, // Nro (5%)
-          anchoUtil * 0.2, // Asignatura (20%)
-          anchoUtil * 0.3, // Requisitos (30%)
-          anchoUtil * 0.15, // Semestre (15%)
-          anchoUtil * 0.15, // Nivel Académico (15%)
-          anchoUtil * 0.15, // Carrera (15%)
+          anchoUtil * 0.022, // Nro (reducido ligeramente)
+          anchoUtil * 0.105, // Asignatura (reducido para dar más espacio a requisitos)
+          anchoUtil * 0.52, // Requisitos (AUMENTADO significativamente)
+          anchoUtil * 0.06, // Semestre (reducido ligeramente)
+          anchoUtil * 0.06, // Nivel (reducido ligeramente)
+          anchoUtil * 0.115, // Carrera (reducido ligeramente)
+          anchoUtil * 0.05, // Gestión (reducido)
+          anchoUtil * 0.023, // H.T (ajustado)
+          anchoUtil * 0.023, // H.P (ajustado)
+          anchoUtil * 0.022, // H.L (ajustado)
         ]
 
-        // Calcular el ancho total de la tabla (debe ser igual a anchoUtil)
+        // Calcular el ancho total de la tabla
         const tableWidth = colWidths.reduce((sum, width) => sum + width, 0)
 
-        // Dibujar el encabezado de la tabla con fondo blanco (ya no azul)
-        doc.setFillColor(255, 255, 255) // Fondo blanco para el encabezado
+        // Dibujar el encabezado de la tabla con fondo blanco
+        doc.setFillColor(255, 255, 255)
         doc.rect(margenIzquierdo, yPos, tableWidth, headerHeight, "F")
 
         // Dibujar líneas verticales para separar columnas en encabezados
         let currentX = margenIzquierdo
         for (let i = 0; i < colWidths.length - 1; i++) {
           currentX += colWidths[i]
-          doc.setDrawColor(0) // Líneas negras para el encabezado
+          doc.setDrawColor(0)
           doc.line(currentX, yPos, currentX, yPos + headerHeight)
         }
 
@@ -312,33 +357,81 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         doc.rect(margenIzquierdo, yPos, tableWidth, headerHeight)
 
         // Agregar textos de encabezados
-        doc.setFontSize(9)
+        doc.setFontSize(7)
         doc.setFont("helvetica", "bold")
-        doc.setTextColor(0, 0, 0) // Texto negro para el encabezado (ya no blanco)
+        doc.setTextColor(0, 0, 0)
+
+        const headers = [
+          "Nro",
+          "Asignatura",
+          "Requisitos",
+          "Semestre",
+          "Nivel",
+          "Carrera",
+          "Gestión",
+          "H.T",
+          "H.P",
+          "H.L",
+        ]
 
         currentX = margenIzquierdo
-        doc.text("Nro", currentX + colWidths[0] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
-
-        currentX += colWidths[0]
-        doc.text("Asignatura", currentX + colWidths[1] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
-
-        currentX += colWidths[1]
-        doc.text("Requisitos", currentX + colWidths[2] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
-
-        currentX += colWidths[2]
-        doc.text("Semestre", currentX + colWidths[3] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
-
-        currentX += colWidths[3]
-        doc.text("Nivel Académico", currentX + colWidths[4] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
-
-        currentX += colWidths[4]
-        doc.text("Carrera", currentX + colWidths[5] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
+        headers.forEach((header, index) => {
+          doc.text(header, currentX + colWidths[index] / 2, yPos + headerHeight / 2 + 2, { align: "center" })
+          currentX += colWidths[index]
+        })
 
         return {
           headerHeight,
           colWidths,
           tableWidth,
         }
+      }
+
+      // Función MEJORADA para dividir texto SIN SOLAPAMIENTO - OPTIMIZADA PARA REQUISITOS
+      const splitTextAdvanced = (text, maxWidth, fontSize) => {
+        if (!text) return [""]
+
+        doc.setFontSize(fontSize)
+
+        // Convertir a string y limpiar el texto
+        const cleanText = text.toString().trim()
+
+        // Para requisitos, dividir por puntos y guiones primero
+        const segments = cleanText.split(/[.•-]+/).filter((s) => s.trim())
+        const lines = []
+        let currentLine = ""
+
+        // Ancho real disponible (restando padding)
+        const availableWidth = maxWidth - 8
+
+        for (const segment of segments) {
+          const words = segment.trim().split(/\s+/)
+
+          for (const word of words) {
+            const testLine = currentLine + (currentLine ? " " : "") + word
+            const testWidth = (doc.getStringUnitWidth(testLine) * fontSize) / doc.internal.scaleFactor
+
+            if (testWidth > availableWidth && currentLine !== "") {
+              // Agregar la línea actual y empezar una nueva
+              lines.push(currentLine.trim())
+              currentLine = word
+            } else {
+              currentLine = testLine
+            }
+          }
+
+          // Al final de cada segmento, agregar punto si no lo tiene
+          if (currentLine && !currentLine.match(/[.!?]$/)) {
+            currentLine += "."
+          }
+        }
+
+        // Agregar la última línea si existe
+        if (currentLine.trim() !== "") {
+          lines.push(currentLine.trim())
+        }
+
+        return lines.length > 0 ? lines : [""]
       }
 
       // Iniciar la primera página
@@ -351,44 +444,21 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
       )
 
       const margenIzquierdo = headerInfo.margenIzquierdo
-      // Función para calcular la altura necesaria para una celda basada en su contenido
-      const calculateRowHeight = (text, maxWidth, fontSize, baseHeight = 10) => {
-        if (!text) return baseHeight
-        doc.setFontSize(fontSize)
-        const words = text.toString().split(" ")
-        let line = ""
-        let lineCount = 1
-
-        for (let i = 0; i < words.length; i++) {
-          const testLine = line + words[i] + " "
-          const testWidth = (doc.getStringUnitWidth(testLine) * doc.internal.getFontSize()) / doc.internal.scaleFactor
-
-          if (testWidth > maxWidth && i > 0) {
-            line = words[i] + " "
-            lineCount++
-          } else {
-            line = testLine
-          }
-        }
-
-        return Math.max(baseHeight, lineCount * 4 + 6) // 4 puntos por línea + 6 de margen
-      }
-
       let currentY = headerInfo.yPos + headerHeight
 
-      // Dibujar cada fila de datos con paginación automática y altura dinámica
+      // Dibujar cada fila de datos
       filteredAcefalias.forEach((acefalia, index) => {
-        // Calcular la altura necesaria para esta fila basada en el contenido
-        const asignaturaHeight = calculateRowHeight(acefalia.asignatura, colWidths[1] - 6, 8)
-        const requisitosHeight = calculateRowHeight(acefalia.requisitos, colWidths[2] - 6, 8)
-        const carreraHeight = calculateRowHeight(acefalia.carrera, colWidths[5] - 6, 8)
+        // CÁLCULO OPTIMIZADO ESPECÍFICAMENTE PARA REQUISITOS
+        const baseRowHeight = 45
+        const asignaturaLines = splitTextAdvanced(acefalia.asignatura, colWidths[1] - 4, 6)
+        const requisitosLines = splitTextAdvanced(acefalia.requisitos, colWidths[2] - 8, 5) // Más padding para requisitos
+        const maxLines = Math.max(asignaturaLines.length, requisitosLines.length, 1)
 
-        // Usar la altura máxima necesaria entre todas las columnas
-        const rowHeight = Math.max(asignaturaHeight, requisitosHeight, carreraHeight)
+        // FÓRMULA ESPECÍFICA PARA ACOMODAR REQUISITOS LARGOS
+        const rowHeight = Math.max(baseRowHeight, requisitosLines.length * 6 + 25) // Espaciado específico para requisitos
 
         // Verificar si necesitamos una nueva página
         if (currentY + rowHeight > pageHeight - 20) {
-          // Agregar nueva página
           doc.addPage()
           currentPage++
           const newHeaderInfo = drawHeader(currentPage)
@@ -402,108 +472,93 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
 
         // Alternar colores de fondo para las filas
         if (index % 2 === 0) {
-          doc.setFillColor(255, 255, 255) // Filas pares: blanco
+          doc.setFillColor(255, 255, 255)
         } else {
-          doc.setFillColor(240, 240, 240) // Filas impares: gris claro
+          doc.setFillColor(245, 245, 245)
         }
 
-        // Dibujar rectángulo para toda la fila con el color de fondo
+        // Dibujar rectángulo para toda la fila
         doc.rect(margenIzquierdo, currentY, tableWidth, rowHeight, "F")
 
-        // Dibujar líneas verticales para separar columnas
+        // Dibujar bordes de la fila
+        doc.setDrawColor(0)
+        doc.rect(margenIzquierdo, currentY, tableWidth, rowHeight)
+
+        // Dibujar líneas verticales
         let colX = margenIzquierdo
-        for (let i = 0; i < colWidths.length; i++) {
-          // Dibujar línea vertical izquierda de cada celda
-          doc.setDrawColor(0) // Líneas negras para las celdas
-          doc.line(colX, currentY, colX, currentY + rowHeight)
+        for (let i = 0; i < colWidths.length - 1; i++) {
           colX += colWidths[i]
+          doc.line(colX, currentY, colX, currentY + rowHeight)
         }
 
-        // Dibujar línea vertical derecha de la última columna
-        doc.line(margenIzquierdo + tableWidth, currentY, margenIzquierdo + tableWidth, currentY + rowHeight)
-
-        // Dibujar líneas horizontales para la fila
-        doc.line(margenIzquierdo, currentY, margenIzquierdo + tableWidth, currentY)
-        doc.line(margenIzquierdo, currentY + rowHeight, margenIzquierdo + tableWidth, currentY + rowHeight)
-
-        // Función para agregar texto con ajuste automático dentro de las celdas
-        const addWrappedText = (text, x, y, maxWidth, lineHeight) => {
-          if (!text) return y
-
-          // Dividir el texto en palabras
-          const words = text.toString().split(" ")
-          let line = ""
-          let currentY = y
-
-          // Recorrer cada palabra
-          for (let i = 0; i < words.length; i++) {
-            const testLine = line + words[i] + " "
-            const testWidth = (doc.getStringUnitWidth(testLine) * doc.internal.getFontSize()) / doc.internal.scaleFactor
-
-            // Si la línea con la nueva palabra excede el ancho máximo
-            if (testWidth > maxWidth && i > 0) {
-              doc.text(line.trim(), x, currentY)
-              line = words[i] + " "
-              currentY += lineHeight
-            } else {
-              line = testLine
-            }
-          }
-
-          // Agregar la última línea
-          if (line.trim() !== "") {
-            doc.text(line.trim(), x, currentY)
-            currentY += lineHeight
-          }
-
-          return currentY
-        }
-
-        // Agregar textos de datos
+        // Agregar contenido de las celdas CON ESPACIADO MEJORADO
         doc.setFont("helvetica", "normal")
-        doc.setTextColor(0, 0, 0) // Texto negro para los datos
-        doc.setFontSize(8) // Tamaño de letra más pequeño para que quepa mejor el texto
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(6)
 
         colX = margenIzquierdo
-        doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + rowHeight / 2 + 2, {
+
+        // Nro - centrado
+        doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + rowHeight / 2 + 1, { align: "center" })
+        colX += colWidths[0]
+
+        // Asignatura - alineación izquierda con espaciado mejorado
+        asignaturaLines.forEach((line, lineIndex) => {
+          doc.text(line, colX + 2, currentY + 10 + lineIndex * 7, { align: "left" }) // Espaciado aumentado
+        })
+        colX += colWidths[1]
+
+        // Requisitos - RENDERIZADO OPTIMIZADO PARA TEXTO LARGO
+        doc.setFontSize(5)
+        const requisitosLinesPdf = splitTextAdvanced(acefalia.requisitos, colWidths[2] - 8, 5)
+        requisitosLinesPdf.forEach((line, lineIndex) => {
+          // Posicionamiento mejorado con más espacio vertical
+          const yPosition = currentY + 8 + lineIndex * 5.5
+          doc.text(line, colX + 3, yPosition, {
+            align: "left",
+            maxWidth: colWidths[2] - 8,
+          })
+        })
+        doc.setFontSize(6)
+        colX += colWidths[2]
+
+        // Semestre - alineación izquierda
+        doc.text(acefalia.semestre || "", colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+        colX += colWidths[3]
+
+        // Nivel - alineación izquierda
+        doc.text(acefalia.nivelAcademico || "", colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+        colX += colWidths[4]
+
+        // Carrera - alineación izquierda
+        doc.text(acefalia.carrera || "", colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+        colX += colWidths[5]
+
+        // Gestión - centrado
+        doc.text(acefalia.gestion || "", colX + colWidths[6] / 2, currentY + rowHeight / 2 + 1, { align: "center" })
+        colX += colWidths[6]
+
+        // H.T - centrado
+        doc.text((acefalia.horasTeoria || 0).toString(), colX + colWidths[7] / 2, currentY + rowHeight / 2 + 1, {
+          align: "center",
+        })
+        colX += colWidths[7]
+
+        // H.P - centrado
+        doc.text((acefalia.horasPracticas || 0).toString(), colX + colWidths[8] / 2, currentY + rowHeight / 2 + 1, {
+          align: "center",
+        })
+        colX += colWidths[8]
+
+        // H.L - centrado
+        doc.text((acefalia.horasLaboratorio || 0).toString(), colX + colWidths[9] / 2, currentY + rowHeight / 2 + 1, {
           align: "center",
         })
 
-        // Asignatura - con ajuste de texto
-        colX += colWidths[0]
-        const asignaturaText = acefalia.asignatura || ""
-        const asignaturaMaxWidth = colWidths[1] - 6 // Margen interno
-        addWrappedText(asignaturaText, colX + 3, currentY + 6, asignaturaMaxWidth, 4)
-
-        // Requisitos - con ajuste de texto
-        colX += colWidths[1]
-        const requisitosText = acefalia.requisitos || ""
-        const requisitosMaxWidth = colWidths[2] - 6 // Margen interno
-        addWrappedText(requisitosText, colX + 3, currentY + 6, requisitosMaxWidth, 4)
-
-        // Semestre - centrado
-        colX += colWidths[2]
-        const semestreText = acefalia.semestre || ""
-        doc.text(semestreText, colX + colWidths[3] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
-
-        // Nivel Académico - centrado
-        colX += colWidths[3]
-        const nivelText = acefalia.nivelAcademico || ""
-        doc.text(nivelText, colX + colWidths[4] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
-
-        // Carrera - con ajuste de texto
-        colX += colWidths[4]
-        const carreraText = acefalia.carrera || ""
-        const carreraMaxWidth = colWidths[5] - 6 // Margen interno
-        addWrappedText(carreraText, colX + 3, currentY + 6, carreraMaxWidth, 4)
-
         currentY += rowHeight
       })
-
-      // Ya no se agregan firmas ni fecha al final del documento
     } catch (error) {
       console.error("Error al generar el PDF:", error)
-      // Si hay error al cargar la imagen, continuamos sin ella
       Swal.fire({
         icon: "warning",
         title: "Advertencia",
@@ -524,6 +579,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
       carrera: "",
       semestre: "",
       nivelAcademico: "",
+      gestion: "",
     })
     setSearchTerm("")
   }
@@ -537,6 +593,90 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
       .map((req) => req.trim())
   }
 
+  // Funciones para selección múltiple
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedItems(currentItems.map((item) => item._id))
+    } else {
+      setSelectedItems([])
+    }
+  }
+
+  const handleSelectItem = (itemId, checked) => {
+    if (checked) {
+      setSelectedItems((prev) => [...prev, itemId])
+    } else {
+      setSelectedItems((prev) => prev.filter((id) => id !== itemId))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedItems.length === 0) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sin selección",
+        text: "Por favor, seleccione al menos una acefalia para eliminar.",
+      })
+      return
+    }
+
+    const confirm = await Swal.fire({
+      title: "¿Eliminar acefalías seleccionadas?",
+      text: `Se eliminarán ${selectedItems.length} acefalía(s) permanentemente.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#d33",
+    })
+
+    if (!confirm.isConfirmed) return
+
+    setIsDeleting(true)
+
+    try {
+      // Mostrar progreso
+      Swal.fire({
+        title: "Eliminando acefalías...",
+        text: "Por favor espere mientras se procesan las eliminaciones",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        allowEnterKey: false,
+        didOpen: () => {
+          Swal.showLoading()
+        },
+      })
+
+      // Eliminar en lotes para mejor rendimiento
+      const deletePromises = selectedItems.map((id) => axios.delete(`${baseURL}/materias/${id}`))
+
+      await Promise.all(deletePromises)
+
+      // Actualizar la lista local
+      setAcefalias((prev) => prev.filter((acefalia) => !selectedItems.includes(acefalia._id)))
+      setSelectedItems([])
+
+      Swal.close()
+
+      Swal.fire({
+        icon: "success",
+        title: "¡Eliminación exitosa!",
+        text: `Se eliminaron ${selectedItems.length} acefalía(s) correctamente.`,
+        timer: 3000,
+        timerProgressBar: true,
+      })
+    } catch (error) {
+      console.error("Error al eliminar acefalías:", error)
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Hubo un problema al eliminar algunas acefalías. Por favor, inténtelo nuevamente.",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="p-2 sm:p-4 bg-gray-50 min-h-screen">
       <div className="w-full">
@@ -544,6 +684,14 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Lista de Acefalias</h2>
           <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              onClick={() => setShowAllColumns(!showAllColumns)}
+              className="px-3 py-2 bg-gray-600 text-white font-medium rounded-md shadow hover:bg-gray-700 transition flex items-center gap-1"
+              title={showAllColumns ? "Ocultar columnas adicionales" : "Mostrar todas las columnas"}
+            >
+              {showAllColumns ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="hidden sm:inline">{showAllColumns ? "Menos" : "Más"}</span>
+            </button>
             <button
               onClick={handleDownloadExcel}
               className="px-3 py-2 bg-green-600 text-white font-medium rounded-md shadow hover:bg-green-700 transition flex items-center gap-1"
@@ -565,6 +713,24 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
               <Plus className="w-4 h-4" />
               <span>Añadir</span>
             </button>
+            {selectedItems.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="px-3 py-2 bg-red-600 text-white font-medium rounded-md shadow hover:bg-red-700 transition flex items-center gap-1 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Eliminar ({selectedItems.length})</span>
+                <span className="sm:hidden">({selectedItems.length})</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -578,7 +744,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
                 </div>
                 <input
                   type="text"
-                  placeholder="Buscar por asignatura o carrera..."
+                  placeholder="Buscar por asignatura, carrera o motivos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -588,6 +754,11 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
               <div className="mt-2 text-sm text-gray-600">
                 Mostrando {filteredAcefalias.length > 0 ? indexOfFirstItem + 1 : 0} -{" "}
                 {Math.min(indexOfLastItem, filteredAcefalias.length)} de {filteredAcefalias.length} resultados
+                {selectedItems.length > 0 && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    {selectedItems.length} seleccionado(s)
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -597,7 +768,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
                 <span>Filtros</span>
                 {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
-              {(filters.carrera || filters.semestre || filters.nivelAcademico) && (
+              {(filters.carrera || filters.semestre || filters.nivelAcademico || filters.gestion) && (
                 <button
                   onClick={resetFilters}
                   className="px-3 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition text-sm"
@@ -611,7 +782,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
           {/* Panel de filtros desplegable */}
           {showFilters && (
             <div className="p-4 bg-gray-50 border-b">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="carrera-filter" className="block text-sm font-medium text-gray-700 mb-1">
                     Carrera
@@ -666,6 +837,24 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label htmlFor="gestion-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Gestión
+                  </label>
+                  <select
+                    id="gestion-filter"
+                    value={filters.gestion}
+                    onChange={(e) => setFilters({ ...filters, gestion: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Todas las gestiones</option>
+                    {uniqueGestiones.map((gestion) => (
+                      <option key={gestion} value={gestion}>
+                        {gestion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           )}
@@ -705,7 +894,7 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
         ) : filteredAcefalias.length === 0 ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
             <p className="text-gray-600">No se encontraron acefalias con los filtros aplicados.</p>
-            {(searchTerm || filters.carrera || filters.semestre || filters.nivelAcademico) && (
+            {(searchTerm || filters.carrera || filters.semestre || filters.nivelAcademico || filters.gestion) && (
               <button
                 onClick={resetFilters}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
@@ -720,76 +909,135 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
             <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto hidden sm:block">
               <table className="min-w-full bg-white border border-gray-200">
                 <thead>
-                  <tr className="bg-blue-800 text-white uppercase text-sm leading-normal">
-                    <th className="py-3 px-6 text-left">Nro</th>
-                    <th className="py-3 px-6 text-left">Asignatura</th>
-                    <th className="py-3 px-6 text-left">Requisitos</th>
-                    <th className="py-3 px-6 text-left">Semestre</th>
-                    <th className="py-3 px-6 text-left">Nivel Académico</th>
-                    <th className="py-3 px-6 text-left">Carrera</th>
-                    <th className="py-3 px-6 text-center">Acciones</th>
+                  <tr className="bg-blue-800 text-white uppercase text-xs leading-normal">
+                    <th className="py-3 px-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={currentItems.length > 0 && selectedItems.length === currentItems.length}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                    <th className="py-3 px-2 text-left">Nro</th>
+                    <th className="py-3 px-3 text-left">Asignatura</th>
+                    <th className="py-3 px-3 text-left">Requisitos</th>
+                    <th className="py-3 px-2 text-left">Semestre</th>
+                    <th className="py-3 px-2 text-left">Nivel</th>
+                    <th className="py-3 px-3 text-left">Carrera</th>
+                    {showAllColumns && (
+                      <>
+                        <th className="py-3 px-2 text-left">Gestión</th>
+                        <th className="py-3 px-2 text-center">H.T</th>
+                        <th className="py-3 px-2 text-center">H.P</th>
+                        <th className="py-3 px-2 text-center">H.L</th>
+                        <th className="py-3 px-3 text-left">Motivos</th>
+                      </>
+                    )}
+                    <th className="py-3 px-3 text-center">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="text-gray-700 text-sm font-light">
+                <tbody className="text-gray-700 text-xs font-light">
                   {currentItems.map((acefalia, index) => (
                     <tr
                       key={acefalia._id}
-                      className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100`}
+                      className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100 ${
+                        selectedItems.includes(acefalia._id) ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                      }`}
                     >
-                      <td className="py-3 px-6 text-left whitespace-nowrap">{indexOfFirstItem + index + 1}</td>
-                      <td className="py-3 px-6 text-left font-medium text-gray-800">{acefalia.asignatura}</td>
-                      <td className="py-3 px-6 text-left text-gray-600">
-                        {acefalia.requisitos &&
-                          acefalia.requisitos
-                            .split(".")
-                            .map((req, idx) => req.trim() && <p key={idx}>• {req.trim()}</p>)}
+                      <td className="py-3 px-2 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.includes(acefalia._id)}
+                          onChange={(e) => handleSelectItem(acefalia._id, e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
                       </td>
-                      <td className="py-3 px-6 text-left">{acefalia.semestre}</td>
-                      <td className="py-3 px-6 text-left">{acefalia.nivelAcademico}</td>
-                      <td className="py-3 px-6 text-left">{acefalia.carrera}</td>
-                      <td className="py-3 px-6 text-center flex justify-center space-x-2">
-                        <button
-                          onClick={() => onEditAcefalia(acefalia)}
-                          className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
-                          title="Editar acefalia"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                      <td className="py-3 px-2 text-left whitespace-nowrap">{indexOfFirstItem + index + 1}</td>
+                      <td className="py-3 px-3 text-left font-medium text-gray-800 max-w-xs">
+                        <div className="truncate" title={acefalia.asignatura}>
+                          {acefalia.asignatura}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-left text-gray-600 max-w-xs">
+                        <div className="max-h-20 overflow-y-auto">
+                          {acefalia.requisitos &&
+                            acefalia.requisitos.split(".").map(
+                              (req, idx) =>
+                                req.trim() && (
+                                  <p key={idx} className="text-xs">
+                                    • {req.trim()}
+                                  </p>
+                                ),
+                            )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 text-left text-xs">{acefalia.semestre}</td>
+                      <td className="py-3 px-2 text-left text-xs">{acefalia.nivelAcademico}</td>
+                      <td className="py-3 px-3 text-left text-xs">
+                        <div className="truncate" title={acefalia.carrera}>
+                          {acefalia.carrera}
+                        </div>
+                      </td>
+                      {showAllColumns && (
+                        <>
+                          <td className="py-3 px-2 text-left text-xs">{acefalia.gestion}</td>
+                          <td className="py-3 px-2 text-center text-xs">{acefalia.horasTeoria || 0}</td>
+                          <td className="py-3 px-2 text-center text-xs">{acefalia.horasPracticas || 0}</td>
+                          <td className="py-3 px-2 text-center text-xs">{acefalia.horasLaboratorio || 0}</td>
+                          <td className="py-3 px-3 text-left text-xs max-w-xs">
+                            <div className="max-h-16 overflow-y-auto">
+                              <div className="truncate" title={acefalia.motivosAcefalia}>
+                                {acefalia.motivosAcefalia}
+                              </div>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex justify-center space-x-1">
+                          <button
+                            onClick={() => onEditAcefalia(acefalia)}
+                            className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition flex items-center gap-1 text-xs"
+                            title="Editar acefalia"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                          <span>Editar</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAcefalia(acefalia._id)}
-                          className="bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 transition flex items-center gap-1"
-                          title="Eliminar acefalia"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            <span className="hidden lg:inline">Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAcefalia(acefalia._id)}
+                            className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition flex items-center gap-1 text-xs"
+                            title="Eliminar acefalia"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                          <span>Eliminar</span>
-                        </button>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            <span className="hidden lg:inline">Eliminar</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -804,7 +1052,13 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
                   key={acefalia._id}
                   className={`${index % 2 === 0 ? "bg-white" : "bg-blue-50"} border-b border-gray-200 hover:bg-gray-100 p-4`}
                 >
-                  <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(acefalia._id)}
+                      onChange={(e) => handleSelectItem(acefalia._id, e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                     <span className="font-bold text-gray-800">
                       {indexOfFirstItem + index + 1}. {acefalia.asignatura}
                     </span>
@@ -815,21 +1069,31 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
                       acefalia.requisitos.split(".").map(
                         (req, idx) =>
                           req.trim() && (
-                            <p key={idx} className="text-gray-600">
+                            <p key={idx} className="text-gray-600 text-sm">
                               • {req.trim()}
                             </p>
                           ),
                       )}
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2">
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 text-sm">
                       <strong>Semestre:</strong> {acefalia.semestre}
                     </p>
-                    <p className="text-gray-600">
-                      <strong>Nivel Académico:</strong> {acefalia.nivelAcademico}
+                    <p className="text-gray-600 text-sm">
+                      <strong>Nivel:</strong> {acefalia.nivelAcademico}
                     </p>
-                    <p className="text-gray-600 col-span-2">
+                    <p className="text-gray-600 col-span-2 text-sm">
                       <strong>Carrera:</strong> {acefalia.carrera}
+                    </p>
+                    <p className="text-gray-600 text-sm">
+                      <strong>Gestión:</strong> {acefalia.gestion}
+                    </p>
+                    <p className="text-gray-600 text-sm">
+                      <strong>Horas:</strong> T:{acefalia.horasTeoria || 0} P:{acefalia.horasPracticas || 0} L:
+                      {acefalia.horasLaboratorio || 0}
+                    </p>
+                    <p className="text-gray-600 col-span-2 text-sm">
+                      <strong>Motivos:</strong> {acefalia.motivosAcefalia}
                     </p>
                   </div>
                   <div className="mt-4 flex justify-center space-x-4">

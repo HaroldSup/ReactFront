@@ -111,10 +111,12 @@ const allowedTypes = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]
 
-// Opciones de carreras
+// Opciones de carreras - actualizada para incluir todas las carreras
 const carrerasList = [
+  "Ciencias Básicas",
+  "Materia Militar",
   "Ingeniería de Sistemas",
-  "Ingeniería de Sistemas Electrónicos",
+  "Ingeniería en Sistemas Electrónicos",
   "Ingeniería Agroindustrial",
   "Ingeniería Civil",
   "Ingeniería Comercial",

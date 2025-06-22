@@ -490,6 +490,8 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       >
                         <option value="Grado">Grado</option>
+                        <option value="Licenciatura">Licenciatura</option>
+                        <option value="Tecnologico">Tecnologico</option>
                       </select>
                     </div>
                   </div>
@@ -508,8 +510,10 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       >
                         <option value="">--Seleccionar--</option>
+                        <option value="Ciencias Básicas">Ciencias Básicas</option>
+                        <option value="Materia Militar">Materia Militar</option>
                         <option value="Ingeniería de Sistemas">Ingeniería de Sistemas</option>
-                        <option value="Ingeniería de Sistemas Electrónicos">Ingeniería de Sistemas Electrónicos</option>
+                        <option value="Ingeniería en Sistemas Electrónicos">Ingeniería en Sistemas Electrónicos</option>
                         <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
                         <option value="Ingeniería Civil">Ingeniería Civil</option>
                         <option value="Ingeniería Comercial">Ingeniería Comercial</option>
