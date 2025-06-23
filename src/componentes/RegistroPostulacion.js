@@ -120,6 +120,11 @@ const carrerasList = [
   "Ingeniería Agroindustrial",
   "Ingeniería Civil",
   "Ingeniería Comercial",
+  "Diseño Gráfico y Comunicación Audiovisual",
+  "Sistemas Electrónicos",
+  "Energías Renovables",
+  "Construcción Civil",
+  "Informática",
 ]
 
 // Componente para mostrar errores de validación
@@ -675,6 +680,7 @@ function RegistroPostulacion() {
         text: "Por favor, seleccione una asignatura.",
       })
     }
+    /* ELIMINAR VALIDACION DE MAXIMO DE MATERIAS
     if (formData.asignaturasSeleccionadas.length >= 3) {
       return Swal.fire({
         icon: "error",
@@ -682,6 +688,7 @@ function RegistroPostulacion() {
         text: "Solo se pueden registrar máximo 3 materias.",
       })
     }
+    */
 
     // Obtener los requisitos de la asignatura seleccionada
     const requisitos = obtenerRequisitos(nuevaAsignatura.asignatura, formData.carrera)
@@ -1614,7 +1621,8 @@ function RegistroPostulacion() {
                               .filter(
                                 (materia) =>
                                   !formData.asignaturasSeleccionadas.some(
-                                    (item) => item.asignatura === materia.asignatura,
+                                    (item) =>
+                                      item.asignatura === materia.asignatura && item.carrera === materia.carrera,
                                   ),
                               )
                               .map((materia) => (
@@ -1717,9 +1725,9 @@ function RegistroPostulacion() {
                         ))}
                       </div>
                       <p className="mt-2 text-sm text-gray-500">
-                        {formData.asignaturasSeleccionadas.length < 3
-                          ? `Puede agregar ${3 - formData.asignaturasSeleccionadas.length} asignatura(s) más.`
-                          : "Ha alcanzado el límite máximo de asignaturas (3)."}
+                        {formData.asignaturasSeleccionadas.length === 1
+                          ? "Ha agregado 1 asignatura."
+                          : `Ha agregado ${formData.asignaturasSeleccionadas.length} asignaturas.`}
                       </p>
                     </div>
                   )}

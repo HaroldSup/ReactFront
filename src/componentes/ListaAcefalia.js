@@ -69,9 +69,14 @@ function ListaAcefalia({ onAddAcefalia, onEditAcefalia }) {
     "Ingeniería Agroindustrial",
     "Ingeniería Civil",
     "Ingeniería Comercial",
+    "Diseño Gráfico y Comunicación Audiovisual",
+    "Sistemas Electrónicos",
+    "Energías Renovables",
+    "Construcción Civil",
+    "Informática",
   ]
 
-  const allNiveles = ["Grado", "Licenciatura", "Tecnologico"]
+  const allNiveles = ["Grado", "Licenciatura", "Tecnológico", "Técnico"]
 
   // Combinar opciones predefinidas con datos existentes y eliminar duplicados
   const uniqueCarreras = [...new Set([...allCarreras, ...acefalias.map((a) => a.carrera)])].filter(Boolean).sort()

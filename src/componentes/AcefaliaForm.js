@@ -491,7 +491,8 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
                       >
                         <option value="Grado">Grado</option>
                         <option value="Licenciatura">Licenciatura</option>
-                        <option value="Tecnologico">Tecnologico</option>
+                        <option value="Tecnológico">Tecnológico</option>
+                        <option value="Técnico">Técnico</option>
                       </select>
                     </div>
                   </div>
@@ -517,6 +518,13 @@ function AcefaliaForm({ acefalia, onAcefaliaRegistered }) {
                         <option value="Ingeniería Agroindustrial">Ingeniería Agroindustrial</option>
                         <option value="Ingeniería Civil">Ingeniería Civil</option>
                         <option value="Ingeniería Comercial">Ingeniería Comercial</option>
+                        <option value="Diseño Gráfico y Comunicación Audiovisual">
+                          Diseño Gráfico y Comunicación Audiovisual
+                        </option>
+                        <option value="Sistemas Electrónicos">Sistemas Electrónicos</option>
+                        <option value="Energías Renovables">Energías Renovables</option>
+                        <option value="Construcción Civil">Construcción Civil</option>
+                        <option value="Informática">Informática</option>
                       </select>
                     </div>
                   </div>
