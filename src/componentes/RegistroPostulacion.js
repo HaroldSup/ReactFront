@@ -272,6 +272,9 @@ function RegistroPostulacion() {
   // Estado principal del formulario
   const [formData, setFormData] = useState(initialFormData)
 
+  // Estado para manejar CIs ya registrados (validación frontend)
+  const [registeredCIs, setRegisteredCIs] = useState(new Set())
+
   // Estado para nueva asignatura
   const [nuevaAsignatura, setNuevaAsignatura] = useState({
     asignatura: "",
@@ -334,6 +337,39 @@ function RegistroPostulacion() {
   const generateOperationId = useCallback(() => {
     return Date.now().toString() + Math.random().toString(36).substr(2, 5)
   }, [])
+
+  // Función para cargar CIs registrados desde localStorage
+  const loadRegisteredCIs = useCallback(() => {
+    try {
+      const storedCIs = localStorage.getItem("registeredCIs")
+      if (storedCIs) {
+        const parsedCIs = JSON.parse(storedCIs)
+        setRegisteredCIs(new Set(parsedCIs))
+      }
+    } catch (error) {
+      console.error("Error al cargar CIs registrados:", error)
+    }
+  }, [])
+
+  // Función para guardar CI en localStorage
+  const saveRegisteredCI = useCallback((ci) => {
+    try {
+      const currentCIs = JSON.parse(localStorage.getItem("registeredCIs") || "[]")
+      const updatedCIs = [...new Set([...currentCIs, ci])]
+      localStorage.setItem("registeredCIs", JSON.stringify(updatedCIs))
+      setRegisteredCIs(new Set(updatedCIs))
+    } catch (error) {
+      console.error("Error al guardar CI registrado:", error)
+    }
+  }, [])
+
+  // Función para verificar si un CI ya está registrado
+  const isCIRegistered = useCallback(
+    (ci) => {
+      return registeredCIs.has(ci.trim())
+    },
+    [registeredCIs],
+  )
 
   // Función para verificar si una postulación ya existe
   const verificarPostulacion = useCallback(
@@ -428,53 +464,86 @@ function RegistroPostulacion() {
     loadDraft()
   }, [])
 
+  // Cargar CIs registrados al iniciar
+  useEffect(() => {
+    loadRegisteredCIs()
+  }, [loadRegisteredCIs])
+
   // useEffect para obtener las materias desde el backend
   useEffect(() => {
-    const fetchMaterias = async () => {
+    const fetchData = async () => {
       setIsLoadingMaterias(true)
       setMateriasError(null)
 
       try {
-        const response = await axios.get(`${baseURL}/materias`, {
-          timeout: 15000, // 15 segundos
+        // Obtener materias
+        const materiasResponse = await axios.get(`${baseURL}/materias`, {
+          timeout: 15000,
           headers: {
             Accept: "application/json",
             "Cache-Control": "no-cache",
           },
         })
 
-        if (response.data && Array.isArray(response.data)) {
-          setMaterias(response.data)
+        if (materiasResponse.data && Array.isArray(materiasResponse.data)) {
+          setMaterias(materiasResponse.data)
         } else {
-          console.error("Formato de respuesta inesperado:", response.data)
+          console.error("Formato de respuesta inesperado:", materiasResponse.data)
           setMateriasError("El formato de respuesta del servidor no es válido")
         }
-      } catch (error) {
-        console.error("Error al obtener materias:", error)
 
-        // Mensaje de error más detallado
+        // Obtener postulaciones existentes para sincronizar CIs
+        try {
+          const postulacionesResponse = await axios.get(`${baseURL}/postulaciones`, {
+            timeout: 15000,
+            headers: {
+              Accept: "application/json",
+              "Cache-Control": "no-cache",
+            },
+          })
+
+          const postulacionesData = postulacionesResponse.data.data || postulacionesResponse.data
+
+          if (Array.isArray(postulacionesData)) {
+            // Extraer todos los CIs existentes
+            const existingCIs = postulacionesData
+              .map((postulacion) => postulacion.ci)
+              .filter((ci) => ci && ci.trim()) // Filtrar CIs vacíos o nulos
+              .map((ci) => ci.trim())
+
+            // Sincronizar con localStorage
+            const currentStoredCIs = JSON.parse(localStorage.getItem("registeredCIs") || "[]")
+            const allCIs = [...new Set([...currentStoredCIs, ...existingCIs])]
+
+            localStorage.setItem("registeredCIs", JSON.stringify(allCIs))
+            setRegisteredCIs(new Set(allCIs))
+
+            console.log(`Sincronizados ${existingCIs.length} CIs existentes desde el servidor`)
+          }
+        } catch (postulacionesError) {
+          console.warn("No se pudieron obtener las postulaciones existentes para sincronizar CIs:", postulacionesError)
+          // No es un error crítico, continuar con la carga normal
+        }
+      } catch (error) {
+        console.error("Error al obtener datos:", error)
+
         let errorMessage = "No se pudieron obtener las materias."
 
         if (error.response) {
-          // El servidor respondió con un código de error
           errorMessage += ` Error ${error.response.status}: ${error.response.data?.message || "Error en la respuesta del servidor"}`
         } else if (error.request) {
-          // No se recibió respuesta del servidor
           errorMessage += " No se recibió respuesta del servidor. Verifique su conexión a internet."
         } else {
-          // Error en la configuración de la solicitud
           errorMessage += ` ${error.message}`
         }
 
         setMateriasError(errorMessage)
 
-        // Implementar reintentos automáticos
         if (retryCount < MAX_RETRIES) {
-          console.log(`Reintentando obtener materias (${retryCount + 1}/${MAX_RETRIES})...`)
+          console.log(`Reintentando obtener datos (${retryCount + 1}/${MAX_RETRIES})...`)
           setRetryCount((prevCount) => prevCount + 1)
-          // Esperar antes de reintentar (tiempo exponencial)
           setTimeout(() => {
-            fetchMaterias()
+            fetchData()
           }, 2000 * Math.pow(2, retryCount))
         } else {
           Swal.fire({
@@ -488,7 +557,7 @@ function RegistroPostulacion() {
       }
     }
 
-    fetchMaterias()
+    fetchData()
   }, [baseURL, retryCount])
 
   // Función para obtener los requisitos de una asignatura
@@ -547,6 +616,8 @@ function RegistroPostulacion() {
             error = "El CI es obligatorio"
           } else if (!soloNumeros.test(value.trim())) {
             error = "El CI debe contener solo números"
+          } else if (isCIRegistered(value.trim())) {
+            error = "Este carnet de identidad ya está registrado"
           }
           break
         case "universidad":
@@ -592,7 +663,7 @@ function RegistroPostulacion() {
 
       return error
     },
-    [soloLetras, soloNumeros, emailRegex],
+    [soloLetras, soloNumeros, emailRegex, isCIRegistered],
   )
 
   // Actualizar validaciones cuando cambia un campo
@@ -904,6 +975,8 @@ function RegistroPostulacion() {
           "Registro exitoso",
           response.data.message || "Postulación registrada correctamente",
           () => {
+            // Guardar el CI como registrado
+            saveRegisteredCI(formData.ci)
             // Limpiar el formulario después del registro exitoso
             setFormData(initialFormData)
             setNuevaAsignatura({
@@ -976,6 +1049,8 @@ function RegistroPostulacion() {
                 "¡Registrado correctamente!",
                 "A pesar del error de conexión, la postulación fue registrada exitosamente.",
                 () => {
+                  // Guardar el CI como registrado
+                  saveRegisteredCI(formData.ci)
                   // Limpiar el formulario después del registro exitoso
                   setFormData(initialFormData)
                   setNuevaAsignatura({
@@ -1004,6 +1079,8 @@ function RegistroPostulacion() {
                   "¡Registrado correctamente!",
                   "La postulación fue registrada exitosamente después de una verificación adicional.",
                   () => {
+                    // Guardar el CI como registrado
+                    saveRegisteredCI(formData.ci)
                     // Limpiar el formulario después del registro exitoso
                     setFormData(initialFormData)
                     setNuevaAsignatura({
