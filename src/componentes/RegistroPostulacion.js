@@ -3,31 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
-import {
-  User,
-  Mail,
-  Phone,
-  CreditCard,
-  Building,
-  Calendar,
-  Briefcase,
-  GraduationCap,
-  BookOpen,
-  FileUp,
-  Plus,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  FileText,
-  Save,
-  Eye,
-  Trash2,
-  Info,
-  X,
-  List,
-  Download,
-  FolderOpen,
-} from "lucide-react"
+import { User, Mail, Phone, CreditCard, Building, Calendar, Briefcase, GraduationCap, BookOpen, FileUp, Plus, CheckCircle, AlertCircle, Loader2, FileText, Save, Eye, Trash2, Info, X, List, Download, FolderOpen } from 'lucide-react'
 
 function toTitleCase(str) {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
@@ -110,6 +86,9 @@ const allowedTypes = [
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]
+
+// Tamaño máximo de archivo: 5 MB exactos
+const MAX_FILE_SIZE = 5242880 // 5 * 1024 * 1024 = 5,242,880 bytes exactos
 
 // Opciones de carreras - actualizada para incluir todas las carreras
 const carrerasList = [
@@ -709,20 +688,68 @@ function RegistroPostulacion() {
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
-      if (
-        !allowedTypes.includes(file.type) &&
-        !file.name.toLowerCase().endsWith(".pdf") &&
-        !file.name.toLowerCase().endsWith(".xls") &&
-        !file.name.toLowerCase().endsWith(".xlsx")
-      ) {
+      console.log(`Archivo seleccionado: ${file.name}`)
+      console.log(`Tamaño del archivo: ${file.size} bytes (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
+      console.log(`Límite máximo: ${MAX_FILE_SIZE} bytes (${(MAX_FILE_SIZE / (1024 * 1024)).toFixed(2)} MB)`)
+
+      // Validar tipo de archivo PRIMERO
+      const fileName = file.name.toLowerCase()
+      const isValidType =
+        allowedTypes.includes(file.type) ||
+        fileName.endsWith(".pdf") ||
+        fileName.endsWith(".xls") ||
+        fileName.endsWith(".xlsx")
+
+      if (!isValidType) {
+        console.error(`Tipo de archivo no válido: ${file.type}`)
         Swal.fire({
           icon: "error",
           title: "Formato no permitido",
-          text: "Solo se permiten archivos PDF y Excel.",
+          text: "Solo se permiten archivos PDF (.pdf) y Excel (.xls, .xlsx).",
+          confirmButtonText: "Entendido",
         })
         e.target.value = ""
         return
       }
+
+      // Validar tamaño de archivo SEGUNDO
+      console.log(`Comparando: ${file.size} > ${MAX_FILE_SIZE} = ${file.size > MAX_FILE_SIZE}`)
+
+      if (file.size > MAX_FILE_SIZE) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)
+
+        console.error(`❌ ARCHIVO DEMASIADO GRANDE:`)
+        console.error(`   Tamaño del archivo: ${fileSizeMB} MB`)
+        console.error(`   Límite máximo: ${maxSizeMB} MB`)
+        console.error(`   Diferencia: ${file.size - MAX_FILE_SIZE} bytes`)
+
+        Swal.fire({
+          icon: "error",
+          title: "Archivo demasiado grande",
+          html: `
+            <div style="text-align: left;">
+              <p><strong>Archivo seleccionado:</strong> ${file.name}</p>
+              <p><strong>Tamaño actual:</strong> ${fileSizeMB} MB</p>
+              <p><strong>Tamaño máximo permitido:</strong> ${maxSizeMB} MB</p>
+              <br>
+              <p style="color: #666; font-size: 14px;">
+                Por favor, comprima el archivo o seleccione uno más pequeño.
+              </p>
+            </div>
+          `,
+          confirmButtonText: "Entendido",
+          width: 500,
+        })
+
+        // Limpiar el input
+        e.target.value = ""
+        return
+      }
+
+      // Si pasa todas las validaciones, agregar el archivo
+      console.log(`✅ Archivo válido: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
+
       setFormData((prev) => ({
         ...prev,
         documentos: {
@@ -730,6 +757,26 @@ function RegistroPostulacion() {
           [e.target.name]: file,
         },
       }))
+
+      // Mostrar confirmación de éxito
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
+
+      Swal.fire({
+        icon: "success",
+        title: "Archivo cargado correctamente",
+        html: `
+          <div style="text-align: left;">
+            <p><strong>Archivo:</strong> ${file.name}</p>
+            <p><strong>Tamaño:</strong> ${fileSizeMB} MB</p>
+            <p style="color: #059669; font-size: 14px;">
+              ✓ El archivo se ha cargado exitosamente
+            </p>
+          </div>
+        `,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      })
     }
   }
 
@@ -962,7 +1009,9 @@ function RegistroPostulacion() {
           "Content-Type": "multipart/form-data",
           Accept: "application/json",
         },
-        timeout: 45000, // 45 segundos de timeout para archivos grandes
+        timeout: 120000, // 2 minutos de timeout para archivos grandes (era 45 segundos)
+        maxContentLength: 25 * 1024 * 1024, // 25MB límite para axios
+        maxBodyLength: 25 * 1024 * 1024, // 25MB límite para el body
       })
 
       // Cerrar el indicador de carga
@@ -1819,7 +1868,13 @@ function RegistroPostulacion() {
                 <h3 className="text-2xl font-bold text-blue-800">Documentación</h3>
               </div>
 
-              <p className="mb-4 text-gray-600">Suba los documentos en formato PDF o Excel</p>
+              <div className="mb-6 p-4 bg-gradient-to-r from-orange-100 to-red-100 border-2 border-orange-300 rounded-lg">
+                <p className="text-lg font-bold text-red-700 text-center leading-relaxed">
+                  SUBA LOS DOCUMENTOS EN FORMATO PDF, INCLUYENDO LA HOJA DE VIDA
+                  <br />
+                  <span className="text-orange-600">(EL TAMAÑO MÁXIMO ES DE 5MB POR ARCHIVO)</span>
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {documentosList.map((doc, index) => (
