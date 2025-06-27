@@ -6,8 +6,17 @@ import Swal from "sweetalert2"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 import RegistroDeMeritos from "./Registrodemeritos"
-import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma ruta
-import { Search, FileSpreadsheet, FileIcon as FilePdf, Plus, ChevronDown, ChevronUp, Filter, Calendar } from 'lucide-react'
+import logoEMI from "../images/emiemi.png"
+import {
+  Search,
+  FileSpreadsheet,
+  FileIcon as FilePdf,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Calendar,
+} from "lucide-react"
 import * as XLSX from "xlsx"
 
 function ConcursoDeMeritos() {
@@ -41,12 +50,15 @@ function ConcursoDeMeritos() {
       console.log("Usuario logueado:", user)
 
       let registrosData = response.data
+
       // Si el usuario NO es administrador, filtrar solo registros que tengan evaluadorId y coincidan con user._id
       if (user && !user.administrador) {
         registrosData = registrosData.filter((registro) => registro.evaluadorId && registro.evaluadorId === user._id)
       }
+
       // Ordenar la lista de registros de forma descendente según puntosEvaluacion
       registrosData.sort((a, b) => Number(b.puntosEvaluacion) - Number(a.puntosEvaluacion))
+
       setRegistros(registrosData)
     } catch (error) {
       console.error("Error al obtener los registros:", error)
@@ -93,7 +105,6 @@ function ConcursoDeMeritos() {
     const matchesCarrera = filters.carrera ? registro.carrera === filters.carrera : true
     const matchesProfesion = filters.profesion ? registro.profesion === filters.profesion : true
     const matchesEstado = filters.estado ? registro.habilitado === filters.estado : true
-
     const matchesGestion = filters.gestion
       ? new Date(registro.fechaEvaluacion).getFullYear().toString() === filters.gestion
       : true
@@ -150,9 +161,9 @@ function ConcursoDeMeritos() {
         Observaciones: registro.observaciones,
       })),
     )
+
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Concurso_Meritos")
-
     XLSX.writeFile(workbook, "Concurso_Meritos.xlsx")
   }
 
@@ -280,12 +291,15 @@ function ConcursoDeMeritos() {
         // Intentar cargar el logo - manteniendo la proporción correcta
         const img = new Image()
         img.src = logoEMI
+
         // Calcular dimensiones para mantener la proporción original del logo
         const logoMaxHeight = altoEncabezado - 4
         const logoMaxWidth = anchoLogo - 10
+
         // Usar un tamaño que mantenga la proporción pero sin estirar
         const logoHeight = logoMaxHeight
         const logoWidth = logoMaxHeight * 1.5 // Proporción aproximada del logo (ancho:alto = 1.5:1)
+
         // Centrar el logo en su celda
         const logoX = margenIzquierdo + (anchoLogo - logoWidth) / 2
         doc.addImage(img, "PNG", logoX, margenSuperior + 2, logoWidth, logoHeight)
@@ -300,6 +314,7 @@ function ConcursoDeMeritos() {
           margenSuperior + altoEncabezado / 2 - 3,
           { align: "center" },
         )
+
         doc.text(
           "PROCESO DE SELECCIÓN Y ADMISIÓN DOCENTE",
           margenIzquierdo + anchoLogo + anchoTitulo / 2,
@@ -322,7 +337,6 @@ function ConcursoDeMeritos() {
 
         doc.setFontSize(7)
         doc.setFont("helvetica", "normal")
-
         doc.text("Código:", seccionDerecha + 5, margenSuperior + altoFila / 2 + 2)
         doc.text("CR-UCA-FA-R-18", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila / 2 + 2, {
           align: "right",
@@ -362,7 +376,6 @@ function ConcursoDeMeritos() {
 
         // Sección de Artículo 32 - solo texto, sin rectángulo separado
         doc.text("Artículo 32:", margenIzquierdo + 5, yInfoBloque + 26)
-
         const textoArticulo =
           "El puntaje mínimo a obtener en el Concurso de Méritos que permite a la Institución contar con Docentes de relativa experiencia, tanto en la enseñanza como en su actividad profesional es de 220 puntos para nivel Licenciatura y 200 para Nivel Técnico Universitario Superior. El Postulante que no alcance esta puntuación, será descalificado del proceso de selección y, en consecuencia, no podrá optar al Examen de Competencia."
 
@@ -378,9 +391,10 @@ function ConcursoDeMeritos() {
           const postulantes = registrosPorCarrera[carrera][materia]
 
           // Verificar si hay espacio suficiente para la tabla
-          const estimatedHeight = 15 + postulantes.length * 10 // Altura estimada de la tabla
-
-          if (yPos + estimatedHeight > pageHeight - 40) {
+          // Cambiar esta línea:
+          //const estimatedHeight = 15 + (postulantes.length > 0 ? postulantes.length : 3) * 15
+          const estimatedHeight = 15 + (postulantes.length > 0 ? postulantes.length : 3) * 12
+          if (yPos + estimatedHeight > pageHeight - 30) {
             doc.addPage()
             yPos = margenSuperior
           }
@@ -395,22 +409,19 @@ function ConcursoDeMeritos() {
           doc.setFont("helvetica", "normal")
           doc.text(materia, margenIzquierdo + 50, yPos + 6)
 
-          // Crear la tabla de encabezados manualmente para mayor control
-          const headerHeight = 12
-          const rowHeight = 10
-
-          // Ajustar los anchos de columna para aprovechar mejor el espacio horizontal
+          // Definir anchos de columna optimizados para formato horizontal
           const colWidths = [
-            15, // N° - ligeramente más ancho
-            60, // NOMBRE(S) Y APELLIDOS - más ancho para aprovechar el espacio horizontal
-            45, // PROFESIÓN - más ancho
-            60, // ASIGNATURA A LA QUE POSTULA - más ancho
+            15, // N°
+            60, // NOMBRE(S) Y APELLIDOS
+            45, // PROFESIÓN
+            60, // ASIGNATURA A LA QUE POSTULA
             30, // PUNTAJE CONCURSO DE MÉRITOS
             30, // HABILITADO/NO HABILITADO
-            30, // OBSERVACIONES
+            45, // OBSERVACIONES - reducir de 50 a 45 para más control
           ]
 
-          // Calcular posición inicial de la tabla
+          const headerHeight = 12
+          const baseRowHeight = 10
           const tableY = yPos + 10
 
           // Dibujar encabezados de la tabla
@@ -428,46 +439,122 @@ function ConcursoDeMeritos() {
           // Agregar textos de encabezados
           doc.setFontSize(7)
           doc.setFont("helvetica", "bold")
-
           currentX = margenIzquierdo
-          doc.text("N°", currentX + colWidths[0] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
 
+          doc.text("N°", currentX + colWidths[0] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
           currentX += colWidths[0]
+
           doc.text("NOMBRE(S) Y APELLIDOS", currentX + colWidths[1] / 2, tableY + headerHeight / 2 + 2, {
             align: "center",
           })
-
           currentX += colWidths[1]
-          doc.text("PROFESIÓN", currentX + colWidths[2] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
 
+          doc.text("PROFESIÓN", currentX + colWidths[2] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
           currentX += colWidths[2]
+
           doc.text("ASIGNATURA A LA QUE\nPOSTULA", currentX + colWidths[3] / 2, tableY + headerHeight / 2, {
             align: "center",
           })
-
           currentX += colWidths[3]
-          // Ajuste para centrar mejor "PUNTAJE CONCURSO DE MÉRITOS"
+
           doc.text("PUNTAJE\nCONCURSO DE\nMÉRITOS", currentX + colWidths[4] / 2, tableY + headerHeight / 2 - 2, {
             align: "center",
           })
-
           currentX += colWidths[4]
-          // Ajuste para centrar mejor "HABILITADO/NO HABILITADO"
+
           doc.text("HABILITADO/\nNO\nHABILITADO", currentX + colWidths[5] / 2, tableY + headerHeight / 2 - 2, {
             align: "center",
           })
-
           currentX += colWidths[5]
-          // Mantener el mismo tamaño de letra para "OBSERVACIONES" que los demás encabezados
+
           doc.text("OBSERVACIONES", currentX + colWidths[6] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
 
           // Dibujar filas de datos
           doc.setFont("helvetica", "normal")
-
           let currentY = tableY + headerHeight
 
-          // Dibujar cada fila de datos
-          postulantes.forEach((postulante, index) => {
+          // Función mejorada para dividir texto con control preciso de caracteres
+          const splitTextPrecise = (text, maxWidth, fontSize = 7) => {
+            if (!text) return [""]
+
+            doc.setFontSize(fontSize)
+            const words = text.split(" ")
+            const lines = []
+            let currentLine = ""
+
+            // Reducir significativamente el ancho disponible para ser más conservador
+            const conservativeMaxWidth = maxWidth * 0.85 // Usar solo el 85% del ancho disponible
+
+            for (let i = 0; i < words.length; i++) {
+              const word = words[i]
+              const testLine = currentLine ? currentLine + " " + word : word
+
+              // Verificar si la línea actual más la nueva palabra excede el ancho conservador
+              if (doc.getTextWidth(testLine) <= conservativeMaxWidth) {
+                currentLine = testLine
+              } else {
+                // Si la línea actual no está vacía, guardarla
+                if (currentLine) {
+                  lines.push(currentLine)
+                  currentLine = word
+                } else {
+                  // Si una sola palabra es muy larga, dividirla por caracteres
+                  const maxCharsPerLine = Math.floor(conservativeMaxWidth / doc.getTextWidth("W")) // Usar "W" que es más ancho
+                  if (word.length > maxCharsPerLine) {
+                    let remainingWord = word
+                    while (remainingWord.length > 0) {
+                      const chunk = remainingWord.substring(0, Math.max(1, maxCharsPerLine - 1))
+                      lines.push(chunk)
+                      remainingWord = remainingWord.substring(maxCharsPerLine - 1)
+                    }
+                    currentLine = ""
+                  } else {
+                    currentLine = word
+                  }
+                }
+              }
+            }
+
+            // Agregar la última línea si no está vacía
+            if (currentLine) {
+              lines.push(currentLine)
+            }
+
+            return lines.length > 0 ? lines : [""]
+          }
+
+          // Procesar cada postulante o crear filas vacías
+          const rowsToProcess = postulantes.length > 0 ? postulantes : Array(3).fill(null)
+
+          rowsToProcess.forEach((postulante, index) => {
+            // Preparar textos con división precisa
+            const nombreText = postulante ? postulante.nombrePostulante || "" : ""
+            const nombreLines = splitTextPrecise(nombreText, colWidths[1] - 4)
+
+            const profesionText = postulante ? postulante.profesion || "" : ""
+            const profesionLines = splitTextPrecise(profesionText, colWidths[2] - 4)
+
+            const materiaLines = splitTextPrecise(materia, colWidths[3] - 4)
+
+            // OBSERVACIONES - Control preciso del wrap
+            const obsText = postulante ? postulante.observaciones || "Ninguna" : ""
+            const obsMargin = 5 // Aumentar margen interno a 5 puntos
+            const obsMaxWidth = colWidths[6] - obsMargin * 2 // Ancho disponible real más conservador
+            const obsLines = splitTextPrecise(obsText, obsMaxWidth, 7)
+
+            // Calcular altura necesaria para la fila
+            const maxLines = Math.max(
+              nombreLines.length,
+              profesionLines.length,
+              materiaLines.length,
+              obsLines.length,
+              1, // Mínimo 1 línea
+            )
+
+            // Cambiar esta línea:
+            //const rowHeight = Math.max(baseRowHeight, maxLines * 4 + 4) // Altura dinámica
+            const rowHeight = Math.max(baseRowHeight, maxLines * 3.5 + 3) // Altura más compacta
+
             // Dibujar rectángulo para toda la fila
             doc.rect(margenIzquierdo, currentY, anchoUtil, rowHeight)
 
@@ -478,86 +565,81 @@ function ConcursoDeMeritos() {
               doc.line(colX, currentY, colX, currentY + rowHeight)
             }
 
-            // Agregar textos de datos
+            // Agregar contenido de las celdas
             colX = margenIzquierdo
-            doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
 
+            // Número de fila
+            const rowNumber = postulante ? (index + 1).toString() : (index + 1).toString()
+            doc.text(rowNumber, colX + colWidths[0] / 2, currentY + rowHeight / 2 + 1, { align: "center" })
             colX += colWidths[0]
-            // Asegurar que el nombre no se salga de la celda
-            const nombreText = postulante.nombrePostulante || ""
-            const nombreLines = doc.splitTextToSize(nombreText, colWidths[1] - 4)
-            doc.text(nombreLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
 
+            // Nombre - múltiples líneas centradas verticalmente
+            if (nombreLines.length === 1) {
+              doc.text(nombreLines[0], colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+            } else {
+              const startY = currentY + (rowHeight - nombreLines.length * 3.5) / 2 + 3
+              nombreLines.forEach((line, lineIndex) => {
+                doc.text(line, colX + 2, startY + lineIndex * 3.5, { align: "left" })
+              })
+            }
             colX += colWidths[1]
-            // Asegurar que la profesión no se salga de la celda
-            const profesionText = postulante.profesion || ""
-            const profesionLines = doc.splitTextToSize(profesionText, colWidths[2] - 4)
-            doc.text(profesionLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
 
+            // Profesión - múltiples líneas centradas verticalmente
+            if (profesionLines.length === 1) {
+              doc.text(profesionLines[0], colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+            } else {
+              const startY = currentY + (rowHeight - profesionLines.length * 3.5) / 2 + 3
+              profesionLines.forEach((line, lineIndex) => {
+                doc.text(line, colX + 2, startY + lineIndex * 3.5, { align: "left" })
+              })
+            }
             colX += colWidths[2]
-            // Asegurar que la materia no se salga de la celda
-            const materiaLines = doc.splitTextToSize(materia, colWidths[3] - 4)
-            doc.text(materiaLines, colX + 2, currentY + rowHeight / 2, { align: "left" })
 
+            // Materia - múltiples líneas centradas verticalmente
+            if (materiaLines.length === 1) {
+              doc.text(materiaLines[0], colX + 2, currentY + rowHeight / 2 + 1, { align: "left" })
+            } else {
+              const startY = currentY + (rowHeight - materiaLines.length * 3.5) / 2 + 3
+              materiaLines.forEach((line, lineIndex) => {
+                doc.text(line, colX + 2, startY + lineIndex * 3.5, { align: "left" })
+              })
+            }
             colX += colWidths[3]
-            doc.text(postulante.puntosEvaluacion.toString(), colX + colWidths[4] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
 
+            // Puntaje
+            const puntaje = postulante ? postulante.puntosEvaluacion.toString() : ""
+            doc.text(puntaje, colX + colWidths[4] / 2, currentY + rowHeight / 2 + 1, { align: "center" })
             colX += colWidths[4]
-            doc.text(postulante.habilitado || "", colX + colWidths[5] / 2, currentY + rowHeight / 2 + 2, {
-              align: "center",
-            })
 
+            // Estado
+            const estado = postulante ? postulante.habilitado || "" : ""
+            doc.text(estado, colX + colWidths[5] / 2, currentY + rowHeight / 2 + 1, { align: "center" })
             colX += colWidths[5]
-            // Ajuste para que el texto de observaciones no se salga de la celda
-            const obsText = postulante.observaciones || "Ninguna"
-            doc.text(obsText, colX + colWidths[6] / 2, currentY + rowHeight / 2 + 2, { align: "center" })
 
-            // Ajustar la altura de la fila si algún texto ocupa más de una línea
-            const maxLines = Math.max(nombreLines.length, profesionLines.length, materiaLines.length)
+            // OBSERVACIONES - Implementación precisa del wrap
+            if (obsLines.length === 1) {
+              // Una sola línea - centrar verticalmente
+              doc.text(obsLines[0], colX + obsMargin, currentY + rowHeight / 2 + 1, { align: "left" })
+            } else {
+              // Múltiples líneas - centrar el bloque de texto verticalmente
+              // Cambiar esta línea:
+              //const lineHeight = 3.5
+              const lineHeight = 3.2
+              const totalTextHeight = obsLines.length * lineHeight
+              const startY = currentY + (rowHeight - totalTextHeight) / 2 + 3
 
-            if (maxLines > 1) {
-              const extraHeight = (maxLines - 1) * 3
-              doc.rect(margenIzquierdo, currentY, anchoUtil, rowHeight + extraHeight)
-
-              // Redibujar las líneas verticales para la fila más alta
-              let colX2 = margenIzquierdo
-              for (let j = 0; j < colWidths.length - 1; j++) {
-                colX2 += colWidths[j]
-                doc.line(colX2, currentY, colX2, currentY + rowHeight + extraHeight)
-              }
-
-              currentY += extraHeight
+              obsLines.forEach((line, lineIndex) => {
+                doc.text(line, colX + obsMargin, startY + lineIndex * lineHeight, { align: "left" })
+              })
             }
 
             currentY += rowHeight
           })
 
-          // Si no hay postulantes, agregar 3 filas vacías
-          if (postulantes.length === 0) {
-            for (let i = 0; i < 3; i++) {
-              // Dibujar rectángulo para toda la fila
-              doc.rect(margenIzquierdo, currentY, anchoUtil, rowHeight)
-
-              // Dibujar líneas verticales para separar columnas
-              let colX = margenIzquierdo
-              for (let j = 0; j < colWidths.length - 1; j++) {
-                colX += colWidths[j]
-                doc.line(colX, currentY, colX, currentY + rowHeight)
-              }
-
-              // Agregar número de fila
-              doc.text((i + 1).toString(), margenIzquierdo + colWidths[0] / 2, currentY + rowHeight / 2 + 2, {
-                align: "center",
-              })
-
-              currentY += rowHeight
-            }
-          }
-
           // Actualizar posición Y para la siguiente tabla
-          yPos = currentY + 5
+          // Cambiar esta línea:
+          //yPos = currentY + 2
+          yPos = currentY + 8
         })
 
         // Verificar si hay espacio suficiente para las firmas
@@ -570,7 +652,6 @@ function ConcursoDeMeritos() {
 
         // Fecha en la esquina inferior derecha
         doc.setFontSize(8)
-
         // Obtener fecha actual con zona horaria de Bolivia (UTC-4)
         const fechaActual = new Date()
         // Ajustar a la zona horaria de Bolivia (UTC-4)
@@ -647,7 +728,6 @@ function ConcursoDeMeritos() {
   // Actualiza la lista luego de registrar o editar
   const onMeritoRegistered = (nuevoRegistro) => {
     console.log("onMeritoRegistered llamado con:", nuevoRegistro)
-
     // Primero, ocultar el formulario inmediatamente
     setMostrarFormulario(false)
 
@@ -660,7 +740,6 @@ function ConcursoDeMeritos() {
           console.log("Mostrando registros múltiples recién creados:", nuevoRegistro)
           // Mostrar solo los registros recién creados
           setRegistros(nuevoRegistro)
-
           // Después de 10 segundos, cargar todos los registros del usuario
           setTimeout(() => {
             console.log("Cargando todos los registros después del tiempo de espera")
@@ -674,7 +753,6 @@ function ConcursoDeMeritos() {
         console.log("Mostrando solo el nuevo registro individual:", nuevoRegistro)
         // Si es un registro individual, mostrar solo ese registro
         setRegistros([nuevoRegistro])
-
         // Después de 10 segundos, cargar todos los registros del usuario
         setTimeout(() => {
           console.log("Cargando todos los registros después del tiempo de espera")
@@ -914,6 +992,7 @@ function ConcursoDeMeritos() {
                         <th className="py-3 px-6 text-left">Materia</th>
                         <th className="py-3 px-6 text-left">Puntos</th>
                         <th className="py-3 px-6 text-left">Estado</th>
+                        <th className="py-3 px-6 text-left">Observaciones</th>
                         <th className="py-3 px-6 text-center">Acciones</th>
                       </tr>
                     </thead>
@@ -946,6 +1025,11 @@ function ConcursoDeMeritos() {
                             >
                               {registro.habilitado || ""}
                             </span>
+                          </td>
+                          <td className="py-3 px-6 text-left max-w-xs">
+                            <div className="truncate" title={registro.observaciones || ""}>
+                              {registro.observaciones || "Ninguna"}
+                            </div>
                           </td>
                           <td className="py-3 px-6 text-center flex justify-center space-x-2">
                             <button
@@ -1040,140 +1124,143 @@ function ConcursoDeMeritos() {
                             className={`ml-2 px-2 py-1 rounded-full text-xs ${
                               registro.habilitado === "HABILITADO"
                                 ? "bg-green-100 text-green-800"
-                                  : registro.habilitado === "NO HABILITADO"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-gray-100 text-gray-800"
-                            }`}
-                        >
-                          {registro.habilitado || ""}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="mt-4 flex justify-center space-x-4">
-                      <button
-                        onClick={() => {
-                          setMeritoEdit(registro)
-                          setMostrarFormulario(true)
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(registro._id)}
-                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                        <span>Eliminar</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Paginación */}
-              {totalPages > 1 && (
-                <div className="mt-6 flex justify-center">
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      onClick={() => paginate(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="sr-only">Anterior</span>
-                      &laquo;
-                    </button>
-
-                    {/* Mostrar números de página */}
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
-                      if (
-                        number === 1 ||
-                        number === totalPages ||
-                        (number >= currentPage - 1 && number <= currentPage + 1)
-                      ) {
-                        return (
-                          <button
-                            key={number}
-                            onClick={() => paginate(number)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === number
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                : registro.habilitado === "NO HABILITADO"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {number}
-                          </button>
-                        )
-                      }
-
-                      if (
-                        (number === 2 && currentPage > 3) ||
-                        (number === totalPages - 1 && currentPage < totalPages - 2)
-                      ) {
-                        return (
-                          <span
-                            key={number}
-                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                          >
-                            ...
+                            {registro.habilitado || ""}
                           </span>
-                        )
-                      }
-
-                      return null
-                    })}
-
-                    <button
-                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                        currentPage === totalPages
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="sr-only">Siguiente</span>
-                      &raquo;
-                    </button>
-                  </nav>
+                        </p>
+                        <p className="text-gray-600">
+                          <strong>Observaciones:</strong> {registro.observaciones || "Ninguna"}
+                        </p>
+                      </div>
+                      <div className="mt-4 flex justify-center space-x-4">
+                        <button
+                          onClick={() => {
+                            setMeritoEdit(registro)
+                            setMostrarFormulario(true)
+                          }}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(registro._id)}
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+
+                {/* Paginación */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex justify-center">
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => paginate(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                          currentPage === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="sr-only">Anterior</span>
+                        &laquo;
+                      </button>
+
+                      {/* Mostrar números de página */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                        if (
+                          number === 1 ||
+                          number === totalPages ||
+                          (number >= currentPage - 1 && number <= currentPage + 1)
+                        ) {
+                          return (
+                            <button
+                              key={number}
+                              onClick={() => paginate(number)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                currentPage === number
+                                  ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                                  : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              }`}
+                            >
+                              {number}
+                            </button>
+                          )
+                        }
+
+                        if (
+                          (number === 2 && currentPage > 3) ||
+                          (number === totalPages - 1 && currentPage < totalPages - 2)
+                        ) {
+                          return (
+                            <span
+                              key={number}
+                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+                            >
+                              ...
+                            </span>
+                          )
+                        }
+
+                        return null
+                      })}
+
+                      <button
+                        onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                          currentPage === totalPages
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-500 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span className="sr-only">Siguiente</span>
+                        &raquo;
+                      </button>
+                    </nav>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
-  </div>
-)
+  )
 }
 
 export default ConcursoDeMeritos
