@@ -3,7 +3,32 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
-import { User, Mail, Phone, CreditCard, Building, Calendar, Briefcase, GraduationCap, BookOpen, FileUp, Plus, CheckCircle, AlertCircle, Loader2, FileText, Save, Eye, Trash2, Info, X, List, Download, FolderOpen } from 'lucide-react'
+import {
+  User,
+  Mail,
+  Phone,
+  CreditCard,
+  Building,
+  Calendar,
+  Briefcase,
+  GraduationCap,
+  BookOpen,
+  FileUp,
+  Plus,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  FileText,
+  Save,
+  Eye,
+  Trash2,
+  Info,
+  X,
+  List,
+  Download,
+  FolderOpen,
+  Lock,
+} from "lucide-react"
 
 function toTitleCase(str) {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())
@@ -105,6 +130,12 @@ const carrerasList = [
   "Construcción Civil",
   "Informática",
 ]
+
+// ========== BLOQUEO TEMPORAL - INICIO ==========
+// VARIABLE DE CONTROL PARA BLOQUEAR POSTULACIONES
+// Para habilitar nuevamente las postulaciones, cambiar esta variable a false
+const POSTULACIONES_BLOQUEADAS = true
+// ========== BLOQUEO TEMPORAL - FIN ==========
 
 // Componente para mostrar errores de validación
 const ValidationError = ({ message }) => {
@@ -231,6 +262,36 @@ const GuiasPostulacion = () => {
     </div>
   )
 }
+
+// ========== BLOQUEO TEMPORAL - INICIO ==========
+// Componente para mostrar el mensaje de postulaciones cerradas
+const PostulacionesCerradasNotice = () => {
+  return (
+    <div className="mb-8">
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-lg shadow-lg">
+        <div className="p-6 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-red-100 p-3 rounded-full">
+              <Lock className="h-8 w-8 text-red-600" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-red-800 mb-3">Postulaciones Cerradas</h2>
+          <div className="bg-white p-4 rounded-lg border border-red-200 shadow-sm">
+            <p className="text-lg font-semibold text-red-700 leading-relaxed">
+              Terminaron las postulaciones de la gestión II-2025
+            </p>
+            <p className="text-red-600 mt-2">Muchas gracias por su interés</p>
+          </div>
+          <div className="mt-4 text-sm text-red-600">
+            <p>El período de postulaciones ha finalizado oficialmente.</p>
+            <p>Para futuras convocatorias, manténgase atento a nuestros canales oficiales.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+// ========== BLOQUEO TEMPORAL - FIN ==========
 
 // Esquema inicial para el formulario
 const initialFormData = {
@@ -798,15 +859,6 @@ function RegistroPostulacion() {
         text: "Por favor, seleccione una asignatura.",
       })
     }
-    /* ELIMINAR VALIDACION DE MAXIMO DE MATERIAS
-    if (formData.asignaturasSeleccionadas.length >= 3) {
-      return Swal.fire({
-        icon: "error",
-        title: "Máximo alcanzado",
-        text: "Solo se pueden registrar máximo 3 materias.",
-      })
-    }
-    */
 
     // Obtener los requisitos de la asignatura seleccionada
     const requisitos = obtenerRequisitos(nuevaAsignatura.asignatura, formData.carrera)
@@ -953,9 +1005,33 @@ function RegistroPostulacion() {
     return isValid
   }, [formData, validateField, showAlert])
 
-  // Manejar envío del formulario
+  // ========== BLOQUEO TEMPORAL - INICIO ==========
+  // Manejar envío del formulario - MODIFICADO PARA BLOQUEAR
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // VERIFICAR SI LAS POSTULACIONES ESTÁN BLOQUEADAS
+    if (POSTULACIONES_BLOQUEADAS) {
+      Swal.fire({
+        icon: "warning",
+        title: "Postulaciones Cerradas",
+        html: `
+          <div style="text-align: center;">
+            <p style="font-size: 18px; font-weight: bold; color: #dc2626; margin-bottom: 10px;">
+              Terminaron las postulaciones de la gestión II-2025
+            </p>
+            <p style="color: #7f1d1d;">
+              Muchas gracias por su interés
+            </p>
+          </div>
+        `,
+        confirmButtonText: "Entendido",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      })
+      return
+    }
+    // ========== BLOQUEO TEMPORAL - FIN ==========
 
     // Evitar múltiples envíos simultáneos
     if (isSubmitting || isVerifying) return
@@ -1339,6 +1415,11 @@ function RegistroPostulacion() {
         <div className="w-full bg-white p-6 sm:p-10 rounded-xl shadow-xl border border-blue-100">
           {/* Sección de Guías de Postulación */}
           <GuiasPostulacion />
+
+          {/* ========== BLOQUEO TEMPORAL - INICIO ========== */}
+          {/* Mostrar mensaje de postulaciones cerradas */}
+          {POSTULACIONES_BLOQUEADAS && <PostulacionesCerradasNotice />}
+          {/* ========== BLOQUEO TEMPORAL - FIN ========== */}
 
           {/* Indicador de Progreso mejorado */}
           <div className="mb-8">
@@ -1913,9 +1994,9 @@ function RegistroPostulacion() {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
               <button
                 type="submit"
-                disabled={isSubmitting || isVerifying}
+                disabled={isSubmitting || isVerifying || POSTULACIONES_BLOQUEADAS}
                 className={`w-full sm:flex-1 py-3 px-6 rounded-lg shadow-md transition duration-300 flex justify-center items-center ${
-                  isSubmitting || isVerifying
+                  isSubmitting || isVerifying || POSTULACIONES_BLOQUEADAS
                     ? "bg-gray-500 cursor-not-allowed"
                     : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold"
                 }`}
@@ -1924,6 +2005,11 @@ function RegistroPostulacion() {
                   <>
                     <Loader2 className="animate-spin mr-2 h-5 w-5" />
                     {isVerifying ? "Verificando..." : "Procesando..."}
+                  </>
+                ) : POSTULACIONES_BLOQUEADAS ? (
+                  <>
+                    <Lock className="mr-2 h-5 w-5" />
+                    Postulaciones Cerradas
                   </>
                 ) : (
                   <>
@@ -1954,20 +2040,22 @@ function RegistroPostulacion() {
       <button
         type="button"
         onClick={() => {
-          if (!isSubmitting && !isVerifying) {
+          if (!isSubmitting && !isVerifying && !POSTULACIONES_BLOQUEADAS) {
             document.querySelector("form").requestSubmit()
           }
         }}
-        disabled={isSubmitting || isVerifying}
+        disabled={isSubmitting || isVerifying || POSTULACIONES_BLOQUEADAS}
         className={`fixed bottom-6 right-6 ${
-          isSubmitting || isVerifying
+          isSubmitting || isVerifying || POSTULACIONES_BLOQUEADAS
             ? "bg-gray-500"
             : "bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
         } text-white p-4 rounded-full shadow-lg transition-all duration-300 md:hidden z-50`}
-        title="Enviar Formulario"
+        title={POSTULACIONES_BLOQUEADAS ? "Postulaciones Cerradas" : "Enviar Formulario"}
       >
         {isSubmitting || isVerifying ? (
           <Loader2 className="h-6 w-6 animate-spin" />
+        ) : POSTULACIONES_BLOQUEADAS ? (
+          <Lock className="h-6 w-6" />
         ) : (
           <CheckCircle className="h-6 w-6" />
         )}
