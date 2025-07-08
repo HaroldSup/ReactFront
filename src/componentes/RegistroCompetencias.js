@@ -48,6 +48,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
 
   // Estado para almacenar las materias postuladas (del postulante)
   const [materiasPostuladas, setMateriasPostuladas] = useState([])
+
   // Estado para el filtro: carrera seleccionada para filtrar materias
   const [filtroCarrera, setFiltroCarrera] = useState("")
 
@@ -86,6 +87,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
         setMateriasPostuladas([])
         return
       }
+
       try {
         const response = await axios.get(`${baseURL}/postulaciones/carnet/${formData.carnet}`)
         if (response.data.data) {
@@ -93,6 +95,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             ...prev,
             nombre: response.data.data.nombre,
           }))
+
           if (response.data.data.asignaturasSeleccionadas) {
             const materias =
               typeof response.data.data.asignaturasSeleccionadas === "string"
@@ -133,7 +136,9 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       filtroCarrera.trim() !== ""
         ? materiasPostuladas.filter((mat) => mat.carrera === filtroCarrera)
         : materiasPostuladas
+
     const materiaObj = materiasFiltradas.find((mat) => mat.asignatura === selectedMateria)
+
     setFormData((prev) => ({
       ...prev,
       materia: selectedMateria,
@@ -153,6 +158,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (Number.parseInt(formData.planContenidos) || 0) +
     (Number.parseInt(formData.planEstrategiasEnsenanza) || 0) +
     (Number.parseInt(formData.planEstrategiasEvaluacion) || 0)
+
   const stage2Promedio = ((stage2Sum / 100) * 30).toFixed(2)
 
   const stage3Sum =
@@ -160,6 +166,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     (Number.parseInt(formData.procesoDominio) || 0) +
     (Number.parseInt(formData.procesoTICs) || 0) +
     (Number.parseInt(formData.procesoExplicacion) || 0)
+
   const stage3Promedio = ((stage3Sum / 100) * 30).toFixed(2)
 
   const stage2Color = stage2Sum <= 60 ? "text-red-500" : stage2Sum > 80 ? "text-green-500" : "text-yellow-600"
@@ -209,21 +216,21 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     return Date.now().toString() + Math.random().toString(36).substr(2, 5)
   }, [])
 
-  // ✅ FUNCIÓN CORREGIDA: Validación Opción 2 - Solo carnet + tipoEvaluador
+  // ✅ FUNCIÓN CORREGIDA: Validación por carnet + tipoEvaluador + materia
   const verificarRegistroExistente = useCallback(
     async (dataToVerify) => {
       try {
         setIsVerifying(true)
-
-        // ✅ VALIDACIÓN OPCIÓN 2: Solo carnet + tipoEvaluador
-        // Esto evita que el mismo tipo de evaluador evalúe al mismo estudiante más de una vez
-        // Pero permite que el mismo estudiante sea evaluado por los 3 tipos de evaluadores
+        // ✅ VALIDACIÓN CORREGIDA: carnet + tipoEvaluador + materia
+        // Esto permite que el mismo evaluador califique al mismo estudiante en diferentes materias
+        // Pero evita que el mismo evaluador califique la misma materia del mismo estudiante más de una vez
         const verificacionData = {
           carnet: dataToVerify.carnet, // ← Mismo estudiante (CI)
           tipoEvaluador: dataToVerify.tipoEvaluador, // ← Mismo tipo de evaluador
+          materia: dataToVerify.materia, // ← Misma materia
         }
 
-        console.log("Verificando registro existente (Opción 2):", verificacionData)
+        console.log("Verificando registro existente (carnet + tipoEvaluador + materia):", verificacionData)
 
         // Intentar verificar directamente con un endpoint específico
         try {
@@ -238,21 +245,21 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           return verificacionResponse.data.exists
         } catch (error) {
           console.error("Error en verificación directa:", error)
-
           // Si falla la verificación directa, intentar obtener todos los registros
           try {
             const allRegistrosResponse = await axios.get(`${baseURL}/api/examen-competencias`)
             const allRegistros = allRegistrosResponse.data
 
-            // ✅ BÚSQUEDA CORREGIDA: Solo validar por carnet + tipoEvaluador
+            // ✅ BÚSQUEDA CORREGIDA: Validar por carnet + tipoEvaluador + materia
             const found = allRegistros.some(
               (registro) =>
                 registro.carnet === dataToVerify.carnet && // ← Mismo estudiante (CI)
                 registro.tipoEvaluador === dataToVerify.tipoEvaluador && // ← Mismo tipo de evaluador
+                registro.materia === dataToVerify.materia && // ← Misma materia
                 (!competencia || registro._id !== competencia._id), // Excluir el registro actual si estamos editando
             )
 
-            console.log("Verificación alternativa (Opción 2):", found)
+            console.log("Verificación alternativa (carnet + tipoEvaluador + materia):", found)
             return found
           } catch (secondError) {
             console.error("Error en verificación alternativa:", secondError)
@@ -288,11 +295,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     // Verificar si ya existe un registro con los mismos datos
     const registroExistente = await verificarRegistroExistente(formData)
     if (registroExistente && !competencia) {
-      // ✅ MENSAJE ACTUALIZADO: Explica la nueva validación (Opción 2)
+      // ✅ MENSAJE ACTUALIZADO: Explica la nueva validación (carnet + tipoEvaluador + materia)
       return showAlert(
         "warning",
         "Registro duplicado",
-        `El ${formData.tipoEvaluador} ya ha evaluado al estudiante ${formData.carnet} (${formData.nombre}). Cada tipo de evaluador solo puede evaluar una vez al mismo estudiante.`,
+        `El ${formData.tipoEvaluador} ya ha evaluado la materia "${formData.materia}" del estudiante ${formData.carnet} (${formData.nombre}). Cada evaluador solo puede evaluar una vez la misma materia del mismo estudiante.`,
       )
     }
 
@@ -386,7 +393,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
       }
     } catch (error) {
       console.error("Error al guardar el registro:", error)
-
       // Cerrar el indicador de carga
       Swal.close()
 
@@ -448,7 +454,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             // Intentar una última verificación después de un tiempo adicional
             await new Promise((resolve) => setTimeout(resolve, 2000))
             const segundaVerificacion = await verificarRegistroExistente(dataToSubmit)
-
             if (segundaVerificacion) {
               Swal.fire({
                 icon: "success",
@@ -517,11 +522,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           <p className="text-gray-500 mt-1 text-sm">
             Complete el formulario para {competencia ? "actualizar" : "registrar"} la evaluación
           </p>
-          {/* ✅ INFORMACIÓN ADICIONAL: Explicar el proceso de evaluación */}
+          {/* ✅ INFORMACIÓN ACTUALIZADA: Explicar el proceso de evaluación corregido */}
           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg max-w-md mx-auto">
             <p className="text-xs text-blue-800">
-              <strong>Proceso:</strong> Cada estudiante debe ser evaluado por los 3 tipos de evaluadores. Cada evaluador
-              solo puede evaluar una vez al mismo estudiante.
+              <strong>Proceso:</strong> Cada materia debe ser evaluada por los 3 tipos de evaluadores. Cada evaluador
+              solo puede evaluar una vez la misma materia del mismo estudiante.
             </p>
           </div>
         </div>
@@ -553,7 +558,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Tipo de Evaluador
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -592,7 +596,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Datos del Postulante
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               {/* Campo CI */}
               <div>
@@ -738,7 +741,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Datos del Evaluador
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -769,7 +771,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Segunda Etapa: Plan de Trabajo (30%)
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               {/* Concordancia con el perfil profesional */}
               <div>
@@ -788,7 +789,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -813,7 +814,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -838,7 +839,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -863,7 +864,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -888,7 +889,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -920,7 +921,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Tercera Etapa: Procesos Pedagógicos (30%)
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               {/* Motivación a los estudiantes */}
               <div>
@@ -939,7 +939,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -964,7 +964,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -989,7 +989,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -1014,7 +1014,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
-                    <option value="0">  0 - No presento</option>
+                    <option value="0"> 0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -1046,7 +1046,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 Resultados Finales
               </h3>
             </div>
-
             <div className="p-2 space-y-3">
               <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg">
                 <h3 className="text-sm font-medium text-blue-800 mb-2">Resumen de Evaluación</h3>
@@ -1064,7 +1063,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                       }}
                     ></div>
                   </div>
-
                   <div className="flex justify-between items-center mt-2">
                     <p className="text-xs font-medium text-gray-700">Procesos Pedagógicos (30%):</p>
                     <p className="text-xs font-bold text-blue-700">{stage3Promedio}</p>
@@ -1078,7 +1076,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                       }}
                     ></div>
                   </div>
-
                   <div className="mt-3 pt-2 border-t border-gray-200">
                     <div className="flex justify-between items-center">
                       <p className="text-sm font-semibold text-gray-800">Nota Final:</p>
@@ -1136,7 +1133,6 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                 )}
               </span>
             </button>
-
             <button
               type="button"
               onClick={onCancel}
