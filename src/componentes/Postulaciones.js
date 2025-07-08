@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useEffect, useState, useCallback, useMemo } from "react"
 import axios from "axios"
 import * as XLSX from "xlsx"
@@ -24,6 +23,7 @@ import {
   FaChalkboardTeacher,
   FaBook,
   FaBuilding,
+  FaUsers,
 } from "react-icons/fa"
 
 // Función para convertir un string a formato título
@@ -183,7 +183,6 @@ function Postulaciones() {
       const MAX_RETRIES = 3
       setLoading(true)
       setError(null)
-
       try {
         const response = await axios.get(`${baseURL}/postulaciones`, {
           timeout: 15000, // 15 segundos de timeout
@@ -192,12 +191,10 @@ function Postulaciones() {
             "Cache-Control": "no-cache",
           },
         })
-
         // Verificar la estructura de la respuesta
         if (response.data) {
           // Algunos backends devuelven los datos en un campo 'data'
           const postulacionesData = response.data.data || response.data
-
           if (Array.isArray(postulacionesData)) {
             setPostulaciones(postulacionesData)
             setFilteredPostulaciones(postulacionesData)
@@ -210,10 +207,8 @@ function Postulaciones() {
         }
       } catch (error) {
         console.error("Error al obtener las postulaciones:", error)
-
         // Mensaje de error específico según el tipo de error
         let errorMessage = "Error al obtener las postulaciones."
-
         if (error.response) {
           // El servidor respondió con un código de estado fuera del rango 2xx
           errorMessage = `Error ${error.response.status}: ${error.response.data?.message || "Error en la respuesta del servidor"}`
@@ -224,7 +219,6 @@ function Postulaciones() {
           // Error al configurar la solicitud
           errorMessage = `Error de configuración: ${error.message}`
         }
-
         // Reintentar si no hemos alcanzado el máximo de intentos
         if (retryCount < MAX_RETRIES) {
           console.log(`Reintentando (${retryCount + 1}/${MAX_RETRIES})...`)
@@ -233,7 +227,6 @@ function Postulaciones() {
           }, 2000 * Math.pow(2, retryCount)) // Backoff exponencial
           return
         }
-
         setError(errorMessage)
       } finally {
         setLoading(false)
@@ -253,7 +246,6 @@ function Postulaciones() {
       setFilteredPostulaciones(postulaciones)
       return
     }
-
     const lowerSearchTerm = searchTerm.toLowerCase()
     const filtered = postulaciones.filter((p) => {
       return (
@@ -263,7 +255,6 @@ function Postulaciones() {
         (p.profesion && p.profesion.toLowerCase().includes(lowerSearchTerm))
       )
     })
-
     setFilteredPostulaciones(filtered)
   }, [searchTerm, postulaciones])
 
@@ -321,7 +312,6 @@ function Postulaciones() {
       swal("No hay postulaciones para descargar.", { icon: "info" })
       return
     }
-
     const worksheet = XLSX.utils.json_to_sheet(
       filteredPostulaciones.map((postulacion) => ({
         "Nombre Completo": postulacion.nombre || "",
@@ -336,7 +326,6 @@ function Postulaciones() {
         Documentos: formatDocumentosForExcel(postulacion.documentos),
       })),
     )
-
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Postulaciones")
     XLSX.writeFile(workbook, "Postulaciones.xlsx")
@@ -359,7 +348,6 @@ function Postulaciones() {
             />
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-
           {/* Botón de Excel */}
           <button
             onClick={handleDownloadExcel}
@@ -376,14 +364,47 @@ function Postulaciones() {
         </div>
       </div>
 
+      {/* Contador de Postulaciones */}
+      {!loading && !error && (
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-center md:justify-start space-x-3">
+            <FaUsers className="text-blue-600" size={24} />
+            <div className="text-center md:text-left">
+              <h3 className="text-lg font-semibold text-blue-800">Total de Postulaciones: {postulaciones.length}</h3>
+              {searchTerm && filteredPostulaciones.length !== postulaciones.length && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Mostrando {filteredPostulaciones.length} de {postulaciones.length} postulaciones
+                  {searchTerm && <span className="font-medium"> (filtradas por: "{searchTerm}")</span>}
+                </p>
+              )}
+              {!searchTerm && postulaciones.length > 0 && (
+                <p className="text-sm text-blue-600 mt-1">Todas las postulaciones están siendo mostradas</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mensajes de estado */}
       {loading && <LoadingSpinner />}
-
       {error && <ErrorMessage message={error} onRetry={() => fetchPostulaciones()} />}
 
       {!loading && !error && filteredPostulaciones.length === 0 && (
         <div className="text-center py-8 bg-gray-50 rounded-md">
-          <p className="text-gray-600 text-lg">No hay postulaciones registradas.</p>
+          <FaUsers className="mx-auto text-gray-400 mb-4" size={48} />
+          <p className="text-gray-600 text-lg">
+            {searchTerm
+              ? "No se encontraron postulaciones que coincidan con tu búsqueda."
+              : "No hay postulaciones registradas."}
+          </p>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+            >
+              Limpiar búsqueda
+            </button>
+          )}
         </div>
       )}
 
@@ -492,7 +513,6 @@ function Postulaciones() {
                       {postulacion.nombre || "Sin nombre"}
                     </h3>
                   </div>
-
                   {/* Contenido de la tarjeta */}
                   <div className="p-4 space-y-3 bg-white">
                     {/* Información de contacto */}
@@ -504,7 +524,6 @@ function Postulaciones() {
                           <p className="font-medium text-sm break-all">{postulacion.correo || "-"}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaPhone className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -512,7 +531,6 @@ function Postulaciones() {
                           <p className="font-medium text-sm">{postulacion.celular || "-"}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaIdCard className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -521,7 +539,6 @@ function Postulaciones() {
                         </div>
                       </div>
                     </div>
-
                     {/* Información académica */}
                     <div className="space-y-3 border-b border-gray-200 pb-3">
                       <div className="flex items-start">
@@ -531,7 +548,6 @@ function Postulaciones() {
                           <p className="font-medium text-sm">{postulacion.universidad || "-"}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaCalendarAlt className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -539,7 +555,6 @@ function Postulaciones() {
                           <p className="font-medium text-sm">{postulacion.anioTitulacion || "-"}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaGraduationCap className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -547,7 +562,6 @@ function Postulaciones() {
                           <p className="font-medium text-sm">{postulacion.profesion || "-"}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaChalkboardTeacher className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -556,7 +570,6 @@ function Postulaciones() {
                         </div>
                       </div>
                     </div>
-
                     {/* Materias postuladas */}
                     <div className="space-y-3 border-b border-gray-200 pb-3">
                       <div className="flex items-start">
@@ -587,7 +600,6 @@ function Postulaciones() {
                           </div>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <FaBuilding className="text-gray-500 mt-1 mr-2 flex-shrink-0" />
                         <div className="flex-1">
@@ -608,7 +620,6 @@ function Postulaciones() {
                         </div>
                       </div>
                     </div>
-
                     {/* Botones de acción */}
                     <div className="pt-2 flex flex-col gap-2">
                       <button
@@ -625,7 +636,6 @@ function Postulaciones() {
                           </>
                         )}
                       </button>
-
                       <button
                         onClick={() => handleDelete(postulacion._id)}
                         className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition flex items-center justify-center"
@@ -633,7 +643,6 @@ function Postulaciones() {
                         <FaTrash className="mr-2" /> Eliminar
                       </button>
                     </div>
-
                     {/* Documentos expandibles */}
                     {expandedRows[index] && (
                       <div className="mt-3 pt-3 border-t border-gray-200">

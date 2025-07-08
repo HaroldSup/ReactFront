@@ -788,6 +788,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -812,6 +813,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -836,6 +838,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -860,6 +863,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -884,6 +888,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="20">20 - Excelente</option>
@@ -934,6 +939,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -958,6 +964,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -982,6 +989,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
@@ -1006,6 +1014,7 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
                     className="w-full pl-8 pr-2 py-2 border border-gray-300 rounded-lg text-sm appearance-none"
                   >
                     <option value="">Seleccione</option>
+                    <option value="0">  0 - No presento</option>
                     <option value="10">10 - Regular</option>
                     <option value="15">15 - Bueno</option>
                     <option value="25">25 - Excelente</option>
