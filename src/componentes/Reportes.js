@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
@@ -38,7 +39,6 @@ function Reportes() {
         ])
 
         const postulaciones = postulacionesRes.data.data || postulacionesRes.data
-
         const meritos = meritosRes.data
         const conocimientos = conocimientosRes.data
         const competencias = competenciasRes.data
@@ -257,7 +257,7 @@ function Reportes() {
           })
         })
 
-        // ✅ LÓGICA PARA DETERMINAR GANADORES
+        // ✅ NUEVA LÓGICA CORREGIDA PARA DETERMINAR GANADORES
         const gruposPorMateriaCarrera = {}
         reportArray.forEach((registro) => {
           const key = `${registro.carrera}-${registro.materia}`
@@ -267,20 +267,34 @@ function Reportes() {
           gruposPorMateriaCarrera[key].push(registro)
         })
 
-        // Ordenar cada grupo por resultado final y marcar ganador
+        // ✅ LÓGICA CORREGIDA: Buscar al primer candidato con todas las evaluaciones habilitadas
         Object.values(gruposPorMateriaCarrera).forEach((grupo) => {
+          // Ordenar por resultado final (de mayor a menor)
           grupo.sort((a, b) => b.resultadoFinal - a.resultadoFinal)
-          if (grupo.length > 0) {
-            const candidato = grupo[0]
-            // ✅ NUEVA LÓGICA: Debe tener las 3 evaluaciones habilitadas
+
+          // Buscar al primer candidato que tenga todas las evaluaciones habilitadas
+          const ganador = grupo.find((candidato) => {
             const tieneTodasLasEvaluacionesHabilitadas =
               candidato.meritosHabilitado === "Habilitado" &&
               candidato.conocimientosHabilitado === "Habilitado" &&
               candidato.totalCompetenciaHabilitado === "Habilitado"
 
-            if (tieneTodasLasEvaluacionesHabilitadas && candidato.resultadoFinal > 0) {
-              candidato.ganador = "SI"
-            }
+            return tieneTodasLasEvaluacionesHabilitadas && candidato.resultadoFinal > 0
+          })
+
+          // Marcar como ganador si se encontró un candidato válido
+          if (ganador) {
+            ganador.ganador = "SI"
+            console.log(`🏆 Ganador encontrado para ${ganador.carrera} - ${ganador.materia}:`, {
+              nombre: ganador.nombre,
+              carnet: ganador.carnet,
+              resultadoFinal: ganador.resultadoFinal,
+              meritos: `${ganador.meritos} (${ganador.meritosHabilitado})`,
+              conocimientos: `${ganador.conocimientos} (${ganador.conocimientosHabilitado})`,
+              competencias: `${ganador.totalExamenCompetencia.toFixed(2)} (${ganador.totalCompetenciaHabilitado})`,
+            })
+          } else {
+            console.log(`❌ No se encontró ganador válido para ${grupo[0]?.carrera} - ${grupo[0]?.materia}`)
           }
         })
 
@@ -297,6 +311,7 @@ function Reportes() {
         })
 
         console.log("📊 Reporte final generado:", reportArray.length, "registros")
+        console.log("🏆 Ganadores encontrados:", reportArray.filter((r) => r.ganador === "SI").length)
         console.log("📊 Muestra de datos con notas:", reportArray.slice(0, 5))
 
         setReportData(reportArray)
@@ -547,10 +562,12 @@ function Reportes() {
         doc.text("CR-UCA-FA-R-20", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila / 2 + 2, {
           align: "right",
         })
+
         doc.text("Versión:", seccionDerecha + 5, margenSuperior + altoFila + altoFila / 2 + 2)
         doc.text("1.0", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila + altoFila / 2 + 2, {
           align: "right",
         })
+
         doc.text("Página 1 de 1", seccionDerecha + anchoDerecha / 2, margenSuperior + altoFila * 2 + altoFila / 2 + 2, {
           align: "center",
         })
@@ -559,17 +576,21 @@ function Reportes() {
         const yInfoBloque = margenSuperior + altoEncabezado
         const altoInfoBloque = 40
         doc.rect(margenIzquierdo, yInfoBloque, anchoUtil, altoInfoBloque)
+
         doc.setFontSize(8)
         doc.text("PERIODO ACADÉMICO:", margenIzquierdo + 5, yInfoBloque + 6)
         doc.line(margenIzquierdo, yInfoBloque + 10, margenIzquierdo + anchoUtil, yInfoBloque + 10)
+
         doc.text("CARRERA:", margenIzquierdo + 5, yInfoBloque + 16)
         doc.setFont("helvetica", "bold")
         doc.text(carrera, margenIzquierdo + 40, yInfoBloque + 16)
         doc.setFont("helvetica", "normal")
         doc.line(margenIzquierdo, yInfoBloque + 20, margenIzquierdo + anchoUtil, yInfoBloque + 20)
+
         doc.text("Artículo 32:", margenIzquierdo + 5, yInfoBloque + 26)
         const textoArticulo =
           "El puntaje mínimo a obtener en el Concurso de Méritos que permite a la Institución contar con Docentes de relativa experiencia, tanto en la enseñanza como en su actividad profesional es de 220 puntos para nivel Licenciatura y 200 para Nivel Técnico Universitario Superior. El Postulante que no alcance esta puntuación, será descalificado del proceso de selección y, en consecuencia, no podrá optar al Examen de Competencia."
+
         const textLines = doc.splitTextToSize(textoArticulo, anchoUtil - 60)
         doc.text(textLines, margenIzquierdo + 50, yInfoBloque + 26)
 
@@ -579,9 +600,10 @@ function Reportes() {
         let materiaIndex = 0
         Object.entries(materias).forEach(([materia, postulantes]) => {
           if (postulantes.length === 0) return
-          materiaIndex++
 
+          materiaIndex++
           const estimatedHeight = 10 + 12 + postulantes.length * 10
+
           if (yPos + estimatedHeight > pageHeight - 40) {
             doc.addPage()
             yPos = margenSuperior
@@ -632,6 +654,7 @@ function Reportes() {
           doc.setFontSize(4) // Reducir más el tamaño para que quepa la nueva columna
           doc.setFont("helvetica", "bold")
           currentX = margenIzquierdo
+
           const headers = [
             "N°",
             "NOMBRE(S) Y\nAPELLIDOS",
@@ -664,9 +687,11 @@ function Reportes() {
             const nombreText = postulante.nombre || ""
             const profesionText = postulante.profesion || ""
             const materiaText = materia || ""
+
             const nombreLines = doc.splitTextToSize(nombreText, colWidths[1] - 4)
             const profesionLines = doc.splitTextToSize(profesionText, colWidths[2] - 4)
             const materiaLines = doc.splitTextToSize(materiaText, colWidths[3] - 4)
+
             const maxLines = Math.max(nombreLines.length, profesionLines.length, materiaLines.length)
             const calculatedRowHeight = Math.max(rowHeight, maxLines * 3 + 4)
 
@@ -822,8 +847,8 @@ function Reportes() {
         ]
         const mes = meses[fechaBolivia.getMonth()]
         const anio = fechaBolivia.getFullYear()
-        const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
 
+        const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
         doc.text(fechaFormateada, pageWidth - margenIzquierdo, yPos + 10, { align: "right" })
 
         const firmaY = yPos + 25
@@ -1009,6 +1034,10 @@ function Reportes() {
                   <p className="text-xs text-green-600 mt-1">
                     <strong>✅ Registros con notas de competencias &gt; 0:</strong>{" "}
                     {reportData.filter((r) => r.resultadoFases2y3 > 0).length}
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    <strong>🏆 Total de ganadores encontrados:</strong>{" "}
+                    {reportData.filter((r) => r.ganador === "SI").length}
                   </p>
                 </div>
               )}

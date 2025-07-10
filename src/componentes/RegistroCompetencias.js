@@ -216,21 +216,22 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     return Date.now().toString() + Math.random().toString(36).substr(2, 5)
   }, [])
 
-  // ✅ FUNCIÓN CORREGIDA: Validación por carnet + tipoEvaluador + materia
+  // ✅ FUNCIÓN CORREGIDA: Validación por carnet + tipoEvaluador + materia + carrera
   const verificarRegistroExistente = useCallback(
     async (dataToVerify) => {
       try {
         setIsVerifying(true)
-        // ✅ VALIDACIÓN CORREGIDA: carnet + tipoEvaluador + materia
-        // Esto permite que el mismo evaluador califique al mismo estudiante en diferentes materias
-        // Pero evita que el mismo evaluador califique la misma materia del mismo estudiante más de una vez
+        // ✅ VALIDACIÓN CORREGIDA: carnet + tipoEvaluador + materia + carrera
+        // Esto permite que el mismo evaluador califique al mismo estudiante en la misma materia
+        // pero en diferentes carreras, evitando duplicados por carrera específica
         const verificacionData = {
           carnet: dataToVerify.carnet, // ← Mismo estudiante (CI)
           tipoEvaluador: dataToVerify.tipoEvaluador, // ← Mismo tipo de evaluador
           materia: dataToVerify.materia, // ← Misma materia
+          carrera: dataToVerify.carrera, // ← ✅ NUEVA: Misma carrera
         }
 
-        console.log("Verificando registro existente (carnet + tipoEvaluador + materia):", verificacionData)
+        console.log("Verificando registro existente (carnet + tipoEvaluador + materia + carrera):", verificacionData)
 
         // Intentar verificar directamente con un endpoint específico
         try {
@@ -250,16 +251,17 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
             const allRegistrosResponse = await axios.get(`${baseURL}/api/examen-competencias`)
             const allRegistros = allRegistrosResponse.data
 
-            // ✅ BÚSQUEDA CORREGIDA: Validar por carnet + tipoEvaluador + materia
+            // ✅ BÚSQUEDA CORREGIDA: Validar por carnet + tipoEvaluador + materia + carrera
             const found = allRegistros.some(
               (registro) =>
                 registro.carnet === dataToVerify.carnet && // ← Mismo estudiante (CI)
                 registro.tipoEvaluador === dataToVerify.tipoEvaluador && // ← Mismo tipo de evaluador
                 registro.materia === dataToVerify.materia && // ← Misma materia
+                registro.carrera === dataToVerify.carrera && // ← ✅ NUEVA: Misma carrera
                 (!competencia || registro._id !== competencia._id), // Excluir el registro actual si estamos editando
             )
 
-            console.log("Verificación alternativa (carnet + tipoEvaluador + materia):", found)
+            console.log("Verificación alternativa (carnet + tipoEvaluador + materia + carrera):", found)
             return found
           } catch (secondError) {
             console.error("Error en verificación alternativa:", secondError)
@@ -295,11 +297,11 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
     // Verificar si ya existe un registro con los mismos datos
     const registroExistente = await verificarRegistroExistente(formData)
     if (registroExistente && !competencia) {
-      // ✅ MENSAJE ACTUALIZADO: Explica la nueva validación (carnet + tipoEvaluador + materia)
+      // ✅ MENSAJE ACTUALIZADO: Explica la nueva validación (carnet + tipoEvaluador + materia + carrera)
       return showAlert(
         "warning",
         "Registro duplicado",
-        `El ${formData.tipoEvaluador} ya ha evaluado la materia "${formData.materia}" del estudiante ${formData.carnet} (${formData.nombre}). Cada evaluador solo puede evaluar una vez la misma materia del mismo estudiante.`,
+        `El ${formData.tipoEvaluador} ya ha evaluado la materia "${formData.materia}" de la carrera "${formData.carrera}" del estudiante ${formData.carnet} (${formData.nombre}). Cada evaluador solo puede evaluar una vez la misma materia de la misma carrera del mismo estudiante.`,
       )
     }
 
@@ -525,8 +527,9 @@ function RegistroCompetencias({ competencia, onCompetenciaRegistered, onCancel }
           {/* ✅ INFORMACIÓN ACTUALIZADA: Explicar el proceso de evaluación corregido */}
           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg max-w-md mx-auto">
             <p className="text-xs text-blue-800">
-              <strong>Proceso:</strong> Cada materia debe ser evaluada por los 3 tipos de evaluadores. Cada evaluador
-              solo puede evaluar una vez la misma materia del mismo estudiante.
+              <strong>Proceso:</strong> Cada materia de cada carrera debe ser evaluada por los 3 tipos de evaluadores.
+              Un estudiante puede estar en la misma materia en diferentes carreras y cada una debe evaluarse por
+              separado.
             </p>
           </div>
         </div>
