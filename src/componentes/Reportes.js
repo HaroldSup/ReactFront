@@ -1,12 +1,11 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
 import * as XLSX from "xlsx"
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
-import logoEMI from "../images/emiemi.png" // Importamos el logo desde la misma ruta
+import logoEMI from "../images/emiemi.png"
 import { Search, FileSpreadsheet, FileIcon as FilePdf, ChevronDown, ChevronUp, Filter, Calendar } from "lucide-react"
 
 function Reportes() {
@@ -30,18 +29,27 @@ function Reportes() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        // Realizar las tres peticiones simultáneas
-        const [meritosRes, conocimientosRes, competenciasRes] = await Promise.all([
+        // ✅ VOLVER A INCLUIR POSTULACIONES PARA MOSTRAR TODOS LOS POSTULANTES
+        const [postulacionesRes, meritosRes, conocimientosRes, competenciasRes] = await Promise.all([
+          axios.get(`${baseURL}/postulaciones`),
           axios.get(`${baseURL}/api/concurso-meritos`),
           axios.get(`${baseURL}/api/examen-conocimientos`),
           axios.get(`${baseURL}/api/examen-competencias`),
         ])
 
+        const postulaciones = postulacionesRes.data.data || postulacionesRes.data
+
         const meritos = meritosRes.data
         const conocimientos = conocimientosRes.data
         const competencias = competenciasRes.data
 
-        // Map para méritos (usa "carnet" o "ci") - ✅ AGREGANDO CAMPO FECHA
+        console.log("📋 Datos obtenidos:")
+        console.log("Postulaciones:", postulaciones.length)
+        console.log("Méritos:", meritos.length)
+        console.log("Conocimientos:", conocimientos.length)
+        console.log("Competencias:", competencias.length)
+
+        // ✅ Map para méritos (usa "carnet" o "ci") - LÓGICA ORIGINAL QUE FUNCIONA
         const meritosMap = new Map()
         meritos.forEach((record) => {
           const id = record.carnet || record.ci
@@ -54,13 +62,13 @@ function Reportes() {
                 materia: record.materia || "",
                 carrera: record.carrera || "",
                 habilitado: record.habilitado || "No Habilitado",
-                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
+                fecha: record.fechaEvaluacion || record.fecha || null, // ✅ USAR fechaEvaluacion para méritos
               })
             }
           }
         })
 
-        // Map para conocimientos (usa "carnet" o "ci") - ✅ AGREGANDO CAMPO FECHA
+        // ✅ Map para conocimientos (usa "carnet" o "ci") - LÓGICA ORIGINAL QUE FUNCIONA
         const conocimientosMap = new Map()
         conocimientos.forEach((record) => {
           const id = record.carnet || record.ci
@@ -73,20 +81,18 @@ function Reportes() {
                 materia: record.materia || "",
                 carrera: record.carrera || "",
                 habilitado: record.habilitado || "No Habilitado",
-                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
+                fecha: record.fecha || null,
               })
             }
           }
         })
 
-        // Procesar competencias: agrupar por postulante, materia y carrera, y calcular promedios por tipo de evaluador
+        // ✅ Procesar competencias: LÓGICA ORIGINAL QUE FUNCIONA
         const competenciasAgrupadas = {}
-
         competencias.forEach((record) => {
           const id = record.carnet || record.ci
           if (id && record.materia && record.carrera) {
             const key = `${id}-${record.materia}-${record.carrera}`
-
             if (!competenciasAgrupadas[key]) {
               competenciasAgrupadas[key] = {
                 carnet: id,
@@ -94,7 +100,7 @@ function Reportes() {
                 materia: record.materia,
                 carrera: record.carrera,
                 profesion: record.profesion || "",
-                fecha: record.fecha || null, // ✅ AGREGANDO FECHA REAL
+                fecha: record.fecha || null,
                 evaluadores: {},
               }
             }
@@ -128,32 +134,32 @@ function Reportes() {
           }
         })
 
-        // Calcular resultados finales
+        // Función para parsear asignaturas de postulaciones
+        const parseAsignaturas = (asignaturasRaw) => {
+          if (!asignaturasRaw) return []
+          if (Array.isArray(asignaturasRaw)) return asignaturasRaw
+          try {
+            return JSON.parse(asignaturasRaw)
+          } catch (err) {
+            console.error("Error al parsear asignaturasSeleccionadas", err)
+            return []
+          }
+        }
+
+        // ✅ VOLVER A USAR POSTULACIONES COMO BASE PARA MOSTRAR TODOS
         const reportArray = []
         let index = 1
 
-        // Procesar por materia para agrupar en el reporte
-        const materiasPorCarrera = {}
+        // ✅ PROCESAR CADA POSTULACIÓN PARA MOSTRAR TODOS LOS POSTULANTES
+        postulaciones.forEach((postulacion) => {
+          const asignaturas = parseAsignaturas(postulacion.asignaturasSeleccionadas)
+          asignaturas.forEach((asignatura) => {
+            if (asignatura.asignatura && asignatura.carrera) {
+              const carnet = postulacion.ci
+              const materia = asignatura.asignatura
+              const carrera = asignatura.carrera
 
-        // Primero, identificar todas las materias por carrera
-        Object.values(competenciasAgrupadas).forEach((data) => {
-          const { carrera, materia } = data
-          if (!materiasPorCarrera[carrera]) {
-            materiasPorCarrera[carrera] = new Set()
-          }
-          materiasPorCarrera[carrera].add(materia)
-        })
-
-        // Luego, para cada carrera y materia, procesar los postulantes
-        Object.entries(materiasPorCarrera).forEach(([carrera, materias]) => {
-          materias.forEach((materia) => {
-            // Filtrar registros para esta carrera y materia
-            const registrosMateria = Object.values(competenciasAgrupadas).filter(
-              (data) => data.carrera === carrera && data.materia === materia,
-            )
-
-            registrosMateria.forEach((data) => {
-              const { carnet, nombre, profesion, fecha: fechaCompetencias } = data
+              // ✅ BUSCAR POR ID SOLAMENTE - LÓGICA QUE FUNCIONA
               const meritoData = meritosMap.get(carnet) || {
                 puntosEvaluacion: 0,
                 nombre: "",
@@ -161,6 +167,7 @@ function Reportes() {
                 profesion: "",
                 fecha: null,
               }
+
               const conocimientoData = conocimientosMap.get(carnet) || {
                 notaFinal: 0,
                 nombre: "",
@@ -169,77 +176,128 @@ function Reportes() {
                 fecha: null,
               }
 
+              // ✅ BUSCAR EN COMPETENCIAS POR CLAVE COMPLETA
+              const keyCompetencias = `${carnet}-${materia}-${carrera}`
+              const competenciaData = competenciasAgrupadas[keyCompetencias]
+
+              let resultadoFases2y3 = 0
+              let fechaCompetencias = null
+
+              if (competenciaData) {
+                fechaCompetencias = competenciaData.fecha
+                // Calcular promedio de competencias
+                let sumaNotas = 0
+                let contadorEvaluadores = 0
+                const tiposEvaluador = ["Evaluador 1", "Evaluador 2", "Presidente Tribunal"]
+
+                tiposEvaluador.forEach((tipo) => {
+                  if (competenciaData.evaluadores[tipo]) {
+                    const notaTotal =
+                      competenciaData.evaluadores[tipo].notaPlanTrabajo +
+                      competenciaData.evaluadores[tipo].notaProcesosPedagogicos
+                    sumaNotas += notaTotal
+                    contadorEvaluadores++
+                  }
+                })
+
+                resultadoFases2y3 = contadorEvaluadores > 0 ? sumaNotas / contadorEvaluadores : 0
+              }
+
               // Usar datos de cualquier fuente disponible
-              const nombreFinal = nombre || meritoData.nombre || conocimientoData.nombre
-              const profesionFinal = profesion || meritoData.profesion || conocimientoData.profesion
+              const nombreFinal = postulacion.nombre || meritoData.nombre || conocimientoData.nombre
+              const profesionFinal = postulacion.profesion || meritoData.profesion || conocimientoData.profesion
 
               // ✅ DETERMINAR LA FECHA MÁS RECIENTE DE LAS TRES FUENTES
               const fechas = [fechaCompetencias, meritoData.fecha, conocimientoData.fecha].filter(Boolean)
               const fechaFinal =
                 fechas.length > 0
                   ? fechas.reduce((latest, current) => (new Date(current) > new Date(latest) ? current : latest))
-                  : new Date().toISOString().split("T")[0] // Fecha actual como fallback
-
-              // Calcular el promedio de las notas de los 3 tipos de evaluadores
-              let sumaNotas = 0
-              let contadorEvaluadores = 0
-
-              // Tipos de evaluadores esperados
-              const tiposEvaluador = ["Evaluador 1", "Evaluador 2", "Presidente Tribunal"]
-
-              tiposEvaluador.forEach((tipo) => {
-                if (data.evaluadores[tipo]) {
-                  // Sumar las notas de plan de trabajo y procesos pedagógicos
-                  const notaTotal =
-                    data.evaluadores[tipo].notaPlanTrabajo + data.evaluadores[tipo].notaProcesosPedagogicos
-                  sumaNotas += notaTotal
-                  contadorEvaluadores++
-                }
-              })
-
-              // Calcular el promedio (Resultado Fases 2 y 3)
-              const resultadoFases2y3 = contadorEvaluadores > 0 ? sumaNotas / contadorEvaluadores : 0
+                  : new Date().toISOString().split("T")[0]
 
               // Total Examen de Competencia = Puntaje Examen de Conocimiento + Resultado Fases 2 y 3
               const totalExamenCompetencia = conocimientoData.notaFinal + resultadoFases2y3
 
+              // ✅ DETERMINAR HABILITADO PARA COMPETENCIA
+              const totalCompetenciaHabilitado = totalExamenCompetencia >= 60 ? "Habilitado" : "No Habilitado"
+
               // Resultado Final = Puntaje Concurso de Méritos + Total Examen de Competencia
               const resultadoFinal = meritoData.puntosEvaluacion + totalExamenCompetencia
 
+              console.log(`📊 Procesando: ${carnet} - ${materia} - ${carrera}`, {
+                meritos: meritoData.puntosEvaluacion,
+                conocimientos: conocimientoData.notaFinal,
+                competencias: resultadoFases2y3,
+                total: resultadoFinal,
+              })
+
               reportArray.push({
                 nro: index++,
-                carnet,
+                carnet: postulacion.ci,
                 nombre: nombreFinal,
                 profesion: profesionFinal,
-                materia,
-                carrera,
+                materia: asignatura.asignatura,
+                carrera: asignatura.carrera,
                 meritos: meritoData.puntosEvaluacion,
                 meritosHabilitado: meritoData.habilitado,
                 conocimientos: conocimientoData.notaFinal,
                 conocimientosHabilitado: conocimientoData.habilitado,
                 resultadoFases2y3,
                 totalExamenCompetencia,
+                totalCompetenciaHabilitado,
                 resultadoFinal,
-                ganador: nombreFinal, // Mismo nombre del postulante
+                ganador: "", // Se calculará después
                 observaciones: "",
-                fechaCreacion: fechaFinal, // ✅ USANDO FECHA REAL EN LUGAR DE FECHA ACTUAL
-                // ✅ AGREGANDO CAMPOS ADICIONALES PARA DEBUG
+                fechaCreacion: fechaFinal,
+                // ✅ CAMPOS ADICIONALES PARA DEBUG
                 fechaCompetencias: fechaCompetencias,
                 fechaMeritos: meritoData.fecha,
                 fechaConocimientos: conocimientoData.fecha,
               })
-            })
+            }
           })
         })
 
-        // Ordenar por carrera, materia y resultado final (de mayor a menor)
+        // ✅ LÓGICA PARA DETERMINAR GANADORES
+        const gruposPorMateriaCarrera = {}
+        reportArray.forEach((registro) => {
+          const key = `${registro.carrera}-${registro.materia}`
+          if (!gruposPorMateriaCarrera[key]) {
+            gruposPorMateriaCarrera[key] = []
+          }
+          gruposPorMateriaCarrera[key].push(registro)
+        })
+
+        // Ordenar cada grupo por resultado final y marcar ganador
+        Object.values(gruposPorMateriaCarrera).forEach((grupo) => {
+          grupo.sort((a, b) => b.resultadoFinal - a.resultadoFinal)
+          if (grupo.length > 0) {
+            const candidato = grupo[0]
+            // ✅ NUEVA LÓGICA: Debe tener las 3 evaluaciones habilitadas
+            const tieneTodasLasEvaluacionesHabilitadas =
+              candidato.meritosHabilitado === "Habilitado" &&
+              candidato.conocimientosHabilitado === "Habilitado" &&
+              candidato.totalCompetenciaHabilitado === "Habilitado"
+
+            if (tieneTodasLasEvaluacionesHabilitadas && candidato.resultadoFinal > 0) {
+              candidato.ganador = "SI"
+            }
+          }
+        })
+
+        // ✅ ORDENAR COMO EN LA LÓGICA ORIGINAL
         reportArray.sort((a, b) => {
           if (a.carrera !== b.carrera) return a.carrera.localeCompare(b.carrera)
           if (a.materia !== b.materia) return a.materia.localeCompare(b.materia)
           return b.resultadoFinal - a.resultadoFinal
         })
 
-        console.log("📊 Datos del reporte con fechas reales:", reportArray.slice(0, 3)) // Debug: mostrar primeros 3 registros
+        // Renumerar después del ordenamiento
+        reportArray.forEach((registro, index) => {
+          registro.nro = index + 1
+        })
+
+        console.log("📊 Reporte final generado:", reportArray.length, "registros")
+        console.log("📊 Muestra de datos con notas:", reportArray.slice(0, 5))
 
         setReportData(reportArray)
       } catch (error) {
@@ -257,11 +315,9 @@ function Reportes() {
     fetchData()
   }, [baseURL])
 
-  // ✅ EXTRAER VALORES ÚNICOS PARA LOS FILTROS - MEJORADO PARA FECHAS REALES
+  // ✅ EXTRAER VALORES ÚNICOS PARA LOS FILTROS - LÓGICA ORIGINAL
   const uniqueCarreras = [...new Set(reportData.map((r) => r.carrera).filter(Boolean))].sort()
   const uniqueProfesiones = [...new Set(reportData.map((r) => r.profesion).filter(Boolean))].sort()
-
-  // ✅ MEJORADO: Extraer años de las fechas reales
   const uniqueGestiones = [
     ...new Set(
       reportData
@@ -279,11 +335,10 @@ function Reportes() {
         })
         .filter(Boolean),
     ),
-  ].sort((a, b) => b - a) // Ordenar de más reciente a más antiguo
-
+  ].sort((a, b) => b - a)
   const uniqueMaterias = [...new Set(reportData.map((r) => r.materia).filter(Boolean))].sort()
 
-  // ✅ FILTRAR REGISTROS - MEJORADO PARA FECHAS REALES
+  // ✅ FILTRAR REGISTROS - LÓGICA ORIGINAL
   const filteredRegistros = reportData.filter((registro) => {
     const matchesSearch =
       registro.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -295,8 +350,6 @@ function Reportes() {
     const matchesCarrera = filters.carrera ? registro.carrera === filters.carrera : true
     const matchesProfesion = filters.profesion ? registro.profesion === filters.profesion : true
     const matchesMateria = filters.materia ? registro.materia === filters.materia : true
-
-    // ✅ MEJORADO: Filtro de gestión usando fechas reales
     const matchesGestion = filters.gestion
       ? (() => {
           try {
@@ -363,12 +416,14 @@ function Reportes() {
         "Habilitado Conocimientos": record.conocimientosHabilitado,
         "Resultado Fases 2 y 3": record.resultadoFases2y3.toFixed(2),
         "Total Examen Competencia": record.totalExamenCompetencia.toFixed(2),
+        "Habilitado Total Competencia": record.totalCompetenciaHabilitado,
         "Resultado Final": record.resultadoFinal.toFixed(2),
         Ganador: record.ganador,
         Observaciones: record.observaciones,
-        "Fecha de Registro": record.fechaCreacion, // ✅ AGREGANDO FECHA AL EXCEL
+        "Fecha de Registro": record.fechaCreacion,
       })),
     )
+
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte General de Notas")
     XLSX.writeFile(workbook, "ReporteGeneralDeNotas.xlsx")
@@ -387,19 +442,15 @@ function Reportes() {
 
     // Agrupar registros por carrera y materia
     const registrosPorCarrera = {}
-
     filteredRegistros.forEach((registro) => {
       const carrera = registro.carrera || "Sin Carrera"
       const materia = registro.materia || "Sin Materia"
-
       if (!registrosPorCarrera[carrera]) {
         registrosPorCarrera[carrera] = {}
       }
-
       if (!registrosPorCarrera[carrera][materia]) {
         registrosPorCarrera[carrera][materia] = []
       }
-
       registrosPorCarrera[carrera][materia].push(registro)
     })
 
@@ -407,7 +458,6 @@ function Reportes() {
     const doc = new jsPDF({
       orientation: "landscape",
     })
-
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
 
@@ -432,9 +482,9 @@ function Reportes() {
         doc.rect(margenIzquierdo, margenSuperior, anchoUtil, altoEncabezado)
 
         // Dividir el encabezado en proporciones ajustadas (25% - 50% - 25%)
-        const anchoLogo = anchoUtil * 0.25 // 25% para el logo
-        const anchoTitulo = anchoUtil * 0.5 // 50% para el título (más ancho)
-        const anchoCodigo = anchoUtil * 0.25 // 25% para los códigos
+        const anchoLogo = anchoUtil * 0.25
+        const anchoTitulo = anchoUtil * 0.5
+        const anchoCodigo = anchoUtil * 0.25
 
         // Sección 1: Logo (izquierda)
         doc.line(
@@ -452,20 +502,17 @@ function Reportes() {
           margenSuperior + altoEncabezado,
         )
 
-        // Intentar cargar el logo - manteniendo la proporción correcta
+        // Intentar cargar el logo
         const img = new Image()
         img.src = logoEMI
-        // Calcular dimensiones para mantener la proporción original del logo
         const logoMaxHeight = altoEncabezado - 4
         const logoMaxWidth = anchoLogo - 10
-        // Usar un tamaño que mantenga la proporción pero sin estirar
         const logoHeight = logoMaxHeight
-        const logoWidth = logoMaxHeight * 1.5 // Proporción aproximada del logo (ancho:alto = 1.5:1)
-        // Centrar el logo en su celda
+        const logoWidth = logoMaxHeight * 1.5
         const logoX = margenIzquierdo + (anchoLogo - logoWidth) / 2
         doc.addImage(img, "PNG", logoX, margenSuperior + 2, logoWidth, logoHeight)
 
-        // Título en el centro - ahora con más espacio
+        // Título en el centro
         doc.setFontSize(10)
         doc.setFont("helvetica", "bold")
         doc.setTextColor(0, 0, 0)
@@ -486,7 +533,6 @@ function Reportes() {
         const seccionDerecha = margenIzquierdo + anchoLogo + anchoTitulo
         const anchoDerecha = anchoCodigo
         const altoFila = altoEncabezado / 3
-
         doc.line(seccionDerecha, margenSuperior + altoFila, seccionDerecha + anchoDerecha, margenSuperior + altoFila)
         doc.line(
           seccionDerecha,
@@ -497,69 +543,45 @@ function Reportes() {
 
         doc.setFontSize(7)
         doc.setFont("helvetica", "normal")
-
         doc.text("Código:", seccionDerecha + 5, margenSuperior + altoFila / 2 + 2)
         doc.text("CR-UCA-FA-R-20", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila / 2 + 2, {
           align: "right",
         })
-
         doc.text("Versión:", seccionDerecha + 5, margenSuperior + altoFila + altoFila / 2 + 2)
         doc.text("1.0", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila + altoFila / 2 + 2, {
           align: "right",
         })
-
         doc.text("Página 1 de 1", seccionDerecha + anchoDerecha / 2, margenSuperior + altoFila * 2 + altoFila / 2 + 2, {
           align: "center",
         })
 
-        // NUEVO FORMATO: Crear un solo bloque para Periodo Académico, Carrera y Artículo 32
+        // Bloque de información
         const yInfoBloque = margenSuperior + altoEncabezado
-        const altoInfoBloque = 40 // Altura total del bloque de información
-
-        // Dibujar el rectángulo exterior para todo el bloque
+        const altoInfoBloque = 40
         doc.rect(margenIzquierdo, yInfoBloque, anchoUtil, altoInfoBloque)
-
-        // Sección de Periodo Académico - solo texto, sin rectángulo separado
         doc.setFontSize(8)
         doc.text("PERIODO ACADÉMICO:", margenIzquierdo + 5, yInfoBloque + 6)
-
-        // Línea horizontal después de Periodo Académico
         doc.line(margenIzquierdo, yInfoBloque + 10, margenIzquierdo + anchoUtil, yInfoBloque + 10)
-
-        // Sección de Carrera - solo texto, sin rectángulo separado
         doc.text("CARRERA:", margenIzquierdo + 5, yInfoBloque + 16)
         doc.setFont("helvetica", "bold")
         doc.text(carrera, margenIzquierdo + 40, yInfoBloque + 16)
         doc.setFont("helvetica", "normal")
-
-        // Línea horizontal después de Carrera
         doc.line(margenIzquierdo, yInfoBloque + 20, margenIzquierdo + anchoUtil, yInfoBloque + 20)
-
-        // Sección de Artículo 32 - solo texto, sin rectángulo separado
         doc.text("Artículo 32:", margenIzquierdo + 5, yInfoBloque + 26)
-
         const textoArticulo =
           "El puntaje mínimo a obtener en el Concurso de Méritos que permite a la Institución contar con Docentes de relativa experiencia, tanto en la enseñanza como en su actividad profesional es de 220 puntos para nivel Licenciatura y 200 para Nivel Técnico Universitario Superior. El Postulante que no alcance esta puntuación, será descalificado del proceso de selección y, en consecuencia, no podrá optar al Examen de Competencia."
-
-        // Dividir el texto en múltiples líneas con más margen para evitar que se salga
         const textLines = doc.splitTextToSize(textoArticulo, anchoUtil - 60)
         doc.text(textLines, margenIzquierdo + 50, yInfoBloque + 26)
 
-        // Posición inicial para las tablas de asignaturas - ajustada para comenzar después del bloque de información
-        let yPos = yInfoBloque + altoInfoBloque + 5
+        let yPos = yInfoBloque + altoInfoBloque + 2 // ✅ REDUCIDO DE 5 A 2
 
         // Procesar cada materia de la carrera
         let materiaIndex = 0
         Object.entries(materias).forEach(([materia, postulantes]) => {
-          // Solo procesar materias que tengan postulantes
           if (postulantes.length === 0) return
-
           materiaIndex++
 
-          // Calcular altura estimada: encabezado de asignatura + encabezado de tabla + filas de datos
           const estimatedHeight = 10 + 12 + postulantes.length * 10
-
-          // Si no hay espacio suficiente, añadir nueva página
           if (yPos + estimatedHeight > pageHeight - 40) {
             doc.addPage()
             yPos = margenSuperior
@@ -568,41 +590,36 @@ function Reportes() {
           // Encabezado de la asignatura
           doc.setFontSize(9)
           doc.setFont("helvetica", "bold")
-
-          // Crear un rectángulo para el encabezado de la asignatura
           doc.rect(margenIzquierdo, yPos, anchoUtil, 10)
           doc.text(`ASIGNATURA ${materiaIndex}:`, margenIzquierdo + 5, yPos + 6)
           doc.setFont("helvetica", "normal")
           doc.text(materia, margenIzquierdo + 50, yPos + 6)
 
-          // Crear la tabla de encabezados manualmente para mayor control
           const headerHeight = 12
           const rowHeight = 10
 
-          // Ajustar los anchos de columna para aprovechar mejor el espacio horizontal
+          // ✅ AJUSTAR ANCHOS DE COLUMNA PARA INCLUIR NUEVA COLUMNA
           const colWidths = [
-            10, // N° - ligeramente más ancho
-            30, // NOMBRE(S) Y APELLIDOS - más ancho para aprovechar el espacio horizontal
-            20, // PROFESIÓN - más ancho
-            30, // ASIGNATURA A LA QUE POSTULA - más ancho
-            20, // PUNTAJE CONCURSO DE MÉRITOS
-            20, // HABILITADO/NO HABILITADO (méritos)
-            20, // PUNTAJE EXAMEN DE CONOCIMIENTO
-            20, // HABILITADO/NO HABILITADO (conocimiento)
-            20, // RESULTADO FASES 2 Y 3
-            20, // TOTAL EXAMEN DE COMPETENCIA
-            20, // RESULTADO FINAL
-            20, // GANADOR
-            20, // OBSERVACIONES
+            8, // N° - más pequeño
+            25, // NOMBRE(S) Y APELLIDOS
+            18, // PROFESIÓN
+            25, // ASIGNATURA A LA QUE POSTULA
+            18, // PUNTAJE CONCURSO DE MÉRITOS
+            18, // HABILITADO/NO HABILITADO (méritos)
+            18, // PUNTAJE EXAMEN DE CONOCIMIENTO
+            18, // HABILITADO/NO HABILITADO (conocimiento)
+            18, // RESULTADO FASES 2 Y 3
+            18, // TOTAL EXAMEN DE COMPETENCIA
+            18, // HABILITADO/NO HABILITADO (competencia) ✅ NUEVA COLUMNA
+            18, // RESULTADO FINAL
+            12, // GANADOR
+            15, // OBSERVACIONES
           ]
 
-          // Calcular posición inicial de la tabla
           const tableY = yPos + 10
-
-          // Dibujar encabezados de la tabla
           let currentX = margenIzquierdo
 
-          // Dibujar rectángulo para toda la fila de encabezados
+          // Dibujar encabezados de la tabla
           doc.rect(margenIzquierdo, tableY, anchoUtil, headerHeight)
 
           // Dibujar líneas verticales para separar columnas en encabezados
@@ -612,97 +629,48 @@ function Reportes() {
           }
 
           // Agregar textos de encabezados
-          doc.setFontSize(5) // Reducir tamaño de fuente para encabezados más largos
+          doc.setFontSize(4) // Reducir más el tamaño para que quepa la nueva columna
           doc.setFont("helvetica", "bold")
-
           currentX = margenIzquierdo
-          doc.text("N°", currentX + colWidths[0] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
+          const headers = [
+            "N°",
+            "NOMBRE(S) Y\nAPELLIDOS",
+            "PROFESIÓN",
+            "ASIGNATURA A LA\nQUE POSTULA",
+            "PUNTAJE\nCONCURSO DE\nMÉRITOS",
+            "HABILITADO/\nNO\nHABILITADO",
+            "PUNTAJE\nEXAMEN DE\nCONOCIMIENTO",
+            "HABILITADO/\nNO\nHABILITADO",
+            "RESULTADO\nFASES 2 Y 3",
+            "TOTAL\nEXAMEN DE\nCOMPETENCIA",
+            "HABILITADO/\nNO\nHABILITADO", // ✅ NUEVA COLUMNA
+            "RESULTADO\nFINAL",
+            "GANADOR",
+            "OBSERVACIONES",
+          ]
 
-          currentX += colWidths[0]
-          doc.text("NOMBRE(S) Y\nAPELLIDOS", currentX + colWidths[1] / 2, tableY + headerHeight / 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[1]
-          doc.text("PROFESIÓN", currentX + colWidths[2] / 2, tableY + headerHeight / 2 + 2, { align: "center" })
-
-          currentX += colWidths[2]
-          doc.text("ASIGNATURA A LA\nQUE POSTULA", currentX + colWidths[3] / 2, tableY + headerHeight / 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[3]
-          doc.text("PUNTAJE\nCONCURSO DE\nMÉRITOS", currentX + colWidths[4] / 2, tableY + headerHeight / 2 - 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[4]
-          doc.text("HABILITADO/\nNO\nHABILITADO", currentX + colWidths[5] / 2, tableY + headerHeight / 2 - 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[5]
-          doc.text("PUNTAJE\nEXAMEN DE\nCONOCIMIENTO", currentX + colWidths[6] / 2, tableY + headerHeight / 2 - 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[6]
-          doc.text("HABILITADO/\nNO\nHABILITADO", currentX + colWidths[7] / 2, tableY + headerHeight / 2 - 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[7]
-          doc.text("RESULTADO\nFASES 2 Y 3", currentX + colWidths[8] / 2, tableY + headerHeight / 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[8]
-          doc.text("TOTAL\nEXAMEN DE\nCOMPETENCIA", currentX + colWidths[9] / 2, tableY + headerHeight / 2 - 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[9]
-          doc.text("RESULTADO\nFINAL", currentX + colWidths[10] / 2, tableY + headerHeight / 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[10]
-          doc.text("GANADOR", currentX + colWidths[11] / 2, tableY + headerHeight / 2 + 2, {
-            align: "center",
-          })
-
-          currentX += colWidths[11]
-          doc.text("OBSERVACIONES", currentX + colWidths[12] / 2, tableY + headerHeight / 2 + 2, {
-            align: "center",
+          headers.forEach((header, index) => {
+            doc.text(header, currentX + colWidths[index] / 2, tableY + headerHeight / 2, {
+              align: "center",
+            })
+            currentX += colWidths[index]
           })
 
           // Dibujar filas de datos
           doc.setFont("helvetica", "normal")
-
           let currentY = tableY + headerHeight
 
-          // Dibujar cada fila de datos
-          // Si no hay postulantes, no dibujar filas vacías
-          if (postulantes.length === 0) return
-
           postulantes.forEach((postulante, index) => {
-            // Calcular la altura necesaria para esta fila basada en su contenido
             const nombreText = postulante.nombre || ""
             const profesionText = postulante.profesion || ""
             const materiaText = materia || ""
-
-            // Dividir textos para calcular cuántas líneas ocuparán
             const nombreLines = doc.splitTextToSize(nombreText, colWidths[1] - 4)
             const profesionLines = doc.splitTextToSize(profesionText, colWidths[2] - 4)
             const materiaLines = doc.splitTextToSize(materiaText, colWidths[3] - 4)
-
-            // Determinar el número máximo de líneas para calcular la altura de la fila
             const maxLines = Math.max(nombreLines.length, profesionLines.length, materiaLines.length)
+            const calculatedRowHeight = Math.max(rowHeight, maxLines * 3 + 4)
 
-            // Calcular la altura de la fila basada en el contenido
-            const calculatedRowHeight = Math.max(rowHeight, maxLines * 3 + 4) // 3 puntos por línea + 4 de margen
-
-            // Dibujar rectángulo para toda la fila con la altura calculada
+            // Dibujar rectángulo para toda la fila
             doc.rect(margenIzquierdo, currentY, anchoUtil, calculatedRowHeight)
 
             // Dibujar líneas verticales para separar columnas
@@ -714,38 +682,40 @@ function Reportes() {
 
             // Agregar textos de datos
             colX = margenIzquierdo
+
+            // N°
             doc.text((index + 1).toString(), colX + colWidths[0] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
-
             colX += colWidths[0]
-            // Centrar verticalmente el texto en la celda
+
+            // Nombre
             const nombreY = currentY + (calculatedRowHeight - nombreLines.length * 3) / 2 + 3
             doc.text(nombreLines, colX + 2, nombreY)
-
             colX += colWidths[1]
-            // Centrar verticalmente el texto en la celda
+
+            // Profesión
             const profesionY = currentY + (calculatedRowHeight - profesionLines.length * 3) / 2 + 3
             doc.text(profesionLines, colX + 2, profesionY)
-
             colX += colWidths[2]
-            // Centrar verticalmente el texto en la celda
+
+            // Materia
             const materiaY = currentY + (calculatedRowHeight - materiaLines.length * 3) / 2 + 3
             doc.text(materiaLines, colX + 2, materiaY)
-
             colX += colWidths[3]
+
             // Puntaje Concurso de Méritos
             doc.text(postulante.meritos.toString(), colX + colWidths[4] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
-
             colX += colWidths[4]
+
             // Habilitado/No Habilitado para Concurso de Méritos
             doc.text(postulante.meritosHabilitado, colX + colWidths[5] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
-
             colX += colWidths[5]
+
             // Puntaje Examen de Conocimiento
             doc.text(
               postulante.conocimientos.toString(),
@@ -755,8 +725,8 @@ function Reportes() {
                 align: "center",
               },
             )
-
             colX += colWidths[6]
+
             // Habilitado/No Habilitado para Examen de Conocimiento
             doc.text(
               postulante.conocimientosHabilitado,
@@ -766,19 +736,16 @@ function Reportes() {
                 align: "center",
               },
             )
-
             colX += colWidths[7]
+
             // Resultado Fases 2 y 3
             doc.text(
               postulante.resultadoFases2y3.toFixed(2),
               colX + colWidths[8] / 2,
               currentY + calculatedRowHeight / 2 + 2,
-              {
-                align: "center",
-              },
             )
-
             colX += colWidths[8]
+
             // Total Examen de Competencia
             doc.text(
               postulante.totalExamenCompetencia.toFixed(2),
@@ -788,53 +755,56 @@ function Reportes() {
                 align: "center",
               },
             )
-
             colX += colWidths[9]
-            // Resultado Final
+
+            // ✅ NUEVA COLUMNA: Habilitado/No Habilitado para Total Competencia
             doc.text(
-              postulante.resultadoFinal.toFixed(2),
+              postulante.totalCompetenciaHabilitado,
               colX + colWidths[10] / 2,
               currentY + calculatedRowHeight / 2 + 2,
               {
                 align: "center",
               },
             )
-
             colX += colWidths[10]
-            // Ganador
-            doc.text(postulante.ganador, colX + colWidths[11] / 2, currentY + calculatedRowHeight / 2 + 2, {
+
+            // Resultado Final
+            doc.text(
+              postulante.resultadoFinal.toFixed(2),
+              colX + colWidths[11] / 2,
+              currentY + calculatedRowHeight / 2 + 2,
+              {
+                align: "center",
+              },
+            )
+            colX += colWidths[11]
+
+            // ✅ GANADOR - Solo "SI" o vacío
+            doc.text(postulante.ganador, colX + colWidths[12] / 2, currentY + calculatedRowHeight / 2 + 2, {
               align: "center",
             })
+            colX += colWidths[12]
 
-            colX += colWidths[11]
             // Observaciones
             const obsText = postulante.observaciones || ""
-            doc.text(obsText, colX + colWidths[12] / 2, currentY + calculatedRowHeight / 2 + 2, { align: "center" })
+            doc.text(obsText, colX + colWidths[13] / 2, currentY + calculatedRowHeight / 2 + 2, { align: "center" })
 
-            // Actualizar la posición Y para la siguiente fila
             currentY += calculatedRowHeight
           })
 
-          // Actualizar posición Y para la siguiente tabla - agregar espacio entre tablas
-          yPos = currentY + 10 // Espacio fijo de 10px entre tablas
+          yPos = currentY + 10
         })
 
-        // Verificar si hay espacio suficiente para la firma
-        // Necesitamos aproximadamente 50 puntos de altura para la firma y fecha
+        // Verificar espacio para firma
         if (yPos + 50 > pageHeight - 20) {
-          // No hay suficiente espacio, añadir nueva página
           doc.addPage()
           yPos = margenSuperior
         }
 
-        // Fecha en la esquina inferior derecha
+        // Fecha y firma
         doc.setFontSize(8)
-
-        // Obtener fecha actual con zona horaria de Bolivia (UTC-4)
         const fechaActual = new Date()
-        // Ajustar a la zona horaria de Bolivia (UTC-4)
         const fechaBolivia = new Date(fechaActual.getTime() - (fechaActual.getTimezoneOffset() + 240) * 60000)
-
         const dia = fechaBolivia.getDate()
         const meses = [
           "enero",
@@ -852,11 +822,10 @@ function Reportes() {
         ]
         const mes = meses[fechaBolivia.getMonth()]
         const anio = fechaBolivia.getFullYear()
-
         const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
+
         doc.text(fechaFormateada, pageWidth - margenIzquierdo, yPos + 10, { align: "right" })
 
-        // Una sola firma centrada - Jefe de Unidad (sin cargo profesional)
         const firmaY = yPos + 25
         doc.line(margenIzquierdo + anchoUtil / 2 - 30, firmaY, margenIzquierdo + anchoUtil / 2 + 30, firmaY)
         doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 5, {
@@ -865,7 +834,6 @@ function Reportes() {
         doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 10, { align: "center" })
       } catch (error) {
         console.error("Error al generar el PDF:", error)
-        // Si hay error al cargar la imagen, continuamos sin ella
         Swal.fire({
           icon: "warning",
           title: "Advertencia",
@@ -874,7 +842,6 @@ function Reportes() {
       }
     })
 
-    // Guardar el PDF
     doc.save("ResultadosFinalesSeleccionDocente.pdf")
   }
 
@@ -1019,7 +986,8 @@ function Reportes() {
                   </select>
                 </div>
               </div>
-              {/* ✅ INFORMACIÓN DE DEBUG PARA VERIFICAR FECHAS */}
+
+              {/* ✅ INFORMACIÓN DE DEBUG PARA VERIFICAR FECHAS Y NOTAS */}
               {reportData.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-xs text-blue-800">
@@ -1029,6 +997,18 @@ function Reportes() {
                   <p className="text-xs text-blue-600 mt-1">
                     Total de registros con fechas válidas: {reportData.filter((r) => r.fechaCreacion).length} de{" "}
                     {reportData.length}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    <strong>✅ Registros con notas de méritos &gt; 0:</strong>{" "}
+                    {reportData.filter((r) => r.meritos > 0).length}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    <strong>✅ Registros con notas de conocimientos &gt; 0:</strong>{" "}
+                    {reportData.filter((r) => r.conocimientos > 0).length}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    <strong>✅ Registros con notas de competencias &gt; 0:</strong>{" "}
+                    {reportData.filter((r) => r.resultadoFases2y3 > 0).length}
                   </p>
                 </div>
               )}
@@ -1061,7 +1041,7 @@ function Reportes() {
           </div>
         </div>
 
-        {/* Contenedor a pantalla completa y con scroll horizontal si la tabla es muy ancha */}
+        {/* Contenedor de tabla con scroll horizontal */}
         <div className="bg-white rounded-xl shadow-lg w-full overflow-x-auto">
           {/* Vista en tabla para pantallas medianas y superiores */}
           <table className="min-w-full bg-white border border-gray-200 hidden sm:table">
@@ -1079,14 +1059,16 @@ function Reportes() {
                 <th className="py-3 px-4 text-left">Habilitado</th>
                 <th className="py-3 px-4 text-left">Fases 2 y 3</th>
                 <th className="py-3 px-4 text-left">Total Competencia</th>
+                <th className="py-3 px-4 text-left">Habilitado</th>
                 <th className="py-3 px-4 text-left">Resultado Final</th>
-                <th className="py-3 px-4 text-left">📅 Fecha</th> {/* ✅ COLUMNA ADICIONAL PARA DEBUG */}
+                <th className="py-3 px-4 text-left">Ganador</th>
+                <th className="py-3 px-4 text-left">📅 Fecha</th>
               </tr>
             </thead>
             <tbody className="text-gray-700 text-sm font-light">
               {isLoading ? (
                 <tr>
-                  <td colSpan="14" className="py-6 text-center text-gray-500">
+                  <td colSpan="16" className="py-6 text-center text-gray-500">
                     Cargando registros...
                   </td>
                 </tr>
@@ -1102,23 +1084,35 @@ function Reportes() {
                     <td className="py-2 px-4">{record.profesion}</td>
                     <td className="py-2 px-4">{record.materia}</td>
                     <td className="py-2 px-4">{record.carrera}</td>
-                    <td className="py-2 px-4">{record.meritos}</td>
+                    <td className="py-2 px-4 font-semibold text-blue-600">{record.meritos}</td>
                     <td className="py-2 px-4">{record.meritosHabilitado}</td>
-                    <td className="py-2 px-4">{record.conocimientos}</td>
+                    <td className="py-2 px-4 font-semibold text-green-600">{record.conocimientos}</td>
                     <td className="py-2 px-4">{record.conocimientosHabilitado}</td>
-                    <td className="py-2 px-4">{record.resultadoFases2y3.toFixed(2)}</td>
-                    <td className="py-2 px-4">{record.totalExamenCompetencia.toFixed(2)}</td>
-                    <td className="py-2 px-4">{record.resultadoFinal.toFixed(2)}</td>
+                    <td className="py-2 px-4 font-semibold text-purple-600">{record.resultadoFases2y3.toFixed(2)}</td>
+                    <td className="py-2 px-4 font-semibold text-orange-600">
+                      {record.totalExamenCompetencia.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-4 font-medium">
+                      <span
+                        className={
+                          record.totalCompetenciaHabilitado === "Habilitado" ? "text-green-600" : "text-red-600"
+                        }
+                      >
+                        {record.totalCompetenciaHabilitado}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 font-bold text-lg">{record.resultadoFinal.toFixed(2)}</td>
+                    <td className="py-2 px-4 font-bold">
+                      <span className={record.ganador === "SI" ? "text-green-600" : ""}>{record.ganador}</span>
+                    </td>
                     <td className="py-2 px-4 text-xs text-gray-500">
-                      {" "}
-                      {/* ✅ COLUMNA DE DEBUG */}
                       {record.fechaCreacion ? new Date(record.fechaCreacion).toLocaleDateString() : "Sin fecha"}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="14" className="py-6 text-center text-gray-500">
+                  <td colSpan="16" className="py-6 text-center text-gray-500">
                     No se encontraron registros que coincidan con los criterios de búsqueda
                   </td>
                 </tr>
@@ -1139,6 +1133,11 @@ function Reportes() {
                   <span className="font-bold text-gray-800">
                     {record.nro}. {record.nombre}
                   </span>
+                  {record.ganador === "SI" && (
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-bold">
+                      GANADOR
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-600">
                   <strong>Carnet:</strong> {record.carnet}
@@ -1153,21 +1152,31 @@ function Reportes() {
                   <strong>Carrera:</strong> {record.carrera}
                 </p>
                 <p className="text-gray-600">
-                  <strong>Méritos:</strong> {record.meritos} ({record.meritosHabilitado})
+                  <strong>Méritos:</strong> <span className="font-semibold text-blue-600">{record.meritos}</span> (
+                  {record.meritosHabilitado})
                 </p>
                 <p className="text-gray-600">
-                  <strong>Conocimientos:</strong> {record.conocimientos} ({record.conocimientosHabilitado})
+                  <strong>Conocimientos:</strong>{" "}
+                  <span className="font-semibold text-green-600">{record.conocimientos}</span> (
+                  {record.conocimientosHabilitado})
                 </p>
                 <p className="text-gray-600">
-                  <strong>Fases 2 y 3:</strong> {record.resultadoFases2y3.toFixed(2)}
+                  <strong>Fases 2 y 3:</strong>{" "}
+                  <span className="font-semibold text-purple-600">{record.resultadoFases2y3.toFixed(2)}</span>
                 </p>
                 <p className="text-gray-600">
-                  <strong>Total Competencia:</strong> {record.totalExamenCompetencia.toFixed(2)}
+                  <strong>Total Competencia:</strong>{" "}
+                  <span className="font-semibold text-orange-600">{record.totalExamenCompetencia.toFixed(2)}</span>
+                  <span
+                    className={`ml-2 font-medium ${record.totalCompetenciaHabilitado === "Habilitado" ? "text-green-600" : "text-red-600"}`}
+                  >
+                    ({record.totalCompetenciaHabilitado})
+                  </span>
                 </p>
                 <p className="text-gray-600">
-                  <strong>Resultado Final:</strong> {record.resultadoFinal.toFixed(2)}
+                  <strong>Resultado Final:</strong>{" "}
+                  <span className="font-bold text-lg">{record.resultadoFinal.toFixed(2)}</span>
                 </p>
-                {/* ✅ FECHA EN VISTA MÓVIL */}
                 <p className="text-gray-500 text-xs">
                   <strong>📅 Fecha:</strong>{" "}
                   {record.fechaCreacion ? new Date(record.fechaCreacion).toLocaleDateString() : "Sin fecha"}
@@ -1180,6 +1189,7 @@ function Reportes() {
             </div>
           )}
         </div>
+
         {/* Estado de carga */}
         {isLoading ? (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
@@ -1200,8 +1210,6 @@ function Reportes() {
           </div>
         ) : (
           <>
-            {/* Contenido de la tabla existente */}
-
             {/* Paginación */}
             {totalPages > 1 && (
               <div className="mt-6 flex justify-center">
@@ -1216,7 +1224,6 @@ function Reportes() {
                     <span className="sr-only">Anterior</span>
                     &laquo;
                   </button>
-
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
                     if (
                       number === 1 ||
@@ -1237,7 +1244,6 @@ function Reportes() {
                         </button>
                       )
                     }
-
                     if (
                       (number === 2 && currentPage > 3) ||
                       (number === totalPages - 1 && currentPage < totalPages - 2)
@@ -1251,10 +1257,8 @@ function Reportes() {
                         </span>
                       )
                     }
-
                     return null
                   })}
-
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}

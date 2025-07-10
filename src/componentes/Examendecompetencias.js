@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
@@ -44,11 +43,9 @@ function Examendecompetencias() {
     try {
       const response = await axios.get(`${baseURL}/api/examen-competencias`)
       console.log("Registros obtenidos:", response.data)
-
       // Recuperar datos del usuario desde localStorage (clave "user")
       const user = JSON.parse(localStorage.getItem("user"))
       console.log("Usuario logueado:", user)
-
       let registrosData = response.data
       if (user && !user.administrador) {
         registrosData = registrosData.filter((registro) => registro.evaluadorId && registro.evaluadorId === user._id)
@@ -100,7 +97,6 @@ function Examendecompetencias() {
     const matchesCarrera = filters.carrera ? registro.carrera === filters.carrera : true
     const matchesTipoEvaluador = filters.tipoEvaluador ? registro.tipoEvaluador === filters.tipoEvaluador : true
     const matchesMateria = filters.materia ? registro.materia === filters.materia : true
-
     const matchesGestion = filters.gestion
       ? new Date(registro.fecha).getFullYear().toString() === filters.gestion
       : true
@@ -143,7 +139,6 @@ function Examendecompetencias() {
       })
       return
     }
-
     const worksheet = XLSX.utils.json_to_sheet(
       filteredRegistros.map((registro) => ({
         Evaluador: registro.nombreEvaluador,
@@ -159,7 +154,6 @@ function Examendecompetencias() {
     )
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Examen_Competencias")
-
     XLSX.writeFile(workbook, "Examen_Competencias.xlsx")
   }
 
@@ -173,7 +167,6 @@ function Examendecompetencias() {
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar",
     })
-
     if (confirm.isConfirmed) {
       try {
         await axios.delete(`${baseURL}/api/examen-competencias/${id}`)
@@ -194,7 +187,7 @@ function Examendecompetencias() {
     }
   }
 
-  // Función para descargar PDF
+  // ✅ FUNCIÓN MODIFICADA PARA AGRUPAR POR CARRERA
   const handleDownloadPDF = () => {
     if (registros.length === 0) {
       Swal.fire({
@@ -205,12 +198,10 @@ function Examendecompetencias() {
       return
     }
 
-    // Agrupar registros con reduce
+    // ✅ PASO 1: Agrupar registros por carnet-materia-carrera
     const grouped = registros.reduce((acc, registro) => {
       const key = `${registro.carnet}-${registro.materia}-${registro.carrera}`
-      // Sumar las dos notas de cada evaluación (Plan de Trabajo + Procesos Pedagógicos)
       const notaTotal = Number(registro.notaPlanTrabajo) + Number(registro.notaProcesosPedagogicos)
-
       if (!acc[key]) {
         acc[key] = {
           carnet: registro.carnet,
@@ -220,35 +211,29 @@ function Examendecompetencias() {
           evaluaciones: [],
         }
       }
-
       acc[key].evaluaciones.push({
         evaluador: registro.nombreEvaluador || "N/A",
         tipo: registro.tipoEvaluador,
         nota: notaTotal,
       })
-
       return acc
     }, {})
 
-    const groupedArray = Object.values(grouped).map((group, index) => {
+    // ✅ PASO 2: Procesar evaluaciones y crear array de datos
+    const groupedArray = Object.values(grouped).map((group) => {
       const evaluaciones = group.evaluaciones.reduce((acc, ev) => {
         acc[ev.tipo] = ev.nota
         return acc
       }, {})
-
-      // Aseguramos que existan las tres notas (Evaluador 1, Evaluador 2, Presidente)
       const evaluador1 = evaluaciones["Evaluador 1"] || 0.0
       const evaluador2 = evaluaciones["Evaluador 2"] || 0.0
-      // CAMBIO: Usar "Presidente Tribunal" con T mayúscula
       const presidente = evaluaciones["Presidente Tribunal"] || 0.0
-
       const total = evaluador1 + evaluador2 + presidente
       const promedio = (total / 3).toFixed(1).replace(".", ",")
-
       return {
-        nro: index + 1,
         nombre: group.nombre,
         materia: group.materia,
+        carrera: group.carrera,
         evaluador1,
         evaluador2,
         presidenteTribunal: presidente,
@@ -256,65 +241,76 @@ function Examendecompetencias() {
       }
     })
 
+    // ✅ PASO 3: Agrupar por carrera
+    const registrosPorCarrera = {}
+    groupedArray.forEach((registro) => {
+      const carrera = registro.carrera || "Sin Carrera"
+      if (!registrosPorCarrera[carrera]) {
+        registrosPorCarrera[carrera] = []
+      }
+      registrosPorCarrera[carrera].push(registro)
+    })
+
     const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.width
+    const pageHeight = doc.internal.pageSize.height
 
-    // Configuración de márgenes
-    const margenIzquierdo = 10
-    const margenSuperior = 10
-    const anchoUtil = doc.internal.pageSize.width - margenIzquierdo * 2
-    const altoEncabezado = 25
+    // ✅ PASO 4: Procesar cada carrera
+    let carreraIndex = 0
+    Object.entries(registrosPorCarrera).forEach(([carrera, registrosCarrera]) => {
+      if (carreraIndex > 0) {
+        doc.addPage()
+      }
+      carreraIndex++
 
-    // Dibujar recuadro del encabezado
-    doc.setDrawColor(0)
-    doc.setLineWidth(0.5)
-    doc.rect(margenIzquierdo, margenSuperior, anchoUtil, altoEncabezado)
+      // Configuración de márgenes
+      const margenIzquierdo = 10
+      const margenSuperior = 10
+      const anchoUtil = pageWidth - margenIzquierdo * 2
+      const altoEncabezado = 25
 
-    // Sección 1: Logo (izquierda)
-    const logoWidth = anchoUtil * 0.25
-    doc.line(margenIzquierdo + logoWidth, margenSuperior, margenIzquierdo + logoWidth, margenSuperior + altoEncabezado)
+      // Dibujar recuadro del encabezado
+      doc.setDrawColor(0)
+      doc.setLineWidth(0.5)
+      doc.rect(margenIzquierdo, margenSuperior, anchoUtil, altoEncabezado)
 
-    // Sección 2: Título (centro)
-    const tituloWidth = anchoUtil * 0.5
-    doc.line(
-      margenIzquierdo + logoWidth + tituloWidth,
-      margenSuperior,
-      margenIzquierdo + logoWidth + tituloWidth,
-      margenSuperior + altoEncabezado,
-    )
+      // Sección 1: Logo (izquierda)
+      const logoWidth = anchoUtil * 0.25
+      doc.line(
+        margenIzquierdo + logoWidth,
+        margenSuperior,
+        margenIzquierdo + logoWidth,
+        margenSuperior + altoEncabezado,
+      )
 
-    // Intentar cargar el logo
-    try {
-      const img = new Image()
-      img.src = logoEMI
+      // Sección 2: Título (centro)
+      const tituloWidth = anchoUtil * 0.5
+      doc.line(
+        margenIzquierdo + logoWidth + tituloWidth,
+        margenSuperior,
+        margenIzquierdo + logoWidth + tituloWidth,
+        margenSuperior + altoEncabezado,
+      )
 
-      img.onload = () => {
+      // ✅ AGREGAR LOGO
+      try {
+        const img = new Image()
+        img.src = logoEMI
+        img.crossOrigin = "anonymous"
         doc.addImage(img, "PNG", margenIzquierdo + 2, margenSuperior + 2, logoWidth - 4, altoEncabezado - 4)
-        continuarGeneracionPDF()
-      }
-
-      img.onerror = (error) => {
+      } catch (error) {
         console.error("Error al cargar el logo:", error)
-        mostrarPlaceholder()
-        continuarGeneracionPDF()
+        // Placeholder para el logo
+        doc.setDrawColor(200, 200, 200)
+        doc.setFillColor(240, 240, 240)
+        doc.rect(margenIzquierdo + 2, margenSuperior + 2, logoWidth - 4, altoEncabezado - 4, "FD")
+        doc.setFontSize(10)
+        doc.setTextColor(100, 100, 100)
+        doc.text("LOGO EMI", margenIzquierdo + logoWidth / 2, margenSuperior + altoEncabezado / 2, {
+          align: "center",
+        })
       }
-    } catch (error) {
-      console.error("Error al procesar el logo:", error)
-      mostrarPlaceholder()
-      continuarGeneracionPDF()
-    }
 
-    function mostrarPlaceholder() {
-      doc.setDrawColor(200, 200, 200)
-      doc.setFillColor(240, 240, 240)
-      doc.rect(margenIzquierdo + 2, margenSuperior + 2, logoWidth - 4, altoEncabezado - 4, "FD")
-      doc.setFontSize(10)
-      doc.setTextColor(100, 100, 100)
-      doc.text("LOGO EMI", margenIzquierdo + logoWidth / 2, margenSuperior + altoEncabezado / 2, {
-        align: "center",
-      })
-    }
-
-    function continuarGeneracionPDF() {
       // Título en el centro
       doc.setFontSize(9)
       doc.setFont("helvetica", "bold")
@@ -330,7 +326,6 @@ function Examendecompetencias() {
       const seccionDerecha = margenIzquierdo + logoWidth + tituloWidth
       const anchoDerecha = anchoUtil - logoWidth - tituloWidth
       const altoFila = altoEncabezado / 3
-
       doc.line(seccionDerecha, margenSuperior + altoFila, seccionDerecha + anchoDerecha, margenSuperior + altoFila)
       doc.line(
         seccionDerecha,
@@ -338,26 +333,39 @@ function Examendecompetencias() {
         seccionDerecha + anchoDerecha,
         margenSuperior + altoFila * 2,
       )
-
       const mitadDerecha = seccionDerecha + anchoDerecha / 2
       doc.line(mitadDerecha, margenSuperior, mitadDerecha, margenSuperior + altoFila * 2)
 
       doc.setFontSize(7)
       doc.setFont("helvetica", "normal")
-
       doc.text("Código:", seccionDerecha + 5, margenSuperior + altoFila / 2 + 2)
       doc.text("CB-UEA.EA-R-22", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila / 2 + 2, {
         align: "right",
       })
-
       doc.text("Versión:", seccionDerecha + 5, margenSuperior + altoFila + altoFila / 2 + 2)
       doc.text("1.0", seccionDerecha + anchoDerecha - 3, margenSuperior + altoFila + altoFila / 2 + 2, {
         align: "right",
       })
-
       doc.text("Página 1 de 1", seccionDerecha + anchoDerecha / 2, margenSuperior + altoFila * 2 + altoFila / 2 + 2, {
         align: "center",
       })
+
+      // ✅ AGREGAR TEXTO SIMPLE DE CARRERA
+      const yCarrera = margenSuperior + altoEncabezado + 10
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text(`CARRERA: ${carrera}`, margenIzquierdo, yCarrera)
+
+      // ✅ RENUMERAR POR CARRERA
+      const tableData = registrosCarrera.map((record, index) => ({
+        nro: index + 1,
+        nombre: record.nombre || "",
+        materia: record.materia || "",
+        evaluador1: Number.parseFloat(record.evaluador1).toFixed(1).replace(".", ","),
+        evaluador2: Number.parseFloat(record.evaluador2).toFixed(1).replace(".", ","),
+        presidenteTribunal: Number.parseFloat(record.presidenteTribunal).toFixed(1).replace(".", ","),
+        promedio: record.promedio,
+      }))
 
       // Preparar datos para la tabla
       const tableColumn = [
@@ -370,27 +378,11 @@ function Examendecompetencias() {
         { title: "PROMEDIO\nTOTAL", dataKey: "promedio" },
       ]
 
-      const tableData = []
-
-      groupedArray.forEach((record) => {
-        tableData.push({
-          nro: record.nro,
-          nombre: record.nombre || "",
-          materia: record.materia || "",
-          evaluador1: Number.parseFloat(record.evaluador1).toFixed(1).replace(".", ","),
-          evaluador2: Number.parseFloat(record.evaluador2).toFixed(1).replace(".", ","),
-          presidenteTribunal: Number.parseFloat(record.presidenteTribunal).toFixed(1).replace(".", ","),
-          promedio: record.promedio,
-        })
-      })
-
-      // Ya no completamos hasta 25 filas, solo usamos los datos existentes
-
       const colorGrisClaro = [230, 230, 230]
 
       // Usar autoTable para generar la tabla
       doc.autoTable({
-        startY: margenSuperior + altoEncabezado + 5,
+        startY: yCarrera + 10,
         columns: tableColumn,
         body: tableData,
         theme: "grid",
@@ -419,78 +411,83 @@ function Examendecompetencias() {
         },
       })
 
-      // Obtener la posición Y final de la tabla
-      const finalY = doc.autoTable.previous.finalY || margenSuperior + altoEncabezado + 5 + tableData.length * 10
+      // ✅ AGREGAR FIRMA Y FECHA AL FINAL DE CADA CARRERA
+      const finalY = doc.autoTable.previous.finalY || yCarrera + 10 + tableData.length * 10
 
-      // Obtener fecha actual con zona horaria de Bolivia (UTC-4)
-      const fechaActual = new Date()
-      // Ajustar a la zona horaria de Bolivia (UTC-4)
-      const fechaBolivia = new Date(fechaActual.getTime() - (fechaActual.getTimezoneOffset() + 240) * 60000)
+      // Verificar espacio para firma
+      if (finalY + 80 > pageHeight - 20) {
+        doc.addPage()
+        const nuevaY = margenSuperior
+        agregarFirmaYFecha(doc, nuevaY, pageWidth, margenIzquierdo)
+      } else {
+        agregarFirmaYFecha(doc, finalY, pageWidth, margenIzquierdo)
+      }
+    })
 
-      const dia = fechaBolivia.getDate()
-      const meses = [
-        "enero",
-        "febrero",
-        "marzo",
-        "abril",
-        "mayo",
-        "junio",
-        "julio",
-        "agosto",
-        "septiembre",
-        "octubre",
-        "noviembre",
-        "diciembre",
-      ]
-      const mes = meses[fechaBolivia.getMonth()]
-      const anio = fechaBolivia.getFullYear()
+    doc.save("resultados_examen_competencias.pdf")
+  }
 
-      const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
+  // ✅ FUNCIÓN PARA AGREGAR FIRMA Y FECHA
+  const agregarFirmaYFecha = (doc, yPos, pageWidth, margenIzquierdo) => {
+    // Obtener fecha actual con zona horaria de Bolivia (UTC-4)
+    const fechaActual = new Date()
+    const fechaBolivia = new Date(fechaActual.getTime() - (fechaActual.getTimezoneOffset() + 240) * 60000)
+    const dia = fechaBolivia.getDate()
+    const meses = [
+      "enero",
+      "febrero",
+      "marzo",
+      "abril",
+      "mayo",
+      "junio",
+      "julio",
+      "agosto",
+      "septiembre",
+      "octubre",
+      "noviembre",
+      "diciembre",
+    ]
+    const mes = meses[fechaBolivia.getMonth()]
+    const anio = fechaBolivia.getFullYear()
+    const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
 
-      // Espacio reducido después de la tabla
-      const espacioPostTabla = 15
+    // Espacio después de la tabla
+    const espacioPostTabla = 15
 
-      // Centrar la fecha
-      const anchoDocumento = doc.internal.pageSize.width
-      doc.setFontSize(11)
-      doc.setFont("helvetica", "normal")
-      doc.text(fechaFormateada, anchoDocumento / 2, finalY + espacioPostTabla, { align: "center" })
+    // Centrar la fecha
+    doc.setFontSize(11)
+    doc.setFont("helvetica", "normal")
+    doc.text(fechaFormateada, pageWidth / 2, yPos + espacioPostTabla, { align: "center" })
 
-      // Espacio reducido entre fecha y firma
-      const espacioEntreFechaYFirma = 30
+    // Espacio entre fecha y firma
+    const espacioEntreFechaYFirma = 30
 
-      // Línea para la firma
-      const anchoLinea = 60
-      doc.setLineWidth(0.5)
-      doc.line(
-        anchoDocumento / 2 - anchoLinea / 2,
-        finalY + espacioPostTabla + espacioEntreFechaYFirma - 10,
-        anchoDocumento / 2 + anchoLinea / 2,
-        finalY + espacioPostTabla + espacioEntreFechaYFirma - 10,
-      )
+    // Línea para la firma
+    const anchoLinea = 60
+    doc.setLineWidth(0.5)
+    doc.line(
+      pageWidth / 2 - anchoLinea / 2,
+      yPos + espacioPostTabla + espacioEntreFechaYFirma - 10,
+      pageWidth / 2 + anchoLinea / 2,
+      yPos + espacioPostTabla + espacioEntreFechaYFirma - 10,
+    )
 
-      // Centrar el texto del presidente (manteniendo PDTE.)
-      doc.setFont("helvetica", "bold")
-      doc.text(
-        "PDTE. DE LA COMISIÓN EVALUADORA – EXAMEN DE COMPETENCIAS",
-        anchoDocumento / 2,
-        finalY + espacioPostTabla + espacioEntreFechaYFirma,
-        { align: "center" },
-      )
+    // Texto del presidente
+    doc.setFont("helvetica", "bold")
+    doc.text(
+      "PDTE. DE LA COMISIÓN EVALUADORA – EXAMEN DE COMPETENCIAS",
+      pageWidth / 2,
+      yPos + espacioPostTabla + espacioEntreFechaYFirma,
+      { align: "center" },
+    )
 
-      // Agregar número de página en la parte inferior
-      const espacioPagina = 15
-      doc.setFontSize(9)
-      doc.setFont("helvetica", "normal")
-      doc.text(
-        "Página 1 de 1",
-        anchoDocumento / 2,
-        finalY + espacioPostTabla + espacioEntreFechaYFirma + espacioPagina,
-        { align: "center" },
-      )
-
-      doc.save("resultados_examen_competencias.pdf")
-    }
+    // Número de página
+    const espacioPagina = 15
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
+    doc.text("Página 1 de 1", pageWidth / 2, yPos + espacioPostTabla + espacioEntreFechaYFirma + espacioPagina, {
+      align: "center",
+    })
   }
 
   return (
@@ -906,7 +903,6 @@ function Examendecompetencias() {
                         <span className="sr-only">Anterior</span>
                         &laquo;
                       </button>
-
                       {/* Mostrar números de página */}
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
                         if (
@@ -928,7 +924,6 @@ function Examendecompetencias() {
                             </button>
                           )
                         }
-
                         if (
                           (number === 2 && currentPage > 3) ||
                           (number === totalPages - 1 && currentPage < totalPages - 2)
@@ -942,10 +937,8 @@ function Examendecompetencias() {
                             </span>
                           )
                         }
-
                         return null
                       })}
-
                       <button
                         onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
