@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import axios from "axios"
 import Swal from "sweetalert2"
@@ -382,7 +381,7 @@ function Reportes() {
 
   // Calcular elementos para la página actual
   const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage
   const currentItems = filteredRegistros.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredRegistros.length / itemsPerPage)
 
@@ -590,7 +589,6 @@ function Reportes() {
         doc.text("Artículo 32:", margenIzquierdo + 5, yInfoBloque + 26)
         const textoArticulo =
           "El puntaje mínimo a obtener en el Concurso de Méritos que permite a la Institución contar con Docentes de relativa experiencia, tanto en la enseñanza como en su actividad profesional es de 220 puntos para nivel Licenciatura y 200 para Nivel Técnico Universitario Superior. El Postulante que no alcance esta puntuación, será descalificado del proceso de selección y, en consecuencia, no podrá optar al Examen de Competencia."
-
         const textLines = doc.splitTextToSize(textoArticulo, anchoUtil - 60)
         doc.text(textLines, margenIzquierdo + 50, yInfoBloque + 26)
 
@@ -603,7 +601,6 @@ function Reportes() {
 
           materiaIndex++
           const estimatedHeight = 10 + 12 + postulantes.length * 10
-
           if (yPos + estimatedHeight > pageHeight - 40) {
             doc.addPage()
             yPos = margenSuperior
@@ -820,13 +817,13 @@ function Reportes() {
           yPos = currentY + 10
         })
 
-        // Verificar espacio para firma
-        if (yPos + 50 > pageHeight - 20) {
+        // Verificar espacio para firmas
+        if (yPos + 80 > pageHeight - 20) {
           doc.addPage()
           yPos = margenSuperior
         }
 
-        // Fecha y firma
+        // Fecha y firmas
         doc.setFontSize(8)
         const fechaActual = new Date()
         const fechaBolivia = new Date(fechaActual.getTime() - (fechaActual.getTimezoneOffset() + 240) * 60000)
@@ -847,16 +844,29 @@ function Reportes() {
         ]
         const mes = meses[fechaBolivia.getMonth()]
         const anio = fechaBolivia.getFullYear()
-
         const fechaFormateada = `Cochabamba, ${dia} de ${mes} de ${anio}`
-        doc.text(fechaFormateada, pageWidth - margenIzquierdo, yPos + 10, { align: "right" })
 
-        const firmaY = yPos + 25
-        doc.line(margenIzquierdo + anchoUtil / 2 - 30, firmaY, margenIzquierdo + anchoUtil / 2 + 30, firmaY)
-        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", margenIzquierdo + anchoUtil / 2, firmaY + 5, {
+        doc.text(fechaFormateada, pageWidth - margenIzquierdo, yPos + 15, { align: "right" })
+
+        // ✅ MODIFICACIÓN: DOS FIRMAS CENTRADAS UNA ENCIMA DE LA OTRA
+        const firmaY = yPos + 40
+        const anchoFirma = 120 // Ancho de cada línea de firma
+        const centroX = margenIzquierdo + anchoUtil / 2 // Centro de la página
+
+        // Primera firma (arriba, centrada)
+        doc.line(centroX - anchoFirma / 2, firmaY, centroX + anchoFirma / 2, firmaY)
+        doc.text("JEFE DE UNIDAD DE EVALUACIÓN Y ACREDITACIÓN", centroX, firmaY + 5, {
           align: "center",
         })
-        doc.text("ESCUELA MILITAR DE INGENIERÍA", margenIzquierdo + anchoUtil / 2, firmaY + 10, { align: "center" })
+        doc.text("ESCUELA MILITAR DE INGENIERÍA", centroX, firmaY + 10, { align: "center" })
+
+        // Segunda firma (abajo, centrada, con separación)
+        const firma2Y = firmaY + 35 // Separación de 25 puntos entre firmas
+        doc.line(centroX - anchoFirma / 2, firma2Y, centroX + anchoFirma / 2, firma2Y)
+        doc.text("DIRECTOR DE LA UNIDAD ACADÉMICA COCHABAMBA", centroX, firma2Y + 5, {
+          align: "center",
+        })
+        doc.text("ESCUELA MILITAR DE INGENIERÍA", centroX, firma2Y + 10, { align: "center" })
       } catch (error) {
         console.error("Error al generar el PDF:", error)
         Swal.fire({
@@ -1190,7 +1200,7 @@ function Reportes() {
                   {record.conocimientosHabilitado})
                 </p>
                 <p className="text-gray-600">
-                  <strong>Fases 2 y 3:</strong>{" "}
+                  <strong>Fases 2 y 3:</strong>
                   <span className="font-semibold text-purple-600">{record.resultadoFases2y3.toFixed(2)}</span>
                 </p>
                 <p className="text-gray-600">
